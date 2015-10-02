@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: latin-1 -*-
-'''GET an ENCODE collection and output a tsv of all objects and their properties suitable for spreadsheet import'''
-
-'''use json to convert between Python dictionaries and JSON objects'''
+'''GET an ENCODE collection and output a tsv of all objects and
+their properties suitable for spreadsheet import'''
 import json
-'''use jsonschema to validate objects against the JSON schemas'''
-
 import os.path
 import encodedcc
 
@@ -26,9 +23,6 @@ Same for human-donors
     %(prog)s human-donors > human-donors.tsv
 
 '''
-
-'''force return from the server in JSON format'''
-HEADERS = {'content-type': 'application/json'}
 
 
 def main():

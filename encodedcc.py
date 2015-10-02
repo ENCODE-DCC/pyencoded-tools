@@ -220,21 +220,18 @@ class ENC_Item(object):
             return None
 
 
-def get_ENCODE(obj_id, connection):
+def get_ENCODE(obj_id, connection, frame="object"):
     '''GET an ENCODE object as JSON and return as dict'''
     if '?' in obj_id:
-        url = urljoin(connection.server, obj_id+'?limit=all')
+        url = urljoin(connection.server, obj_id+'&limit=all&frame='+frame)
     else:
-        url = urljoin(connection.server, obj_id+'?limit=all')
+        url = urljoin(connection.server, obj_id+'?limit=all&frame='+frame)
     logging.debug('GET %s' % (url))
-    response = requests.get(url, auth=connection.auth,
-                            headers=connection.headers)
+    response = requests.get(url, auth=connection.auth, headers=connection.headers)
     logging.debug('GET RESPONSE code %s' % (response.status_code))
     try:
         if response.json():
-            logging.debug('GET RESPONSE JSON: %s' %
-                          (json.dumps(response.json(),
-                                      indent=4, separators=(',', ': '))))
+            logging.debug('GET RESPONSE JSON: %s' % (json.dumps(response.json(), indent=4, separators=(',', ': '))))
     except:
         logging.debug('GET RESPONSE text %s' % (response.text))
     if not response.status_code == 200:
