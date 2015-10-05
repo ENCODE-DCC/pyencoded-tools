@@ -34,8 +34,8 @@ def getArgs():
                         action='store_true',
                         default=False)
     parser.add_argument('--create',
-                        help="Run script and POST new objects as needed,\
-                        must be run with --update.  Default is off",
+                        help="Run script and POST new objects as needed.  \
+                        Default is off",
                         action='store_true',
                         default=False)
     parser.add_argument('--createonly',
@@ -54,30 +54,62 @@ def getArgs():
         logging.basicConfig(filename=args.outfile, filemode="w",
                             format='%(levelname)s:%(message)s',
                             level=logging.DEBUG)
-    else:  # use the defaulf logging level
+    else:  # use the default logging level
         logging.basicConfig(filename=args.outfile, filemode="w",
-                            format='%(levelname)s:%(message)s')
+                            format='%(levelname)s:%(message)s',
+                            level=logging.INFO)
 
     return args
 
 
-class Publication_Update:
+class PublicationUpdate:
     def __init__(self, arguments):
         self.MAPPING = {"abstract": "AB", "authors": "AU", "title": "TI",
                         "volume": "VI", "journal": "JT", "date_published": "DP",
                         "page": "PG", "issue": "IP"}
-        # These values will be filled when the code runs #
         self.entrezDict = {}
         self.PATCH_COUNT = 0
         self.POST_COUNT = 0
-        #############################
         args = arguments
         self.UPDATE = args.update
         self.CREATE = args.create or args.createonly
         self.CREATE_ONLY = args.createonly
         self.UPDATE_ONLY = args.updateonly
+        self.community = args.community
+        self.consortium = args.consortium
+        if self.UPDATE:
+            print("Will PATCH publication objects as needed")
+        if self.CREATE:
+            print("POST new pubmeds")
 
-    def getEntrez(self, idList):
+    def setup_publication(self):
+        '''consortium publications file'''
+        self.consortium_dict = {}
+        with open(self.consortium, 'r', encoding='ISO-8859-1') as f:
+            reader = csv.reader(f, delimiter='\t')
+            for PMID, published_by, categories, catch1, code, catch2, title in reader:
+                categories = categories.replace(";", ",").rstrip(" ")
+                published_by = published_by.replace(";", ",").rstrip(" ")
+                cat = [x.strip(' ').lower() for x in categories.rstrip(',').split(",")]
+                pub = [x.strip(' ') for x in published_by.rstrip(',').split(",")]
+                temp = {"published_by": pub, "categories": cat}
+                self.consortium_dict[PMID] = temp
+        self.consortium_ids = list(self.consortium_dict.keys())
+
+        '''community publications file'''
+        self.community_dict = {}
+        with open(self.community, 'r', encoding='ISO-8859-1') as f:
+            reader = csv.reader(f, delimiter='\t')
+            for PMID, published_by, categories, data_used, catch1, catch2, title, catch3, catch4, catch5, catch6, catch7, catch8, catch9, catch10, catch11, catch12, catch13, catch14, catch15, catch16, catch17, catch18 in reader:
+                categories = categories.replace(";", ",").rstrip(" ")
+                published_by = published_by.replace(";", ",").rstrip(" ")
+                cat = [x.strip(' ').lower() for x in categories.rstrip(',').split(",")]
+                pub = [x.strip(' ') for x in published_by.rstrip(',').split(",")]
+                temp = {"published_by": pub, "categories": cat, "data_used": data_used}
+                self.community_dict[PMID] = temp
+        self.community_ids = list(self.community_dict.keys())
+
+    def get_entrez(self, idList):
         '''gets the values from Entrez
         '''
         handle = Entrez.efetch(db="pubmed", id=idList,
@@ -96,7 +128,7 @@ class Publication_Update:
                     tempDict[key] = record.get(self.MAPPING.get(key), "")
             self.entrezDict[record.get("PMID")] = tempDict
 
-    def checkENCODE(self, idList, connection, otherIdList=[], bothDicts={}):
+    def check_ENCODE(self, idList, connection, otherIdList=[], bothDicts={}):
         for pmid in idList:
             extraData = bothDicts.get(pmid)
             ENCODEvalue = encodedcc.get_ENCODE("/search/?type=publication&searchTerm=PMID:" + pmid, connection)
@@ -105,18 +137,18 @@ class Publication_Update:
                 logger.info('%s' % log)
                 uuid = ENCODEvalue.get("@graph")[0].get("uuid")
                 if not self.CREATE_ONLY:
-                    self.compareEntrezENCODE(uuid, pmid, connection, extraData)
+                    self.compare_entrez_ENCODE(uuid, pmid, connection, extraData)
             else:
                 if self.CREATE_ONLY:
-                    self.getEntrez([pmid])
+                    self.get_entrez([pmid])
                 titleEntrez = self.entrezDict[pmid].get("title")
                 found = False
                 for otherID in otherIdList:
                     titleENCODE = encodedcc.get_ENCODE(otherID, connection)
                     if titleENCODE.get("title") == titleEntrez:
                         log = pmid + " is in ENCODE by a different name " + titleENCODE.get("uuid")
-                        logger.info('%s' % log)
-                        self.compareEntrezENCODE(titleENCODE.get("uuid"), pmid, connection, extraData)
+                        logger.warning('%s' % log)
+                        self.compare_entrez_ENCODE(titleENCODE.get("uuid"), pmid, connection, extraData)
                         if self.UPDATE:
                             newIdent = titleENCODE.get("identifiers")
                             newIdent.append("PMID:" + pmid)
@@ -125,8 +157,8 @@ class Publication_Update:
                         found = True
                 if found is False:
                     log = "This publication is not listed in ENCODE " + pmid
-                    logger.info('%s' % log)
-                    if self.UPDATE and self.CREATE:
+                    logger.warning('%s' % log)
+                    if self.CREATE:
                         self.POST_COUNT += 1
                         pmidData = self.entrezDict[pmid]
                         log = "POSTing the new object: " + pmid
@@ -152,14 +184,14 @@ class Publication_Update:
                             post_dict["data_used"] = extraData.get("data_used")
                         encodedcc.new_ENCODE(connection, "publications", post_dict)
 
-    def compareEntrezENCODE(self, uuid, pmid, connection, extraData={}):
+    def compare_entrez_ENCODE(self, uuid, pmid, connection, extraData={}):
         '''compares value in ENCODE database to results from Entrez
         '''
         encode = encodedcc.get_ENCODE(uuid, connection)
         entrez = self.entrezDict.get(pmid)
         patch = False
         if not entrez:
-            log = "WARNING!!: PMID " + pmid + " was not found in Entrez database!!"
+            log = "PMID " + pmid + " was not found in Entrez database!!"
             logger.warning('%s' % log)
         else:
             for key in entrez.keys():
@@ -169,9 +201,9 @@ class Publication_Update:
                         logger.info('%s' % log)
                     else:
                         log = "\"" + key + "\" value in encode database does not match value in entrez database"
-                        logger.info('%s' % log)
+                        logger.warning('%s' % log)
                         log = "\tENTREZ: " + entrez[key] + "\n\tENCODE: " + encode[key]
-                        logger.info('%s' % log)
+                        logger.warning('%s' % log)
                         if self.UPDATE or self.UPDATE_ONLY:
                             log = "PATCH in the new value for \"" + key + "\""
                             logger.info('%s' % log)
@@ -188,59 +220,33 @@ class Publication_Update:
                         encodedcc.patch_ENCODE(uuid, connection, patch_dict)
                         patch = True
             if not self.UPDATE_ONLY:
-                if extraData.get("categories"):
-                    if set(encode.get("categories", [])) == set(extraData["categories"]):
-                        log = "encode \"categories\" matches data in file"
-                        logger.info('%s' % log)
-                    else:
-                        log = "encode \"categories\" \"" + ",".join(encode.get("categories", [])) + \
-                            "\" does not match file \"" + \
-                            ",".join(extraData["categories"]) + "\""
-                        logger.warning('%s' % log)
-                        if self.UPDATE:
-                            if any(extraData["categories"]):
-                                patch_dict = {"categories": extraData["categories"]}
+                for key in extraData.keys():
+                    if type(extraData.get(key)) is list:
+                        if set(encode.get(key, [])) == set(extraData.get(key, [])):
+                            log = "encode \"" + key + "\" matches data in file"
+                            logger.info('%s' % log)
+                        else:
+                            log = "encode \"" + key + "\" value" + str(encode.get(key, [])) + "does not match file"
+                            logger.warning('%s' % log)
+                            if self.UPDATE:
+                                if any(extraData[key]):
+                                    patch_dict = {key: extraData[key]}
+                                    encodedcc.patch_ENCODE(uuid, connection, patch_dict)
+                                    patch = True
+                                else:
+                                    log = "No value in file to input for \"" + key + "\""
+                                    logger.warning('%s' % log)
+                    if type(extraData.get(key)) is str:
+                        if encode.get(key, "") == extraData.get(key, ""):
+                            log = "encode \"" + key + "\" matches data in file"
+                            logger.info('%s' % log)
+                        else:
+                            log = "encode \"" + key + "\" value" + str(encode.get(key, "")) + "does not match file"
+                            logger.warning('%s' % log)
+                            if self.UPDATE:
+                                patch_dict = {key: extraData[key]}
                                 encodedcc.patch_ENCODE(uuid, connection, patch_dict)
                                 patch = True
-                            else:
-                                log = "No value in file to input for categories"
-                                logger.warning('%s' % log)
-                else:
-                    log = "No value in file for categories, or value is not allowed"
-                    logger.warning('%s' % log)
-                if extraData.get("published_by"):  # this is to check that there is a value here, as there may not be values in the file
-                    if set(encode.get("published_by", [])) == set(extraData["published_by"]):
-                        log = "encode \"published_by\" matches data in file"
-                        logger.info('%s' % log)
-                    else:
-                        log = "encode \"published_by\" \"" + ",".join(encode.get("published_by", [])) + \
-                            "\" does not match data in file \"" + \
-                            ",".join(extraData["published_by"]) + "\""
-                        logger.warning('%s' % log)
-                        if self.UPDATE:
-                            if any(extraData["published_by"]):
-                                patch_dict = {"published_by": extraData["published_by"]}
-                                encodedcc.patch_ENCODE(uuid, connection, patch_dict)
-                                patch = True
-                            else:
-                                log = "No value in file to input for published_by"
-                                logger.warning('%s' % log)
-                else:
-                    log = "No value in file for published_by, or value is not allowed"
-                    logger.warning('%s' % log)
-                if extraData.get("data_used"):
-                    if encode.get("data_used", "") == extraData["data_used"]:
-                        log = "encode \"data_used\" matches data in file"
-                        logger.info('%s' % log)
-                    else:
-                        log = "encode \"data_used\" \"" + encode.get("published_by", "") + \
-                            "\" does not match data in file \"" + \
-                            ",".join(extraData["data_used"]) + "\""
-                        logger.info('%s' % log)
-                        if self.UPDATE:
-                            patch_dict = {"data_used": extraData["data_used"]}
-                            encodedcc.patch_ENCODE(uuid, connection, patch_dict)
-                            patch = True
             if encode.get("status", "") != "published" and (self.UPDATE or self.UPDATE_ONLY):
                 log = "Setting status to published"
                 logger.info('%s' % log)
@@ -249,7 +255,7 @@ class Publication_Update:
             if patch is True:
                 self.PATCH_COUNT += 1
 
-    def findENCODEextras(self, communityList, consortiumList, connection):
+    def find_ENCODE_extras(self, communityList, consortiumList, connection):
         '''finds any publications in the ENCODE database
         that are not in the files provided
         '''
@@ -295,22 +301,8 @@ class Publication_Update:
 
 
 def main():
-    global MAPPING, UPDATE, CREATE, UPDATE_ONLY, CREATE_ONLY
-    global entrezDict
-    MAPPING = {"abstract": "AB", "authors": "AU", "title": "TI",
-               "volume": "VI", "journal": "JT", "date_published": "DP",
-               "page": "PG", "issue": "IP"}
-    # These values will be filled when the code runs #
-    entrezDict = {}
-    PATCH_COUNT = 0
-    POST_COUNT = 0
-    #############################
     args = getArgs()
-    community = args.community
-    consortium = args.consortium
     outfile = args.outfile
-    UPDATE = args.update
-    CREATE = args.create or args.createonly
     CREATE_ONLY = args.createonly
     UPDATE_ONLY = args.updateonly
     Entrez.email = args.email
@@ -324,71 +316,41 @@ def main():
 
     print("Running on ", connection.server)
 
-    publication = Publication_Update(args)
+    publication = PublicationUpdate(args)
 
     if not UPDATE_ONLY:
-        if UPDATE:
-            print("Will PATCH publication objects as needed")
-        if CREATE:
-            print("POST new pubmeds")
-
-        '''consortium publications file'''
-        consortium_dict = {}
-        with open(consortium, 'r', encoding='ISO-8859-1') as f:
-            reader = csv.reader(f, delimiter='\t')
-            for PMID, published_by, categories, catch1, code, catch2, title in reader:
-                categories = categories.replace(";", ",").rstrip(" ")
-                published_by = published_by.replace(";", ",").rstrip(" ")
-                cat = [x.strip(' ').lower() for x in categories.rstrip(',').split(",") if x != 'production']
-                pub = [x.strip(' ') for x in published_by.rstrip(',').split(",")]
-                temp = {"published_by": pub, "categories": cat, "title": title}
-                consortium_dict[PMID] = temp
-        consortium_ids = list(consortium_dict.keys())
-
-        '''community publications file'''
-        community_dict = {}
-        with open(community, 'r', encoding='ISO-8859-1') as f:
-            reader = csv.reader(f, delimiter='\t')
-            for PMID, published_by, categories, data_used, catch1, catch2, title, catch3, catch4, catch5, catch6, catch7, catch8, catch9, catch10, catch11, catch12, catch13, catch14, catch15, catch16, catch17, catch18 in reader:
-                categories = categories.replace(";", ",").rstrip(" ")
-                published_by = published_by.replace(";", ",").rstrip(" ")
-                cat = [x.strip(' ').lower() for x in categories.rstrip(',').split(",") if x != 'production']
-                pub = [x.strip(' ') for x in published_by.rstrip(',').split(",")]
-                temp = {"published_by": pub, "categories": cat, "title": title, "data_used": data_used}
-                community_dict[PMID] = temp
-        community_ids = list(community_dict.keys())
-
-        pmidList = consortium_ids + community_ids
-        mergeDicts = consortium_dict.copy()
-        mergeDicts.update(community_dict)  # this dict now holds all the information regarding published_by and categories
+        publication.setup_publication()
+        pmidList = publication.consortium_ids + publication.community_ids
+        mergeDicts = publication.consortium_dict.copy()
+        mergeDicts.update(publication.community_dict)  # holds published_by, categories, and data_used
 
         if not CREATE_ONLY:
-            publication.getEntrez(pmidList)
+            publication.get_entrez(pmidList)
 
-        community_ENCODE_Only, communityOtherID, consortium_ENCODE_Only, consortiumOtherID = publication.findENCODEextras(community_ids, consortium_ids, connection)
+        community_ENCODE_Only, communityOtherID, consortium_ENCODE_Only, consortiumOtherID = publication.find_ENCODE_extras(publication.community_ids, publication.consortium_ids, connection)
         total_ENCODE_only = len(community_ENCODE_Only) + len(consortium_ENCODE_Only)
         allOtherIDs = communityOtherID + consortiumOtherID
-        publication.checkENCODE(pmidList, connection, allOtherIDs, mergeDicts)
+        publication.check_ENCODE(pmidList, connection, allOtherIDs, mergeDicts)
         log = str(total_ENCODE_only) + " items in ENCODE but not in files"
         logger.info('%s' % log)
-        log = str(PATCH_COUNT) + " publication files PATCHed"
+        log = str(publication.PATCH_COUNT) + " publication files PATCHed"
         logger.info('%s' % log)
-        log = str(POST_COUNT) + " publication files POSTed"
+        log = str(publication.POST_COUNT) + " publication files POSTed"
         logger.info('%s' % log)
         print("Results printed to", outfile)
     else:
         infile = UPDATE_ONLY
         with open(infile, 'r') as readfile:
             pmidList = [x.rstrip('\n') for x in readfile]
-        publication.getEntrez(pmidList)
+        publication.get_entrez(pmidList)
         with open("ENCODE_update.txt", "w") as f:
             for pmid in pmidList:
                 val = "/search/?searchTerm=PMID:" + pmid
                 ENCODEvalue = encodedcc.get_ENCODE(val, connection)
                 if ENCODEvalue.get("@graph"):
                     uuid = ENCODEvalue['@graph'][0].get("uuid")
-                    publication.compareEntrezENCODE(uuid, pmid, connection)
-            f.write(str(len(pmidList)) + " publications checked " + str(PATCH_COUNT) + " publications PATCHed")
+                    publication.compare_entrez_ENCODE(uuid, pmid, connection)
+            f.write(str(len(pmidList)) + " publications checked " + str(publication.PATCH_COUNT) + " publications PATCHed")
 
 if __name__ == '__main__':
     main()
