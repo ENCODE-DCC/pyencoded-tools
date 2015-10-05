@@ -34,8 +34,8 @@ def getArgs():
                         action='store_true',
                         default=False)
     parser.add_argument('--create',
-                        help="Run script and POST new objects as needed,\
-                        must be run with --update.  Default is off",
+                        help="Run script and POST new objects as needed.  \
+                        Default is off",
                         action='store_true',
                         default=False)
     parser.add_argument('--createonly',
@@ -54,9 +54,10 @@ def getArgs():
         logging.basicConfig(filename=args.outfile, filemode="w",
                             format='%(levelname)s:%(message)s',
                             level=logging.DEBUG)
-    else:  # use the defaulf logging level
+    else:  # use the default logging level
         logging.basicConfig(filename=args.outfile, filemode="w",
-                            format='%(levelname)s:%(message)s')
+                            format='%(levelname)s:%(message)s',
+                            level=logging.INFO)
 
     return args
 
@@ -66,11 +67,9 @@ class PublicationUpdate:
         self.MAPPING = {"abstract": "AB", "authors": "AU", "title": "TI",
                         "volume": "VI", "journal": "JT", "date_published": "DP",
                         "page": "PG", "issue": "IP"}
-        # These values will be filled when the code runs #
         self.entrezDict = {}
         self.PATCH_COUNT = 0
         self.POST_COUNT = 0
-        #############################
         args = arguments
         self.UPDATE = args.update
         self.CREATE = args.create or args.createonly
@@ -91,7 +90,7 @@ class PublicationUpdate:
             for PMID, published_by, categories, catch1, code, catch2, title in reader:
                 categories = categories.replace(";", ",").rstrip(" ")
                 published_by = published_by.replace(";", ",").rstrip(" ")
-                cat = [x.strip(' ').lower() for x in categories.rstrip(',').split(",") if x != 'production']
+                cat = [x.strip(' ').lower() for x in categories.rstrip(',').split(",")]
                 pub = [x.strip(' ') for x in published_by.rstrip(',').split(",")]
                 temp = {"published_by": pub, "categories": cat}
                 self.consortium_dict[PMID] = temp
@@ -104,7 +103,7 @@ class PublicationUpdate:
             for PMID, published_by, categories, data_used, catch1, catch2, title, catch3, catch4, catch5, catch6, catch7, catch8, catch9, catch10, catch11, catch12, catch13, catch14, catch15, catch16, catch17, catch18 in reader:
                 categories = categories.replace(";", ",").rstrip(" ")
                 published_by = published_by.replace(";", ",").rstrip(" ")
-                cat = [x.strip(' ').lower() for x in categories.rstrip(',').split(",") if x != 'production']
+                cat = [x.strip(' ').lower() for x in categories.rstrip(',').split(",")]
                 pub = [x.strip(' ') for x in published_by.rstrip(',').split(",")]
                 temp = {"published_by": pub, "categories": cat, "data_used": data_used}
                 self.community_dict[PMID] = temp
@@ -148,7 +147,7 @@ class PublicationUpdate:
                     titleENCODE = encodedcc.get_ENCODE(otherID, connection)
                     if titleENCODE.get("title") == titleEntrez:
                         log = pmid + " is in ENCODE by a different name " + titleENCODE.get("uuid")
-                        logger.info('%s' % log)
+                        logger.warning('%s' % log)
                         self.compare_entrez_ENCODE(titleENCODE.get("uuid"), pmid, connection, extraData)
                         if self.UPDATE:
                             newIdent = titleENCODE.get("identifiers")
@@ -158,8 +157,8 @@ class PublicationUpdate:
                         found = True
                 if found is False:
                     log = "This publication is not listed in ENCODE " + pmid
-                    logger.info('%s' % log)
-                    if self.UPDATE and self.CREATE:
+                    logger.warning('%s' % log)
+                    if self.CREATE:
                         self.POST_COUNT += 1
                         pmidData = self.entrezDict[pmid]
                         log = "POSTing the new object: " + pmid
@@ -192,7 +191,7 @@ class PublicationUpdate:
         entrez = self.entrezDict.get(pmid)
         patch = False
         if not entrez:
-            log = "WARNING!!: PMID " + pmid + " was not found in Entrez database!!"
+            log = "PMID " + pmid + " was not found in Entrez database!!"
             logger.warning('%s' % log)
         else:
             for key in entrez.keys():
@@ -202,9 +201,9 @@ class PublicationUpdate:
                         logger.info('%s' % log)
                     else:
                         log = "\"" + key + "\" value in encode database does not match value in entrez database"
-                        logger.info('%s' % log)
+                        logger.warning('%s' % log)
                         log = "\tENTREZ: " + entrez[key] + "\n\tENCODE: " + encode[key]
-                        logger.info('%s' % log)
+                        logger.warning('%s' % log)
                         if self.UPDATE or self.UPDATE_ONLY:
                             log = "PATCH in the new value for \"" + key + "\""
                             logger.info('%s' % log)
@@ -228,6 +227,7 @@ class PublicationUpdate:
                             logger.info('%s' % log)
                         else:
                             log = "encode \"" + key + "\" value" + str(encode.get(key, [])) + "does not match file"
+                            logger.warning('%s' % log)
                             if self.UPDATE:
                                 if any(extraData[key]):
                                     patch_dict = {key: extraData[key]}
@@ -235,12 +235,14 @@ class PublicationUpdate:
                                     patch = True
                                 else:
                                     log = "No value in file to input for \"" + key + "\""
+                                    logger.warning('%s' % log)
                     if type(extraData.get(key)) is str:
                         if encode.get(key, "") == extraData.get(key, ""):
                             log = "encode \"" + key + "\" matches data in file"
                             logger.info('%s' % log)
                         else:
                             log = "encode \"" + key + "\" value" + str(encode.get(key, "")) + "does not match file"
+                            logger.warning('%s' % log)
                             if self.UPDATE:
                                 patch_dict = {key: extraData[key]}
                                 encodedcc.patch_ENCODE(uuid, connection, patch_dict)
