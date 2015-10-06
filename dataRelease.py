@@ -52,8 +52,10 @@ def getArgs():
                             level=logging.DEBUG)
     else:  # use the default logging level
         logging.basicConfig(filename=filename, filemode="w",
-                            format='%(levelname)s:%(message)s',
+                            format='%(message)s',
                             level=logging.INFO)
+    logging.getLogger("requests").setLevel(logging.WARNING)
+
     return args
 
 
@@ -195,22 +197,20 @@ class Data_Release():
                "format check failed", "uploading", "error"]
         ignore = ["users", "antibody-characterizations", "publications"]
         for accession in self.ACCESSIONS:
-            log = accession + "\n"
-            logger.info('%s' % log)
             self.searched = []
             expandedDict = encodedcc.get_ENCODE(accession, connection)
             self.expand_links(expandedDict, connection)
             experimentStatus = expandedDict.get("status")
             audit = encodedcc.get_ENCODE(accession, connection, "page").get("audit", {})
             passAudit = True
-            log = "Experiment Status:" + experimentStatus
+            log = "Experiment " + accession + " Status: " + experimentStatus
             logger.info('%s' % log)
             if audit.get("ERROR", ""):
-                log = "Audit status: ERROR"
+                log = "WARNING: Audit status: ERROR"
                 logger.warning('%s' % log)
                 passAudit = False
             if audit.get("NOT_COMPLIANT", ""):
-                log = "Audit status: NOT COMPLIANT"
+                log = "WARNING: Audit status: NOT COMPLIANT"
                 logger.warning('%s' % log)
                 passAudit = False
             self.statusDict = {}
@@ -234,7 +234,7 @@ class Data_Release():
                             log = name + " " + uuid + " has status " + status
                             logger.info('%s' % log)
                     elif status in bad:
-                        log = name + " " + uuid + " has status " + status
+                        log = "WARNING" + name + " " + uuid + " has status " + status
                         logger.warning('%s' % log)
                     else:
                         log = name + " " + uuid + " has status " + status
@@ -246,7 +246,8 @@ class Data_Release():
             if self.UPDATE:
                 if passAudit:
                     now = datetime.datetime.now().date()
-                    encodedcc.patch_ENCODE(accession, connection, now)
+                    json_data = {"date_released": str(now)}
+                    encodedcc.patch_ENCODE(accession, connection, json_data)
         print("Data written to file", filename)
 
 
