@@ -145,23 +145,29 @@ class Data_Release():
                 elif type(d.get(key)) is dict:
                     self.find_status(d.get(key))
 
-    def releasinator(self, name, uuid, status, connection):
+    def releasinator(self, name, uuid, status, audit, connection):
         '''releases objects into their equivalent released states'''
         status_current = ["targets", "treatments", "awards", "organisms", "platforms"]
         status_finished = ["analysis-step-run"]
         stats = {}
         if name in status_current:
-            log = "UPDATING: " + name + " " + uuid + " with status " + status + " is now current\n"
+            log = "UPDATING: " + name + " " + uuid + " with status " + status + " is now current"
             logger.info('%s' % log)
             stats = {"status": "current"}
         elif name in status_finished:
-            log = "UPDATING: " + name + " " + uuid + " with status " + status + " is now finished\n"
+            log = "UPDATING: " + name + " " + uuid + " with status " + status + " is now finished"
             logger.info('%s' % log)
             stats = {"status": "finished"}
         else:
-            log = "UPDATING: " + name + " " + uuid + " with status " + status + " is now released\n"
-            logger.info('%s' % log)
+            log = "UPDATING: " + name + " " + uuid + " with status " + status + " is now released"
             stats = {"status": "released"}
+            if name == "experiments":
+                if self.UPDATE:
+                    if audit:
+                        now = datetime.datetime.now().date()
+                        stats = {"date_released": str(now), "status": "released"}
+                        log = "UPDATING: " + name + " " + uuid + " with status " + status + " is now released with date " + str(now)
+            logger.info('%s' % log)
         encodedcc.patch_ENCODE(uuid, connection, stats)
 
     def run_script(self, connection):
@@ -241,13 +247,8 @@ class Data_Release():
                         logger.info('%s' % log)
                         if self.UPDATE:
                             if passAudit:
-                                self.releasinator(name, uuid, status, connection)
+                                self.releasinator(name, uuid, status, passAudit, connection)
                     named.append(name)
-            if self.UPDATE:
-                if passAudit:
-                    now = datetime.datetime.now().date()
-                    json_data = {"date_released": str(now)}
-                    encodedcc.patch_ENCODE(accession, connection, json_data)
         print("Data written to file", filename)
 
 
