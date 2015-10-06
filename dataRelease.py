@@ -97,7 +97,7 @@ class Data_Release():
                              "samtools_stats_quality_metric",
                              "analysis_step_version"]
 
-    def get_ENCODE(obj_id, connection):
+    def get_ENCODE(self, obj_id, connection):
         '''GET an ENCODE object as JSON and return as dict'''
         url = urljoin(connection.server, obj_id)
         logging.debug('GET %s' % (url))
