@@ -6,6 +6,9 @@ import re
 import datetime
 import encodedcc
 import logging
+from urllib.parse import urljoin
+import requests
+import json
 
 EPILOG = '''takes a file with a list of experiment accessions, a query,
 or a single accession and checks all associated objects
@@ -94,6 +97,21 @@ class Data_Release():
                              "samtools_stats_quality_metric",
                              "analysis_step_version"]
 
+    def get_ENCODE(obj_id, connection):
+        '''GET an ENCODE object as JSON and return as dict'''
+        url = urljoin(connection.server, obj_id)
+        logging.debug('GET %s' % (url))
+        response = requests.get(url, auth=connection.auth, headers=connection.headers)
+        logging.debug('GET RESPONSE code %s' % (response.status_code))
+        try:
+            if response.json():
+                logging.debug('GET RESPONSE JSON: %s' % (json.dumps(response.json(), indent=4, separators=(',', ': '))))
+        except:
+            logging.debug('GET RESPONSE text %s' % (response.text))
+        if not response.status_code == 200:
+            logging.warning('GET failure.  Response code = %s' % (response.text))
+        return response.json()
+
     def make_profile(self, dictionary):
         '''builds the PROFILES reference dictionary
         keysLink is the list of keys that point to links, used in the PROFILES'''
@@ -180,7 +198,7 @@ class Data_Release():
         if self.LOGALL:
             print("Logging all statuses")
         for item in self.profilesJSON:
-            profile = encodedcc.get_ENCODE("profiles/" + item + ".json", connection)
+            profile = self.get_ENCODE("profiles/" + item + ".json", connection)
             self.keysChecked = []
             self.keysLink = []  # if a key is in this list, it points to a link and will be embedded in the final product
             self.make_profile(profile)
