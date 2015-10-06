@@ -52,8 +52,7 @@ def getArgs():
                             level=logging.DEBUG)
     else:  # use the default logging level
         logging.basicConfig(filename=filename, filemode="w",
-                            format='%(levelname)s:%(message)s',
-                            level=logging.INFO)
+                            format='%(levelname)s:%(message)s')
     return args
 
 
@@ -246,7 +245,8 @@ class Data_Release():
             if self.UPDATE:
                 if passAudit:
                     now = datetime.datetime.now().date()
-                    encodedcc.patch_ENCODE(accession, connection, now)
+                    json_data = {"date_released": str(now)}
+                    encodedcc.patch_ENCODE(accession, connection, json_data)
         print("Data written to file", filename)
 
 
