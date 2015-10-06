@@ -52,7 +52,8 @@ def getArgs():
                             level=logging.DEBUG)
     else:  # use the default logging level
         logging.basicConfig(filename=filename, filemode="w",
-                            format='%(levelname)s:%(message)s')
+                            format='%(levelname)s:%(message)s',
+                            level=logging.INFO)
     return args
 
 
