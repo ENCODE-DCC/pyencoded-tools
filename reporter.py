@@ -2,25 +2,18 @@
 # -*- coding: latin-1 -*-
 ''' BASIC REPORTER SCRIPT
 '''
-import requests
-import json
 import sys
 import os.path
 import argparse
 import encodedcc
 
-HEADERS = {'content-type': 'application/json'}
-SERVER = 'http://www.encodeproject.org'  # Default
-AUTHID = 'default provided by keypairs.json'
-AUTHPW = 'default provided by keypairs.json'
-global DEBUG_ON
-DEBUG_ON = False
 EPILOG = '''Examples:
 
 To use a different key from the default keypair file:
 
         %(prog)s --key submit
 '''
+
 
 def get_experiment_list(file, search, connection):
         objList = []
@@ -35,12 +28,16 @@ def get_experiment_list(file, search, connection):
                 objList.append(set['@graph'][i]['accession'])
 
         return objList
+
+
 def get_antibody_approval(antibody, target, connection):
         search = encodedcc.get_ENCODE('search/?searchTerm='+antibody+'&type=antibody_approval', connection)
         for approval in search['@graph']:
             if approval['target']['name'] == target:
                 return approval['status']
         return "UNKNOWN"
+
+
 def get_doc_list(documents):
     list = []
     for i in range(0, len(documents)):
@@ -49,6 +46,8 @@ def get_doc_list(documents):
         else:
             list.append(documents[i]['uuid'])
     return ' '.join(list)
+
+
 def get_spikeins_list(spikes):
     list = []
     if spikes is not None:
@@ -56,6 +55,8 @@ def get_spikeins_list(spikes):
             list.append(set['accession'])
     return ' '.join(list)
 # # I need my attachment thing here
+
+
 def get_treatment_list(treatments):
     list = []
     for i in range(0, len(treatments)):
@@ -169,6 +170,7 @@ libraryCheckedItems = [
                        'date_created'
                        ]
 
+
 def main():
 
     parser = argparse.ArgumentParser(
@@ -224,8 +226,6 @@ def main():
                         action='store_true',
                         help="Print dbxrefs for ENCODE2.  Default off")
     args = parser.parse_args()
-
-    DEBUG_ON = args.debug
 
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
@@ -292,9 +292,9 @@ def main():
         libraryCheckedItems.remove('strain_background')
 
     if args.files:
-        print ('\t'.join(fileCheckedItems))
+        print('\t'.join(fileCheckedItems))
     else:
-        print ('\t'.join(checkedItems+repCheckedItems+libraryCheckedItems))
+        print('\t'.join(checkedItems+repCheckedItems+libraryCheckedItems))
 
     # Get list of objects we are interested in
     search = args.search
@@ -339,13 +339,13 @@ def main():
                 if 'replicate' in file:
                     fileob['biological_replicate'] = file['replicate']['biological_replicate_number']
                     fileob['technical_replicate'] = file['replicate']['technical_replicate_number']
-                    fileob['replicate_id'] = file['replicate'].get('uuid')                        
+                    fileob['replicate_id'] = file['replicate'].get('uuid')
                 else:
                     fileob['biological_replicate'] = fileob['technical_replicate'] = fileob['replicate_alias'] = ''
                 row = []
                 for j in fileCheckedItems:
                     row.append(repr(fileob[j]))
-                print ('\t'.join(row))
+                print('\t'.join(row))
         return
 
     for i in range(0, len(objList)):
@@ -470,7 +470,7 @@ def main():
                     try:
                         repOb['biosample_biosample_term'] = bs['biosample_term_name']
                     except:
-                        print ("Skipping missing biosample_term_name in %s" %(bs['accession']), file=sys.stderr)
+                        print("Skipping missing biosample_term_name in %s" % (bs['accession']), file=sys.stderr)
                         repOb['biosample_biosample_term'] = ""
                     repOb['biosample_biosample_id'] = bs['biosample_term_id']
                     repOb['biosample_biosample_type'] = bs['biosample_type']
@@ -507,9 +507,9 @@ def main():
         for j in checkedItems:
             row.append(str(ob[j]))
         if len(libs) == 0:
-            print ('\t'.join(row))
+            print('\t'.join(row))
         for k in range(0, len(libs)):
-            print ('\t'.join(row+libs[k]))
+            print('\t'.join(row+libs[k]))
 
 
 if __name__ == '__main__':

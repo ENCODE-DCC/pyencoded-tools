@@ -6,7 +6,6 @@ import argparse
 import os.path
 import encodedcc
 
-HEADERS = {'content-type': 'application/json'}
 EPILOG = '''Examples:
 
 To get one ENCODE object from the server/keypair called "default" in the default keypair file and print the JSON:
@@ -58,11 +57,7 @@ def main():
                         help="Dry run of the script, no data will actually be patched.")
     args = parser.parse_args()
 
-    DEBUG_ON = args.debug
-    print(DEBUG_ON)
-
     key = encodedcc.ENC_Key(args.keyfile, args.key)
-
     connection = encodedcc.ENC_Connection(key)
 
     FIELD = args.field
