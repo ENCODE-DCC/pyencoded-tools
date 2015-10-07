@@ -6,8 +6,6 @@ import os.path
 import argparse
 import encodedcc
 
-HEADERS = {'content-type': 'application/json'}
-DEBUG_ON = False
 EPILOG = '''Examples:
 
 To use a different key from the default keypair file:
@@ -45,15 +43,28 @@ def main():
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         )
-    parser.add_argument('--infile', '-i', default='obList', help="File containing a list of ENCSRs.")
-    parser.add_argument('--search', default='NULL', help="The search parameters.")
-    parser.add_argument('--key', default='default', help="The keypair identifier from the keyfile.  Default is --key=default")
-    parser.add_argument('--keyfile', default=os.path.expanduser("~/keypairs.json"), help="The keypair file.  Default is --keyfile=%s" %(os.path.expanduser("~/keypairs.json")))
-    parser.add_argument('--debug', default=False, action='store_true', help="Print debug messages.  Default is False.")
-    parser.add_argument('--field', default='accession', help="The field to report.  Default is accession.")
+    parser.add_argument('--infile', '-i',
+                        default='obList',
+                        help="File containing a list of ENCSRs.")
+    parser.add_argument('--search',
+                        default='NULL',
+                        help="The search parameters.")
+    parser.add_argument('--key',
+                        default='default',
+                        help="The keypair identifier from the keyfile.  \
+                        Default is --key=default")
+    parser.add_argument('--keyfile',
+                        default=os.path.expanduser("~/keypairs.json"),
+                        help="The keypair file.  Default is --keyfile=%s" % (os.path.expanduser("~/keypairs.json")))
+    parser.add_argument('--debug',
+                        default=False,
+                        action='store_true',
+                        help="Print debug messages.  Default is False.")
+    parser.add_argument('--field',
+                        default='accession',
+                        help="The field to report.  Default is accession.")
     args = parser.parse_args()
 
-    DEBUG_ON = args.debug
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
     # Get list of objects we are interested in

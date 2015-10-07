@@ -115,7 +115,7 @@ class Data_Release():
         if d.get("@id"):
             self.searched.append(d.get("@id"))
         for key in d.keys():
-            name = d.get("@type")[0]
+            name = d.get("@type")[0].lower()
             if key in self.PROFILES.get(name, []):
                 newLinkValues = []
                 if type(d.get(key)) is list:
@@ -135,7 +135,7 @@ class Data_Release():
         '''takes the object created by expand_links and makes a new dict,
         with each subobject and its status {@id : [uuid, status]}'''
         d = dictionary
-        name = d.get("@type")[0]
+        name = d.get("@type")[0].lower()
         self.statusDict[d.get("@id")] = [d.get("uuid"), d.get("status")]
         for key in d.keys():
             if key in self.PROFILES.get(name, []):
