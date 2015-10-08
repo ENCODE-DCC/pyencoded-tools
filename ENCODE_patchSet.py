@@ -108,18 +108,20 @@ def main():
                 temp = list(set(patch_thing))
                 patch_thing = temp
         else:
-            if args.remove:
-                patch_thing = None
+            '''construct a dictionary with the key and value to be changed'''
+            if FIELD == "age":
+                if args.remove:
+                    patchdict = {"age": None, "age_units": None}
+                else:
+                    temp = patch_thing.split()
+                    age = temp[0].strip()
+                    age_units = temp[1].strip()
+                    patchdict = {"age": str(age), "age_units": str(age_units)}
             else:
+                if args.remove:
+                    patch_thing = None
                 patch_thing = objDict[key]
-
-        '''construct a dictionary with the key and value to be changed'''
-        patchdict = {FIELD: patch_thing}
-        if FIELD == "age":
-            temp = patch_thing.split()
-            age = temp[0].strip()
-            age_units = temp[1].strip()
-            patchdict = {"age": str(age), "age_units": str(age_units)}
+                patchdict = {FIELD: patch_thing}
 
         if not args.dryrun:
             response = encodedcc.patch_ENCODE(key, connection, patchdict)
