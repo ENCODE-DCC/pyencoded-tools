@@ -119,7 +119,7 @@ def main():
             temp = patch_thing.split()
             age = temp[0]
             age_units = temp[1]
-            patchdict = {"age": age, "age_units": age_units}
+            patchdict = {"age": str(age), "age_units": str(age_units)}
 
         if not args.dryrun:
             response = encodedcc.patch_ENCODE(key, connection, patchdict)
