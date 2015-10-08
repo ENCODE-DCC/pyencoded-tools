@@ -117,8 +117,8 @@ def main():
         patchdict = {FIELD: patch_thing}
         if FIELD == "age":
             temp = patch_thing.split()
-            age = temp[0]
-            age_units = temp[1]
+            age = temp[0].strip()
+            age_units = temp[1].strip()
             patchdict = {"age": str(age), "age_units": str(age_units)}
 
         if not args.dryrun:
