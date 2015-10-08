@@ -82,10 +82,10 @@ def main():
 
         object = encodedcc.get_ENCODE(key, connection)
         if FIELD == "age":
-            old_age = object.get("age")
-            old_units = object.get("age_units")
+            old_age = object.get("age", "NONE")
+            old_units = object.get("age_units", "NONE")
         else:
-            old_thing = object.get(FIELD)
+            old_thing = object.get(FIELD, "NONE")
 
         if args.array:
             if objDict[key] is None:
