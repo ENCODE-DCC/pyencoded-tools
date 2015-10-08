@@ -6,49 +6,20 @@ import os.path
 import argparse
 import encodedcc
 
-EPILOG = '''Examples:
 
-To use a different key from the default keypair file:
-
-        %(prog)s --key submit
-'''
-
-
-def get_experiment_list(file, search, connection):
-    objList = []
-    if search == "NULL":
-        f = open(file)
-        objList = f.readlines()
-        for i in range(0, len(objList)):
-            objList[i] = objList[i].strip()
-    else:
-        set = encodedcc.get_ENCODE(search+'&limit=all&frame=embedded', connection)
-        for i in range(0, len(set['@graph'])):
-            objList.append(set['@graph'][i]['@id'])
-    return objList
-
-
-def get_antibody_approval(antibody, target):
-
-        search = encodedcc.get_ENCODE('search/?searchTerm='+antibody+'&type=antibody_approval')
-        for approval in search['@graph']:
-            if approval['target']['name'] == target:
-                return approval['status']
-        return "UNKNOWN"
-
-
-def main():
-
+def getArgs():
     parser = argparse.ArgumentParser(
-        description=__doc__, epilog=EPILOG,
+        description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         )
-    parser.add_argument('--infile', '-i',
+    parser.add_argument('--infile',
                         default='obList',
-                        help="File containing a list of ENCSRs.")
-    parser.add_argument('--search',
-                        default='NULL',
-                        help="The search parameters.")
+                        help="File containing a list of ENCSRs as a column")
+    parser.add_argument('--outfile',
+                        default='fields.tsv',
+                        help="TSV file with fields, first line is column headings")
+    parser.add_argument('--query',
+                        help="A custom query to get accessions.")
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  \
@@ -60,25 +31,17 @@ def main():
                         default=False,
                         action='store_true',
                         help="Print debug messages.  Default is False.")
-    parser.add_argument('--field',
-                        default='accession',
-                        help="The field to report.  Default is accession.")
+    parser.add_argument('--fields',
+                        help="File of fieldnames as column")
     args = parser.parse_args()
+    return args
 
+
+def main():
+    args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-    # Get list of objects we are interested in
-    objList = get_experiment_list(args.infile, args.search, connection)
-    for i in range(0, len(objList)):
-        field = ''
-        if objList[i] != '':
-            ob = encodedcc.get_ENCODE(objList[i], connection)
-            id = ob.get('@id')
-            if args.field in ob:
-                field = str(ob[args.field])
-        else:
-            id = objList[i]
-        print('\t'.join([id, field]))
+    encodedcc.get_fields(args, connection)
 
 if __name__ == '__main__':
     main()

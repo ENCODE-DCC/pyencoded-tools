@@ -338,3 +338,37 @@ def pprint_ENCODE(JSON_obj):
     else:
         print(json.dumps(flat_ENCODE(JSON_obj),
                          sort_keys=True, indent=4, separators=(',', ': ')))
+
+
+def get_fields(args, connection):
+    import csv
+    accessions = []
+    if args.query:
+        temp = get_ENCODE(args.query, connection).get("@graph", [])
+        for obj in temp:
+            accessions.append(temp.get("accession"))
+    else:
+        accessions = [line.strip() for line in open(args.infile)]
+    if args.fields:
+        fields = [line.strip() for line in open(args.fields)]
+    else:
+        fields = []
+    data = []
+    if any(accessions) and any(fields):
+        for a in accessions:
+            result = get_ENCODE(a, connection)
+            temp = [a]
+            for f in fields:
+                temp.append(result.get(f, ""))
+            data.append(temp)
+    else:
+        print("Could not complete request one or more arugments were not supplied")
+        return
+    header = ["accession"]
+    for x in fields:
+        header.append(x)
+    with open(args.outfile, "w") as tsvfile:
+        writer = csv.writer(tsvfile, delimiter='\t')
+        writer.writerow(header)
+        for d in data:
+            writer.writerow(d)
