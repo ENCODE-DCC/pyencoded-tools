@@ -346,11 +346,13 @@ def get_fields(args, connection):
     if args.query:
         temp = get_ENCODE(args.query, connection).get("@graph", [])
         for obj in temp:
-            accessions.append(temp.get("accession"))
+            accessions.append(obj.get("accession"))
     else:
         accessions = [line.strip() for line in open(args.infile)]
-    if args.fields:
+    if args.multifield:
         fields = [line.strip() for line in open(args.fields)]
+    elif args.onefield:
+        fields = [args.onefield]
     else:
         fields = []
     data = []

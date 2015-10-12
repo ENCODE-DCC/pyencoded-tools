@@ -31,8 +31,10 @@ def getArgs():
                         default=False,
                         action='store_true',
                         help="Print debug messages.  Default is False.")
-    parser.add_argument('--fields',
-                        help="File of fieldnames as column")
+    parser.add_argument('--multifield',
+                        help="File of fieldnames with one per line")
+    parser.add_argument('--onefield',
+                        help="single field entered at command line")
     args = parser.parse_args()
     return args
 
