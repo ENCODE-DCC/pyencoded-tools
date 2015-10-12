@@ -30,9 +30,11 @@ def main():
     )
 
     parser.add_argument('--infile',
-                        help="A two column list with identifier and value to patch (or remove)")
+                        help="A two column list with identifier and value to \
+                        patch (or remove) 3 if field is age with (object age age_units)")
     parser.add_argument('--field',
-                        help="The field to patch.")
+                        help="The field to patch. If field is age you must \
+                        provide a 3 column document (object age age_units)")
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  Default is --key=default")
@@ -79,7 +81,11 @@ def main():
             objDict[key] = int(objDict[key])
 
         object = encodedcc.get_ENCODE(key, connection)
-        old_thing = object.get(FIELD)
+        if FIELD == "age":
+            old_age = object.get("age", "NONE")
+            old_units = object.get("age_units", "NONE")
+        else:
+            old_thing = object.get(FIELD, "NONE")
 
         if args.array:
             if objDict[key] is None:
@@ -102,13 +108,20 @@ def main():
                 temp = list(set(patch_thing))
                 patch_thing = temp
         else:
-            if args.remove:
-                patch_thing = None
+            '''construct a dictionary with the key and value to be changed'''
+            if FIELD == "age":
+                if args.remove:
+                    patchdict = {"age": None, "age_units": None}
+                else:
+                    temp = patch_thing.split()
+                    age = temp[0].strip()
+                    age_units = temp[1].strip()
+                    patchdict = {"age": str(age), "age_units": str(age_units)}
             else:
+                if args.remove:
+                    patch_thing = None
                 patch_thing = objDict[key]
-
-        '''construct a dictionary with the key and value to be changed'''
-        patchdict = {FIELD: patch_thing}
+                patchdict = {FIELD: patch_thing}
 
         if not args.dryrun:
             response = encodedcc.patch_ENCODE(key, connection, patchdict)
@@ -116,8 +129,12 @@ def main():
             print("In DRY RUN mode, no data will be patched...")
 
         '''print what we did'''
-        print("Original:  %s" % (old_thing))
-        print("PATCH:     %s" % (patch_thing))
+        if FIELD == "age":
+            print("Original age: " + old_age + " Original age_units: " + old_units)
+            print("PATCH age: " + age + " PATCH age_units: " + age_units)
+        else:
+            print("Original:  %s" % (old_thing))
+            print("PATCH:     %s" % (patch_thing))
 
 if __name__ == '__main__':
         main()
