@@ -110,6 +110,9 @@ class Data_Release():
                     self.make_profile(d.get(key))  # should prevent infinite loops
 
     def convert(self, name):
+        '''used to convert CamelCase text to snake_case
+        used in expand_links to ensure that @type will match with
+        values in PROFILES dictionary'''
         s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
