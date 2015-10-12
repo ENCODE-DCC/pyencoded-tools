@@ -23,7 +23,7 @@ def get_experiment_list(file, search, connection):
             for i in range(0, len(objList)):
                 objList[i] = objList[i].strip()
         else:
-            set = encodedcc.get_ENCODE(search + '&limit=all', connection)
+            set = encodedcc.get_ENCODE(search + '&limit=all', connection, frame='embedded')
             for i in range(0, len(set['@graph'])):
                 objList.append(set['@graph'][i]['accession'])
 
@@ -31,7 +31,7 @@ def get_experiment_list(file, search, connection):
 
 
 def get_antibody_approval(antibody, target, connection):
-        search = encodedcc.get_ENCODE('search/?searchTerm='+antibody+'&type=antibody_approval', connection)
+        search = encodedcc.get_ENCODE('search/?searchTerm='+antibody+'&type=antibody_approval', connection, frame='embedded')
         for approval in search['@graph']:
             if approval['target']['name'] == target:
                 return approval['status']
@@ -302,7 +302,7 @@ def main():
 
     if args.files:
         for i in range(0, len(objList)):
-            exp = encodedcc.get_ENCODE(objList[i], connection)
+            exp = encodedcc.get_ENCODE(objList[i], connection, frame='embedded')
             for i in range(0, len(exp['files'])):
                 fileob = {}
                 file = exp['files'][i]
@@ -350,7 +350,7 @@ def main():
 
     for i in range(0, len(objList)):
 
-        exp = encodedcc.get_ENCODE(objList[i], connection)
+        exp = encodedcc.get_ENCODE(objList[i], connection, frame='embedded')
         ob = {}
 
         for i in checkedItems:
