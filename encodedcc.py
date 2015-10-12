@@ -350,7 +350,7 @@ def get_fields(args, connection):
     else:
         accessions = [line.strip() for line in open(args.infile)]
     if args.multifield:
-        fields = [line.strip() for line in open(args.fields)]
+        fields = [line.strip() for line in open(args.multifield)]
     elif args.onefield:
         fields = [args.onefield]
     else:
