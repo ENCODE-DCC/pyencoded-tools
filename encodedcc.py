@@ -401,7 +401,7 @@ def patch_set(args, connection):
         for key in new_data.keys():
             old_data[key] = full_data.get(key)
         if args.update:
-            patch_ENCODE(accession, new_data, connection)
+            patch_ENCODE(accession, connection, new_data)
         print("Object:", accession)
         for key in new_data.keys():
             print("Old data:", key, old_data[key])
