@@ -378,3 +378,27 @@ def get_fields(args, connection):
         writer.writeheader()
         for key in data.keys():
             writer.writerow(data.get(key))
+
+
+def patch_set(args, connection):
+    import csv
+    data = []
+    with open(args.infile, "r") as tsvfile:
+        reader = csv.DictReader(tsvfile, delimiter='\t')
+        for row in reader:
+            data.append(row)
+    for d in data:
+        accession = d.get("accession")
+        new_data = d
+        del new_data["accession"]
+        for key in new_data.keys():
+            if "," in new_data[key]:
+                l = new_data[key].strip("[]").split(", ")
+                l = [x.strip("'") for x in l]
+                new_data[key] = l
+        full_data = get_ENCODE(accession, connection)
+        old_data = {}
+        for key in new_data.keys():
+            old_data[key] = full_data.get(key)
+        print("Old data: ", old_data)
+        print("New data: ", new_data)

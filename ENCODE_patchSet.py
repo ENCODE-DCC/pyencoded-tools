@@ -68,8 +68,10 @@ def main():
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
 
-    FIELD = args.field
+    encodedcc.patch_set(args, connection)
 
+"""
+    FIELD = args.field
     objDict = {}
     with open(args.infile) as fd:
         objDict = dict(line.strip().split(None, 1) for line in fd)
@@ -141,6 +143,6 @@ def main():
         else:
             print("Original:  %s" % (old_thing))
             print("PATCH:     %s" % (patch_thing))
-
+#"""
 if __name__ == '__main__':
         main()
