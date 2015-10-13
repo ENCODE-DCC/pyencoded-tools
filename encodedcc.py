@@ -355,22 +355,26 @@ def get_fields(args, connection):
         fields = [args.onefield]
     else:
         fields = []
-    data = []
+    data = {}
     if any(accessions) and any(fields):
         for a in accessions:
             result = get_ENCODE(a, connection)
-            temp = [a]
+            temp = {}
             for f in fields:
-                temp.append(result.get(f, ""))
-            data.append(temp)
+                temp[f] = result.get(f, "")
+            if "accession" not in fields:
+                temp["accession"] = a
+            data[a] = temp
     else:
         print("Could not complete request one or more arugments were not supplied")
         return
-    header = ["accession"]
+    header = []
+    if "accession" not in fields:
+            header = ["accession"]
     for x in fields:
         header.append(x)
-    with open(args.outfile, "w") as tsvfile:
-        writer = csv.writer(tsvfile, delimiter='\t')
-        writer.writerow(header)
-        for d in data:
-            writer.writerow(d)
+    with open("test.tsv", "w") as tsvfile:
+        writer = csv.DictWriter(tsvfile, delimiter='\t', fieldnames=header)
+        writer.writeheader()
+        for key in data.keys():
+            writer.writerow(data.get(key))
