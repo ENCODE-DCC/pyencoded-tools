@@ -22,8 +22,7 @@ For more details:
 '''
 
 
-def main():
-
+def getArgs():
     parser = argparse.ArgumentParser(
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -37,7 +36,8 @@ def main():
                         provide a 3 column document (object age age_units)")
     parser.add_argument('--key',
                         default='default',
-                        help="The keypair identifier from the keyfile.  Default is --key=default")
+                        help="The keypair identifier from the keyfile.  \
+                        Default is --key=default")
     parser.add_argument('--keyfile',
                         default=os.path.expanduser("~/keypairs.json"),
                         help="The keypair file.  Default is --keyfile=%s" % (os.path.expanduser("~/keypairs.json")))
@@ -52,13 +52,19 @@ def main():
     parser.add_argument('--remove',
                         default=False,
                         action='store_true',
-                        help="Patch to remove the value specified in the input file from the given field.  Default is False.")
+                        help="Patch to remove the value specified in the input \
+                        file from the given field.  Default is False.")
     parser.add_argument('--dryrun',
                         default=False,
                         action='store_true',
                         help="Dry run of the script, no data will actually be patched.")
     args = parser.parse_args()
+    return args
 
+
+def main():
+
+    args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
 
