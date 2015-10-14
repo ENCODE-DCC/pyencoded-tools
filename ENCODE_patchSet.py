@@ -60,6 +60,12 @@ def getArgs():
                         default=False,
                         action='store_true',
                         help="Let the script PATCH the data.  Default is False")
+    parser.add_argument('--accession',
+                        help="Single accession to patch")
+    parser.add_argument('--field',
+                        help='Field for single accession')
+    parser.add_argument('--data',
+                        help='Data for single accession')
     args = parser.parse_args()
     return args
 

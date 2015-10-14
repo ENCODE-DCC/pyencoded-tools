@@ -383,12 +383,26 @@ def get_fields(args, connection):
 def patch_set(args, connection):
     import csv
     data = []
-    with open(args.infile, "r") as tsvfile:
-        reader = csv.DictReader(tsvfile, delimiter='\t')
-        for row in reader:
-            data.append(row)
+    if args.update:
+        print("This is an UPDATE run, data will be patched")
+    else:
+        print("This is a test run, nothing will be changed")
+    if args.accession:
+        if args.field and args.data:
+            data.append({"accession": args.accession, args.field: args.data})
+        else:
+            print("Missing information! Cannot PATCH object", args.accession)
+            return
+    else:
+        with open(args.infile, "r") as tsvfile:
+            reader = csv.DictReader(tsvfile, delimiter='\t')
+            for row in reader:
+                data.append(row)
     for d in data:
         accession = d.get("accession")
+        if not accession:
+            print("Missing accession!  Cannot PATCH data")
+            return
         new_data = d
         del new_data["accession"]
         for key in new_data.keys():
@@ -402,7 +416,11 @@ def patch_set(args, connection):
             old_data[key] = full_data.get(key)
         if args.update:
             patch_ENCODE(accession, connection, new_data)
-        print("Object:", accession)
+        if args.remove:
+            for key in new_data.keys():
+                new_data[key] = None
+            patch_ENCODE(accession, connection, new_data)
+        print("OBJECT:", accession)
         for key in new_data.keys():
-            print("Old data:", key, old_data[key])
-            print("New data:", key, new_data[key])
+            print("OLD DATA:", key, old_data[key])
+            print("NEW DATA:", key, new_data[key])
