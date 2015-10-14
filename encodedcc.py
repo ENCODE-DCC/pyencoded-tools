@@ -6,6 +6,7 @@ import json
 import sys
 import logging
 from urllib.parse import urljoin
+from urllib.parse import quote
 
 
 class dict_diff(object):
@@ -222,6 +223,8 @@ class ENC_Item(object):
 
 def get_ENCODE(obj_id, connection, frame="object"):
     '''GET an ENCODE object as JSON and return as dict'''
+    # obj_id = obj_id.replace(":", "%3A")
+    obj_id = quote(obj_id)
     if '?' in obj_id:
         url = urljoin(connection.server, obj_id+'&limit=all&frame='+frame)
     else:
@@ -378,3 +381,49 @@ def get_fields(args, connection):
         writer.writeheader()
         for key in data.keys():
             writer.writerow(data.get(key))
+
+
+def patch_set(args, connection):
+    import csv
+    data = []
+    if args.update:
+        print("This is an UPDATE run, data will be patched")
+    else:
+        print("This is a test run, nothing will be changed")
+    if args.accession:
+        if args.field and args.data:
+            data.append({"accession": args.accession, args.field: args.data})
+        else:
+            print("Missing information! Cannot PATCH object", args.accession)
+            return
+    else:
+        with open(args.infile, "r") as tsvfile:
+            reader = csv.DictReader(tsvfile, delimiter='\t')
+            for row in reader:
+                data.append(row)
+    for d in data:
+        accession = d.get("accession")
+        if not accession:
+            print("Missing accession!  Cannot PATCH data")
+            return
+        new_data = d
+        del new_data["accession"]
+        for key in new_data.keys():
+            if "," in new_data[key]:
+                l = new_data[key].strip("[]").split(", ")
+                l = [x.strip("'") for x in l]
+                new_data[key] = l
+        full_data = get_ENCODE(accession, connection)
+        old_data = {}
+        for key in new_data.keys():
+            old_data[key] = full_data.get(key)
+        if args.update:
+            patch_ENCODE(accession, connection, new_data)
+        if args.remove:
+            for key in new_data.keys():
+                new_data[key] = None
+            patch_ENCODE(accession, connection, new_data)
+        print("OBJECT:", accession)
+        for key in new_data.keys():
+            print("OLD DATA:", key, old_data[key])
+            print("NEW DATA:", key, new_data[key])
