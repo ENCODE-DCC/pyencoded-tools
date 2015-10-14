@@ -6,6 +6,7 @@ import json
 import sys
 import logging
 from urllib.parse import urljoin
+from urllib.parse import quote
 
 
 class dict_diff(object):
@@ -222,7 +223,8 @@ class ENC_Item(object):
 
 def get_ENCODE(obj_id, connection, frame="object"):
     '''GET an ENCODE object as JSON and return as dict'''
-    obj_id = obj_id.replace(":", "%3A")
+    # obj_id = obj_id.replace(":", "%3A")
+    obj_id = quote(obj_id)
     if '?' in obj_id:
         url = urljoin(connection.server, obj_id+'&limit=all&frame='+frame)
     else:
