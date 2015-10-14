@@ -225,7 +225,7 @@ def get_ENCODE(obj_id, connection, frame="object"):
     if '?' in obj_id:
         url = urljoin(connection.server, obj_id+'&limit=all&frame='+frame)
     else:
-        url = urljoin(connection.server, obj_id+'?limit=all&frame='+frame)
+        url = urljoin(connection.server, obj_id+'/?limit=all&frame='+frame)
     logging.debug('GET %s' % (url))
     response = requests.get(url, auth=connection.auth, headers=connection.headers)
     logging.debug('GET RESPONSE code %s' % (response.status_code))
