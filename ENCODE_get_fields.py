@@ -6,15 +6,37 @@ import os.path
 import argparse
 import encodedcc
 
+EPILOG = '''
+To get multiple fields use the multifield argument:
+
+        %(prog)s --infile filename --multifield fieldnames
+
+    where the infile is a list of object identifiers
+    and the multifield is a list of fields desired
+
+
+To get a single field use the onefield argument:
+
+        %(prog)s --infile filename --onefield field
+
+    where onefield is a string containing the field name
+
+
+To use a custom query for your object list:
+
+        %(prog)s --query www.my/custom/url
+
+    this can be used with multifield or onefield
+'''
+
 
 def getArgs():
     parser = argparse.ArgumentParser(
-        description=__doc__,
+        description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         )
     parser.add_argument('--infile',
-                        default='obList',
-                        help="File containing a list of ENCSRs as a column")
+                        help="File containing a list of ENCs as a column")
     parser.add_argument('--outfile',
                         default='fields.tsv',
                         help="TSV file with fields, first line is column headings")
