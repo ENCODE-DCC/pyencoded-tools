@@ -6,6 +6,16 @@ import re
 import datetime
 import encodedcc
 import logging
+'''
+ATTENTION: DON'T USE THIS VERSION PLEASE USE THE SCRIPT IN
+https://github.com/ENCODE-DCC/pyencoded-tools/tree/%233353-safe-dataRelease-DONTMERGE
+UNTIL FURTHER NOTICE
+
+The current version of the encodedcc library encodes
+urls in a way that is not longer compatiable with this script
+Since the two versions are currenly mutually exclusive
+I have separated them until further notice
+'''
 
 EPILOG = '''takes a file with a list of experiment accessions, a query,
 or a single accession and checks all associated objects
