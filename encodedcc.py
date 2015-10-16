@@ -223,8 +223,6 @@ class ENC_Item(object):
 
 def get_ENCODE(obj_id, connection, frame="object"):
     '''GET an ENCODE object as JSON and return as dict'''
-    # obj_id = obj_id.replace(":", "%3A")
-    obj_id = quote(obj_id)
     if '?' in obj_id:
         url = urljoin(connection.server, obj_id+'&limit=all&frame='+frame)
     else:
@@ -416,6 +414,8 @@ def patch_set(args, connection):
                     l = new_data[key].strip("[]").split(", ")
                     l = [x.replace("'", "") for x in l]
                     new_data[key] = l
+        if args.alias:
+            accession = quote(accession)
         full_data = get_ENCODE(accession, connection)
         old_data = {}
         for key in new_data.keys():

@@ -63,13 +63,18 @@ def getArgs():
                         action='store_true',
                         help="Let the script PATCH the data.  Default is False")
     parser.add_argument('--accession',
-                        help="Single accession to patch")
+                        help="Single accession/identifier to patch")
     parser.add_argument('--field',
                         help='Field for single accession')
     parser.add_argument('--data',
                         help='Data for single accession')
     parser.add_argument('--array',
                         help='Use if the single accession is an array')
+    parser.add_argument('--alias',
+                        default=False,
+                        action='store_true',
+                        help="If your identifier(s) are aliases, this will \
+                        escape unsafe characters")
     args = parser.parse_args()
     return args
 
