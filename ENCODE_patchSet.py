@@ -68,6 +68,8 @@ def getArgs():
                         help='Field for single accession')
     parser.add_argument('--data',
                         help='Data for single accession')
+    parser.add_argument('--array',
+                        help='Use if the single accession is an array')
     args = parser.parse_args()
     return args
 
