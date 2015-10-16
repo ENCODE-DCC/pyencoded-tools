@@ -6,6 +6,7 @@ import json
 import sys
 import logging
 from urllib.parse import urljoin
+from urllib.parse import quote
 
 
 class dict_diff(object):
@@ -355,22 +356,77 @@ def get_fields(args, connection):
         fields = [args.onefield]
     else:
         fields = []
-    data = []
+    data = {}
     if any(accessions) and any(fields):
         for a in accessions:
             result = get_ENCODE(a, connection)
-            temp = [a]
+            temp = {}
             for f in fields:
-                temp.append(result.get(f, ""))
-            data.append(temp)
+                temp[f] = result.get(f, "")
+            if "accession" not in fields:
+                temp["accession"] = a
+            data[a] = temp
     else:
         print("Could not complete request one or more arugments were not supplied")
         return
-    header = ["accession"]
+    header = []
+    if "accession" not in fields:
+            header = ["accession"]
     for x in fields:
         header.append(x)
-    with open(args.outfile, "w") as tsvfile:
-        writer = csv.writer(tsvfile, delimiter='\t')
-        writer.writerow(header)
-        for d in data:
-            writer.writerow(d)
+    with open("test.tsv", "w") as tsvfile:
+        writer = csv.DictWriter(tsvfile, delimiter='\t', fieldnames=header)
+        writer.writeheader()
+        for key in data.keys():
+            writer.writerow(data.get(key))
+
+
+def patch_set(args, connection):
+    import csv
+    data = []
+    if args.update:
+        print("This is an UPDATE run, data will be patched")
+    else:
+        print("This is a test run, nothing will be changed")
+    if args.accession:
+        if args.field and args.data:
+            if args.array:
+                args.data = [args.data]
+            data.append({"accession": args.accession, args.field: args.data})
+        else:
+            print("Missing information! Cannot PATCH object", args.accession)
+            return
+    else:
+        with open(args.infile, "r") as tsvfile:
+            reader = csv.DictReader(tsvfile, delimiter='\t')
+            for row in reader:
+                data.append(row)
+    for d in data:
+        accession = d.get("accession")
+        if not accession:
+            print("Missing accession!  Cannot PATCH data")
+            return
+        new_data = d
+        del new_data["accession"]
+        for key in new_data.keys():
+            for c in [",", "[", "]"]:
+                if c in new_data[key]:
+                    l = new_data[key].strip("[]").split(", ")
+                    l = [x.replace("'", "") for x in l]
+                    new_data[key] = l
+        if args.alias:
+            accession = quote(accession)
+        full_data = get_ENCODE(accession, connection)
+        old_data = {}
+        for key in new_data.keys():
+            old_data[key] = full_data.get(key)
+        if args.update:
+            patch_ENCODE(accession, connection, new_data)
+        if args.remove:
+            for key in new_data.keys():
+                new_data[key] = None
+            patch_ENCODE(accession, connection, new_data)
+        print("OBJECT:", accession)
+        for key in new_data.keys():
+            print("OLD DATA:", key, old_data[key])
+            print("NEW DATA:", key, new_data[key])
