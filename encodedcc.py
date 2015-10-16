@@ -414,7 +414,7 @@ def patch_set(args, connection):
             for c in [",", "[", "]"]:
                 if c in new_data[key]:
                     l = new_data[key].strip("[]").split(", ")
-                    l = [x.strip("'") for x in l]
+                    l = [x.replace("'", "") for x in l]
                     new_data[key] = l
         full_data = get_ENCODE(accession, connection)
         old_data = {}
