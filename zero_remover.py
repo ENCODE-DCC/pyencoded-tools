@@ -3,7 +3,6 @@ import argparse
 import os
 import csv
 import decimal
-import random
 
 
 def getArgs():
@@ -12,7 +11,7 @@ def getArgs():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument('--query',
-                        help="the @type you want")
+                        help="takes the @type you want")
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  \
@@ -42,6 +41,8 @@ def getArgs():
     parser.add_argument('--data',
                         help='IGNORE')
     parser.add_argument('--remove',
+                        help="IGNORE")
+    parser.add_argument('--alias',
                         help="IGNORE")
     args = parser.parse_args()
     return args
