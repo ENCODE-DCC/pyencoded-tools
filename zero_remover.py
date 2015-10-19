@@ -74,8 +74,6 @@ def format_number(num):
 
 def main():
     args = getArgs()
-    if "search" not in args.query:
-        args.query = "/search/?type=" + args.query
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
     encodedcc.get_fields(args, connection)

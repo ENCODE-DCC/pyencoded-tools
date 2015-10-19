@@ -345,6 +345,8 @@ def get_fields(args, connection):
     import csv
     accessions = []
     if args.query:
+        if "search" not in args.query:
+            args.query = "/search/?type=" + args.query
         temp = get_ENCODE(args.query, connection).get("@graph", [])
         for obj in temp:
             accessions.append(obj.get("accession"))
