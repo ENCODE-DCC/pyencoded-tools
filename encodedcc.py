@@ -374,7 +374,7 @@ def get_fields(args, connection):
             header = ["accession"]
     for x in fields:
         header.append(x)
-    with open("test.tsv", "w") as tsvfile:
+    with open(args.outfile, "w") as tsvfile:
         writer = csv.DictWriter(tsvfile, delimiter='\t', fieldnames=header)
         writer.writeheader()
         for key in data.keys():
