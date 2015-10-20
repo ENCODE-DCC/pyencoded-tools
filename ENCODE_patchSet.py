@@ -70,11 +70,6 @@ def getArgs():
                         help='Data for single accession')
     parser.add_argument('--array',
                         help='Use if the single accession is an array')
-    parser.add_argument('--alias',
-                        default=False,
-                        action='store_true',
-                        help="If your identifier(s) are aliases, this will \
-                        escape unsafe characters")
     args = parser.parse_args()
     return args
 

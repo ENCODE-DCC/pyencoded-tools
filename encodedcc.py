@@ -361,6 +361,7 @@ def get_fields(args, connection):
     data = {}
     if any(accessions) and any(fields):
         for a in accessions:
+            a = quote(a)
             result = get_ENCODE(a, connection)
             temp = {}
             for f in fields:
@@ -416,8 +417,7 @@ def patch_set(args, connection):
                     l = new_data[key].strip("[]").split(", ")
                     l = [x.replace("'", "") for x in l]
                     new_data[key] = l
-        if args.alias:
-            accession = quote(accession)
+        accession = quote(accession)
         full_data = get_ENCODE(accession, connection)
         old_data = {}
         for key in new_data.keys():
