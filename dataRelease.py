@@ -109,13 +109,21 @@ class Data_Release():
                     self.keysChecked.append(key)  # check a key, no check on second pass
                     self.make_profile(d.get(key))  # should prevent infinite loops
 
+    def convert(self, name):
+        '''used to convert CamelCase text to snake_case
+        used in expand_links to ensure that @type will match with
+        values in PROFILES dictionary'''
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
     def expand_links(self, dictionary, connection):
         '''uses PROFILES to build the expanded instance of the object fed in'''
         d = dictionary
         if d.get("@id"):
             self.searched.append(d.get("@id"))
         for key in d.keys():
-            name = d.get("@type")[0].lower()
+            name = d.get("@type")[0]
+            name = self.convert(name)
             if key in self.PROFILES.get(name, []):
                 newLinkValues = []
                 if type(d.get(key)) is list:
@@ -162,21 +170,20 @@ class Data_Release():
             log = "UPDATING: " + name + " " + uuid + " with status " + status + " is now released"
             stats = {"status": "released"}
             if name == "experiments":
-                if self.UPDATE:
-                    if audit:
-                        now = datetime.datetime.now().date()
-                        stats = {"date_released": str(now), "status": "released"}
-                        log = "UPDATING: " + name + " " + uuid + " with status " + status + " is now released with date " + str(now)
+                if audit:
+                    now = datetime.datetime.now().date()
+                    stats = {"date_released": str(now), "status": "released"}
+                    log = "UPDATING: " + name + " " + uuid + " with status " + status + " is now released with date " + str(now)
             logger.info('%s' % log)
         encodedcc.patch_ENCODE(uuid, connection, stats)
 
     def run_script(self, connection):
         if self.UPDATE:
             print("WARNING: This run is an UPDATE run objects will be released.")
-        if self.FORCE:
-            print("WARNING: Objects that do not pass audit will be FORCE-released")
         else:
             print("Object status will be checked but not changed")
+        if self.FORCE:
+            print("WARNING: Objects that do not pass audit will be FORCE-released")
         if self.LOGALL:
             print("Logging all statuses")
         for item in self.profilesJSON:
@@ -240,7 +247,7 @@ class Data_Release():
                             log = name + " " + uuid + " has status " + status
                             logger.info('%s' % log)
                     elif status in bad:
-                        log = "WARNING" + name + " " + uuid + " has status " + status
+                        log = "WARNING: " + name + " " + uuid + " has status " + status
                         logger.warning('%s' % log)
                     else:
                         log = name + " " + uuid + " has status " + status
