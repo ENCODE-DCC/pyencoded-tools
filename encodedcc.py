@@ -345,6 +345,8 @@ def get_fields(args, connection):
     import csv
     accessions = []
     if args.query:
+        if "search" not in args.query:
+            args.query = "/search/?type=" + args.query
         temp = get_ENCODE(args.query, connection).get("@graph", [])
         for obj in temp:
             accessions.append(obj.get("accession"))
@@ -359,6 +361,7 @@ def get_fields(args, connection):
     data = {}
     if any(accessions) and any(fields):
         for a in accessions:
+            a = quote(a)
             result = get_ENCODE(a, connection)
             temp = {}
             for f in fields:
@@ -374,7 +377,7 @@ def get_fields(args, connection):
             header = ["accession"]
     for x in fields:
         header.append(x)
-    with open("test.tsv", "w") as tsvfile:
+    with open(args.outfile, "w") as tsvfile:
         writer = csv.DictWriter(tsvfile, delimiter='\t', fieldnames=header)
         writer.writeheader()
         for key in data.keys():
@@ -414,8 +417,7 @@ def patch_set(args, connection):
                     l = new_data[key].strip("[]").split(", ")
                     l = [x.replace("'", "") for x in l]
                     new_data[key] = l
-        if args.alias:
-            accession = quote(accession)
+        accession = quote(accession)
         full_data = get_ENCODE(accession, connection)
         old_data = {}
         for key in new_data.keys():
