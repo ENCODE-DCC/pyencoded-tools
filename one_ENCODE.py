@@ -6,7 +6,7 @@ import json
 import sys
 import os.path
 from base64 import b64encode
-import magic
+#import magic
 import mimetypes
 import encodedcc
 import re
@@ -224,7 +224,7 @@ def main():
                 try:
                     mime_type, encoding = mimetypes.guess_type(filename)
                     major, minor = mime_type.split('/')
-                    detected_type = magic.from_file(filename, mime=True)
+                    #detected_type = magic.from_file(filename, mime=True)
                     print("Detected mime type %s" % (mime_type))
                 except:
                     print("Failed to detect mime type in file %s" % (filename), file=sys.stderr)
