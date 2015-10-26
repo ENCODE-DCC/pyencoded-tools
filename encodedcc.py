@@ -388,6 +388,8 @@ def patch_set(args, connection):
     data = []
     if args.update:
         print("This is an UPDATE run, data will be patched")
+        if args.remove:
+            print("On this run data will be REMOVED")
     else:
         print("This is a test run, nothing will be changed")
     if args.accession:
@@ -413,7 +415,7 @@ def patch_set(args, connection):
             print("Missing accession!  Cannot PATCH data")
             return
         new_data = d
-        del new_data["accession"]
+        new_data.pop("accession")
         for key in new_data.keys():
             for c in [",", "[", "]"]:
                 if c in new_data[key]:
@@ -421,17 +423,22 @@ def patch_set(args, connection):
                     l = [x.replace("'", "") for x in l]
                     new_data[key] = l
         accession = quote(accession)
-        full_data = get_ENCODE(accession, connection)
+        full_data = get_ENCODE(accession, connection, frame="edit")
         old_data = {}
         for key in new_data.keys():
             old_data[key] = full_data.get(key)
-        if args.update:
-            patch_ENCODE(accession, connection, new_data)
         if args.remove:
+            if args.update:
+                put_dict = full_data
+                for key in new_data.keys():
+                    put_dict.pop(key, None)
+                replace_ENCODE(accession, connection, put_dict)
+            print("OBJECT:", accession)
+            print("Removing values", str(new_data.keys()))
+        else:
+            if args.update:
+                patch_ENCODE(accession, connection, new_data)
+            print("OBJECT:", accession)
             for key in new_data.keys():
-                new_data[key] = None
-            patch_ENCODE(accession, connection, new_data)
-        print("OBJECT:", accession)
-        for key in new_data.keys():
-            print("OLD DATA:", key, old_data[key])
-            print("NEW DATA:", key, new_data[key])
+                print("OLD DATA:", key, old_data[key])
+                print("NEW DATA:", key, new_data[key])

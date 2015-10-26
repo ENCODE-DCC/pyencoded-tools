@@ -55,7 +55,7 @@ def getArgs():
                         default=False,
                         action='store_true',
                         help="Patch to remove the value specified in the input \
-                        file from the given field.  Default is False.")
+                        file from the given field.  Requires --update to work. Default is False.")
     parser.add_argument('--update',
                         default=False,
                         action='store_true',
