@@ -37,9 +37,6 @@ def getArgs():
         )
     parser.add_argument('--infile',
                         help="File containing a list of ENCs as a column")
-    parser.add_argument('--outfile',
-                        default='fields.tsv',
-                        help="TSV file with fields, first line is column headings")
     parser.add_argument('--query',
                         help="A custom query to get accessions.")
     parser.add_argument('--key',
