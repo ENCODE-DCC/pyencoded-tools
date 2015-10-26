@@ -190,8 +190,8 @@ def main():
         '''used to convert CamelCase text to snake_case'''
         s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
-    type_list = convert(new_json.pop('@type', []))
-    possible_collections = [x for x in type_list if x in supported_collections]
+    type_list = new_json.pop('@type', [])
+    possible_collections = [convert(x) for x in type_list if x in supported_collections]
     if possible_collections:
         # collection = possible_collections[0] + 's/'
         collection = possible_collections[0]
