@@ -53,6 +53,17 @@ def main():
         for row in reader:
             data.append(row)
     for item in data:
+        lanes = item.get("lanes", "")
+        if "," in lanes:
+            # split the item into a list
+            lanes = list(set(lanes.split(",")))
+        else:
+            # just one put it into a list
+            lanes = [lanes]
+        item["lanes"] = lanes
+        if not any(item["notes"]):
+            item.pop("notes")
+        print(item)
         if item.get("@id") not in objList:
             objList.append(item["@id"])
 
@@ -60,6 +71,9 @@ def main():
     for obj in objList:
         for item in data:
             temp = {}
+            temp["status"] = {}
+            temp["notes"] = []
+            temp["documents"] = []
             if item.get("@id") == obj:
                 temp["@id"] = item["@id"]
                 lanes = item.get("lanes", "")
@@ -69,9 +83,9 @@ def main():
                 else:
                     # just one put it into a list
                     lanes = [lanes]
-                temp["status"] = temp["status"].append([lanes, item.get("lane_status", "")])
-                temp["notes"] = temp["notes"].append(item.get("notes", ""))
-                temp["documents"] = temp["documents"].append(item.get("documents", ""))
+                temp["status"][item.get("lane_status", "NONE")] = lanes
+                temp["notes"].append(item.get("notes", ""))
+                temp["documents"].append(item.get("documents", ""))
             compiled_data.append(temp)
 
     '''temp = {"@id": "/antibody-characterizations/123_456/",
@@ -82,33 +96,33 @@ def main():
                         "notes": ["notes notes", "notes notes"],
                         "documents": ["document", "document"]
                         }'''
-
-    for obj in compiled_data:
-        # each of these is the file data for the antibody
-        antibody = encodedcc.get_ENCODE(obj, connection)
-        # get the antibody, this we will edit and PATCH
-        reviews = antibody.get("characterization_reviews", [])
-        # get the reviews, this can be checked and edited as needed
-        review_nums = []
-        file_nums = []
-        for r in reviews:
-            review_nums.append(r.get("lane"))
-        for lane in obj["status"]:
-            # cycle through the possible status lists
-            for num in lane[0]:
-                for val in num:
-                    file_nums.append(val)
-        # make sure no lanes listed in file that are not in object
-        # no lanes listed more than once
-        # no lanes are missing
-        '''WAIT WAIT WAIT! I don't think I'm checking properly for duplicates'''
-        if len(review_nums) > len(file_nums):
-            diff_nums = [x for x in review_nums if x not in file_nums]
-        else:
-            diff_nums = [x for x in file_nums if x not in review_nums]
-        if not diff_nums:
-            pass
-
+    #print(compiled_data)
+    """for obj in compiled_data:
+                    # each of these is the file data for the antibody
+                    antibody = encodedcc.get_ENCODE(obj, connection)
+                    # get the antibody, this we will edit and PATCH
+                    reviews = antibody.get("characterization_reviews", [])
+                    # get the reviews, this can be checked and edited as needed
+                    review_nums = []
+                    file_nums = []
+                    for r in reviews:
+                        review_nums.append(r.get("lane"))
+                    for lane in obj["status"]:
+                        # cycle through the possible status lists
+                        for num in lane[0]:
+                            for val in num:
+                                file_nums.append(val)
+                    # make sure no lanes listed in file that are not in object
+                    # no lanes listed more than once
+                    # no lanes are missing
+                    '''WAIT WAIT WAIT! I don't think I'm checking properly for duplicates'''
+                    if len(review_nums) > len(file_nums):
+                        diff_nums = [x for x in review_nums if x not in file_nums]
+                    else:
+                        diff_nums = [x for x in file_nums if x not in review_nums]
+                    if not diff_nums:
+                        pass
+            """
 
 
 
