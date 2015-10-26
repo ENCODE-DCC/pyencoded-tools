@@ -6,9 +6,10 @@ import json
 import sys
 import os.path
 from base64 import b64encode
-import magic
+#import magic
 import mimetypes
 import encodedcc
+import re
 
 
 EPILOG = '''Examples:
@@ -184,8 +185,13 @@ def main():
                              'source', 'target', 'treatment', 'user',
                              'analysis_step_run', 'pipeline', 'workflow_run',
                              'analysis_step', 'software_version', 'publication']
+
+    def convert(name):
+        '''used to convert CamelCase text to snake_case'''
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
     type_list = new_json.pop('@type', [])
-    possible_collections = [x for x in type_list if x in supported_collections]
+    possible_collections = [convert(x) for x in type_list if x in supported_collections]
     if possible_collections:
         # collection = possible_collections[0] + 's/'
         collection = possible_collections[0]
@@ -218,7 +224,7 @@ def main():
                 try:
                     mime_type, encoding = mimetypes.guess_type(filename)
                     major, minor = mime_type.split('/')
-                    detected_type = magic.from_file(filename, mime=True)
+                    #detected_type = magic.from_file(filename, mime=True)
                     print("Detected mime type %s" % (mime_type))
                 except:
                     print("Failed to detect mime type in file %s" % (filename), file=sys.stderr)
@@ -239,20 +245,20 @@ def main():
         if args.force_put:
             if not GET_ONLY:
                 print("Replacing existing object")
-                encodedcc.replace_ENCODE(identifier, new_json, connection)
+                encodedcc.replace_ENCODE(identifier, connection, new_json)
         else:
             if not GET_ONLY:
                 print("Patching existing object")
-                encodedcc.patch_ENCODE(identifier, new_json, connection)
+                encodedcc.patch_ENCODE(identifier, connection, new_json)
     elif new_object:
         if args.force_put:
             if not GET_ONLY:
                 print("PUT'ing new object")
-                encodedcc.replace_ENCODE(identifier, new_json, connection)
+                encodedcc.replace_ENCODE(identifier, connection, new_json)
         else:
             if not GET_ONLY:
                 print("POST'ing new object")
-                encodedcc.new_ENCODE(collection, new_json, connection)
+                encodedcc.new_ENCODE(collection, connection, new_json)
 
 
 if __name__ == '__main__':

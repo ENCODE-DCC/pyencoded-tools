@@ -377,11 +377,10 @@ def get_fields(args, connection):
             header = ["accession"]
     for x in fields:
         header.append(x)
-    with open(args.outfile, "w") as tsvfile:
-        writer = csv.DictWriter(tsvfile, delimiter='\t', fieldnames=header)
-        writer.writeheader()
-        for key in data.keys():
-            writer.writerow(data.get(key))
+    writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=header)
+    writer.writeheader()
+    for key in data.keys():
+        writer.writerow(data.get(key))
 
 
 def patch_set(args, connection):
@@ -389,6 +388,8 @@ def patch_set(args, connection):
     data = []
     if args.update:
         print("This is an UPDATE run, data will be patched")
+        if args.remove:
+            print("On this run data will be REMOVED")
     else:
         print("This is a test run, nothing will be changed")
     if args.accession:
@@ -399,36 +400,45 @@ def patch_set(args, connection):
         else:
             print("Missing information! Cannot PATCH object", args.accession)
             return
-    else:
+    elif args.infile:
         with open(args.infile, "r") as tsvfile:
             reader = csv.DictReader(tsvfile, delimiter='\t')
             for row in reader:
                 data.append(row)
+    else:
+        reader = csv.DictReader(sys.stdin, delimiter='\t')
+        for row in reader:
+            data.append(row)
     for d in data:
         accession = d.get("accession")
         if not accession:
             print("Missing accession!  Cannot PATCH data")
             return
         new_data = d
-        del new_data["accession"]
+        new_data.pop("accession")
         for key in new_data.keys():
-            for c in [",", "[", "]"]:
+            for c in ["[", "]"]:
                 if c in new_data[key]:
                     l = new_data[key].strip("[]").split(", ")
                     l = [x.replace("'", "") for x in l]
                     new_data[key] = l
         accession = quote(accession)
-        full_data = get_ENCODE(accession, connection)
+        full_data = get_ENCODE(accession, connection, frame="edit")
         old_data = {}
         for key in new_data.keys():
             old_data[key] = full_data.get(key)
-        if args.update:
-            patch_ENCODE(accession, connection, new_data)
         if args.remove:
+            if args.update:
+                put_dict = full_data
+                for key in new_data.keys():
+                    put_dict.pop(key, None)
+                replace_ENCODE(accession, connection, put_dict)
+            print("OBJECT:", accession)
+            print("Removing values", str(new_data.keys()))
+        else:
+            if args.update:
+                patch_ENCODE(accession, connection, new_data)
+            print("OBJECT:", accession)
             for key in new_data.keys():
-                new_data[key] = None
-            patch_ENCODE(accession, connection, new_data)
-        print("OBJECT:", accession)
-        for key in new_data.keys():
-            print("OLD DATA:", key, old_data[key])
-            print("NEW DATA:", key, new_data[key])
+                print("OLD DATA:", key, old_data[key])
+                print("NEW DATA:", key, new_data[key])

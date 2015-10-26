@@ -26,7 +26,7 @@ def getArgs():
                         default='default')
     parser.add_argument('--keyfile',
                         help="The keyfile",
-                        default=os.path.expanduser('./keypairs.json'))
+                        default=os.path.expanduser('~/keypairs.json'))
     parser.add_argument('--update',
                         help="Run script and update the objects. Default is off",
                         action='store_true', default=False)
