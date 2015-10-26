@@ -398,11 +398,15 @@ def patch_set(args, connection):
         else:
             print("Missing information! Cannot PATCH object", args.accession)
             return
-    else:
+    elif args.infile:
         with open(args.infile, "r") as tsvfile:
             reader = csv.DictReader(tsvfile, delimiter='\t')
             for row in reader:
                 data.append(row)
+    else:
+        reader = csv.DictReader(sys.stdin, delimiter='\t')
+        for row in reader:
+            data.append(row)
     for d in data:
         accession = d.get("accession")
         if not accession:
