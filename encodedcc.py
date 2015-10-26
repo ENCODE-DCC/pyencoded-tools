@@ -377,11 +377,10 @@ def get_fields(args, connection):
             header = ["accession"]
     for x in fields:
         header.append(x)
-    with open(args.outfile, "w") as tsvfile:
-        writer = csv.DictWriter(tsvfile, delimiter='\t', fieldnames=header)
-        writer.writeheader()
-        for key in data.keys():
-            writer.writerow(data.get(key))
+    writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=header)
+    writer.writeheader()
+    for key in data.keys():
+        writer.writerow(data.get(key))
 
 
 def patch_set(args, connection):
