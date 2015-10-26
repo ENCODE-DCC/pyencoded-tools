@@ -9,6 +9,7 @@ from base64 import b64encode
 import magic
 import mimetypes
 import encodedcc
+import re
 
 
 EPILOG = '''Examples:
@@ -184,7 +185,12 @@ def main():
                              'source', 'target', 'treatment', 'user',
                              'analysis_step_run', 'pipeline', 'workflow_run',
                              'analysis_step', 'software_version', 'publication']
-    type_list = new_json.pop('@type', [])
+
+    def convert(name):
+        '''used to convert CamelCase text to snake_case'''
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    type_list = convert(new_json.pop('@type', []))
     possible_collections = [x for x in type_list if x in supported_collections]
     if possible_collections:
         # collection = possible_collections[0] + 's/'
