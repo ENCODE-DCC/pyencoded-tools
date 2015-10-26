@@ -417,7 +417,7 @@ def patch_set(args, connection):
         new_data = d
         new_data.pop("accession")
         for key in new_data.keys():
-            for c in [",", "[", "]"]:
+            for c in ["[", "]"]:
                 if c in new_data[key]:
                     l = new_data[key].strip("[]").split(", ")
                     l = [x.replace("'", "") for x in l]
