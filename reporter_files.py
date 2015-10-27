@@ -12,11 +12,11 @@ def files(objList, fileCheckedItems, connection):
             fileob['submitted_by'] = file['submitted_by']['title']
             fileob['experiment'] = exp['accession']
             fileob['experiment-lab'] = exp['lab']['name']
-            fileob['biosample'] = exp['biosample_term_name']
+            fileob['biosample'] = exp.get('biosample_term_name', '')
             fileob['flowcell'] = []
             fileob['lane'] = []
             for fcd in file['flowcell_details']:
-                fileob['flowcell'].append(fcd['flowcell'])
+                fileob['flowcell'].append(fcd.get('flowcell', ''))
                 fileob['lane'].append(fcd['lane'])
             try:
                 fileob['platform'] = fileob['platform']['title']
