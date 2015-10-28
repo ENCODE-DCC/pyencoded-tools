@@ -29,6 +29,9 @@ def getArgs():
                         default=False,
                         action='store_true',
                         help="Print debug messages.  Default is False.")
+    parser.add_argument('--update',
+                        default=False,
+                        help="Allows script to update")
     args = parser.parse_args()
     return args
 
@@ -74,11 +77,19 @@ def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Conenction(key)
+    print("Running on", connection.server)
+    if args.update:
+        print("This is an UPDATE run, data will be changed")
+    else:
+        print("This is a TEST run, nothing gets altered")
     with open("infile", "r") as tsvfile:
         reader = csv.DictReader(tsvfile, delimiter='\t')
         for row in reader:
             n = NewFile(row)
-            n.post_file(connection)
+            if args.update:
+                n.post_file(connection)
+            else:
+                print("Data to POST: ", n.post_file)
 
 if __name__ == '__main__':
     main()
