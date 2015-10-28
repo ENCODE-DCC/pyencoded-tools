@@ -31,7 +31,8 @@ def getArgs():
                         help="Print debug messages.  Default is False.")
     parser.add_argument('--update',
                         default=False,
-                        help="Allows script to update")
+                        action="store_true",
+                        help="Allows script to update, default is false")
     args = parser.parse_args()
     return args
 
