@@ -47,7 +47,7 @@ def main():
         args.user = "/users/" + args.user
     reviewed_by = args.user
     data = []
-    objList = []  # holds list of all items
+    idList = []
     with open(args.infile, "r") as tsvfile:
         reader = csv.DictReader(tsvfile, delimiter='\t')
         for row in reader:
@@ -63,118 +63,71 @@ def main():
         item["lanes"] = lanes
         if not any(item["notes"]):
             item.pop("notes")
-        print(item)
-        if item.get("@id") not in objList:
-            objList.append(item["@id"])
+        if item.get("@id") not in idList:
+            idList.append(item["@id"])
+    objDict = {key: [] for key in idList}
+    for item in data:
+        objDict.get(item.get("@id", ""), "").append(item)
+    print(objDict)
 
-    compiled_data = []
-    for obj in objList:
-        for item in data:
-            temp = {}
-            temp["status"] = {}
-            temp["notes"] = []
-            temp["documents"] = []
-            if item.get("@id") == obj:
-                temp["@id"] = item["@id"]
-                lanes = item.get("lanes", "")
-                if "," in lanes:
-                    # split the item into a list
-                    lanes = list(set(lanes.split(",")))
-                else:
-                    # just one put it into a list
-                    lanes = [lanes]
-                temp["status"][item.get("lane_status", "NONE")] = lanes
-                temp["notes"].append(item.get("notes", ""))
-                temp["documents"].append(item.get("documents", ""))
-            compiled_data.append(temp)
-
-    '''temp = {"@id": "/antibody-characterizations/123_456/",
-                        "status": [
-                                    [[1, 2, 3], "compliant"],
-                                    [[4, 5, 6], "not compliant"]
-                                   ],
-                        "notes": ["notes notes", "notes notes"],
-                        "documents": ["document", "document"]
-                        }'''
-    #print(compiled_data)
-    """for obj in compiled_data:
-                    # each of these is the file data for the antibody
-                    antibody = encodedcc.get_ENCODE(obj, connection)
-                    # get the antibody, this we will edit and PATCH
-                    reviews = antibody.get("characterization_reviews", [])
-                    # get the reviews, this can be checked and edited as needed
-                    review_nums = []
-                    file_nums = []
-                    for r in reviews:
-                        review_nums.append(r.get("lane"))
-                    for lane in obj["status"]:
-                        # cycle through the possible status lists
-                        for num in lane[0]:
-                            for val in num:
-                                file_nums.append(val)
-                    # make sure no lanes listed in file that are not in object
-                    # no lanes listed more than once
-                    # no lanes are missing
-                    '''WAIT WAIT WAIT! I don't think I'm checking properly for duplicates'''
-                    if len(review_nums) > len(file_nums):
-                        diff_nums = [x for x in review_nums if x not in file_nums]
-                    else:
-                        diff_nums = [x for x in file_nums if x not in review_nums]
-                    if not diff_nums:
-                        pass
-            """
-
-
-
-
-'''
-    for idNum in objList:
-        antibody = encodedcc.get_ENCODE(idNum, connection, frame="edit")
+    for idNum in objDict.keys():
+        antibody = encodedcc.get_ENCODE(idNum, connection)
+        new_antibody = antibody
         if antibody.get("primary_characterization_method"):
-            # get the list of reviews from the antibody, can compare them later
             reviews = antibody.get("characterization_reviews", [])
-            # get list of documents from ENCODE
-            documents = antibody.get("documents", [])
-            for item in data:
-                if item.get("@id", "'") == idNum:
-                    lanes = item.get("lanes", "")
-                    if "," in lanes:
-                        # split the item into a list
-                        lanes = lanes.split(",")
-                    else:
-                        # just one put it into a list
-                        lanes = [lanes]
-                    for lane in lanes:
-                        # look at lanes and compare to lanes from antibody
-                        # check that lane and status match
-                        for r in reviews:
-                            if r.get("lane") == lane:
-                                # this means that the lane number in charactarization_reviews
-                                # matches the lane number in the file, check the status
-                                r["lane_status"] = item["status"]
-                                # remove a lane if it is in the database already
-                                lanes.pop(lane)
-                         temp = {"lane": lane, "lane_status": item.get("lane_status", "")}
-                         reviews.append(temp)
-                    # get the documents from the file
-                    new_docs = item.get("documents", [])
-                    if "," in new_docs:
-                        # if there are multiple, split into list
-                        new_docs = new_docs.split(",")
-                    else:
-                        new_docs = [new_docs]
-                    for doc in new_docs:
-                        # get the @id of the document
-                        doc_id = encodedcc.get_ENCODE(doc, connection)["@id"]
-                        if doc_id not in documents:
-                            # if not in list of documents from ENCODE, add it
-                            documents.append(doc_id)
+            enc_docs = antibody.get("documents", [])
+            file_docs = []
+            for obj in objDict[idNum]:
+                file_docs.append(obj.get("documents"))
+            for r in reviews:
+                for line in objDict.get(idNum, ""):
+                    for lane in line["lanes"]:
+                        if lane == r["lane"]:
+                            if line["status"] == "pending dcc review":
+                                print("can't set to pending review, need manual override")
+                                fin = input("Change the status to 'pending dcc review'? Y/N ")
+                                if fin.upper() == "Y":
+                                    r["lane_status"] = line["lane_status"]
+                                else:
+                                    pass
+                            else:
+                                r["lane_status"] = line["lane_status"]
+            # now all lanes in reviews should be updated to document
+            # there could be lane in document not in reviews
 
-                    if any(item.get("notes", "")):
-                        # get notes
-                        notes = item["notes"]
+            if antibody.get("lab", "") == "/labs/michael-snyder/":
+                # make sure special document is added if not in the file
+                if antibody["primary_characterization_method"] == "immunoprecipitation":
+                    if len(reviews) == 1:
+                        # fix lane number
+                        reviews[0]["lane"] = 3
+
+
+            enc_lanes = []
+            enc_comp = 0
+            enc_ncomp = 0
+            other = 0
+            for r in reviews:
+                if r.get("lane"):
+                    enc_lanes.append(r["lane"])
+                if r.get("lane_status", "") == "compliant":
+                    enc_comp = enc_comp + 1
+                elif r.get("lane_status", "") == "not compliant":
+                    enc_ncomp = enc_ncomp + 1
+                else:
+                    other = other + 1
+            print(enc_lanes)
+            if other > 0:
+                print("not all lanes have allowed status")
+            elif enc_comp > 0:
+                print("compliant")
+                new_antibody["status"] = "compliant"
+            elif other == 0 and enc_comp == 0 and enc_ncomp > 0:
+                print("not compliant")
+                new_antibody["status"] = "not compliant"
+
         else:
             print("antibody", antibody.get("uuid"), "is not a primary characterization")
-'''
+
 if __name__ == '__main__':
         main()
