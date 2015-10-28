@@ -82,14 +82,14 @@ def main():
         print("This is an UPDATE run, data will be changed")
     else:
         print("This is a TEST run, nothing gets altered")
-    with open("infile", "r") as tsvfile:
+    with open(args.infile, "r") as tsvfile:
         reader = csv.DictReader(tsvfile, delimiter='\t')
         for row in reader:
             n = NewFile(row)
             if args.update:
                 n.post_file(connection)
             else:
-                print("Data to POST: ", n.post_file)
+                print("Data to POST: ", n.post_input)
 
 if __name__ == '__main__':
     main()
