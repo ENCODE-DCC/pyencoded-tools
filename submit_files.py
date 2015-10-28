@@ -41,9 +41,14 @@ class NewFile():
     def __init__(self, dictionary):
         self.data = dictionary
         self.post_input = {}
+        flowcell_list = ["lane", "barcode", "flowcell", "machine"]
+        flowcell_dict = {}
+        for val in flowcell_list:
+            flowcell_dict[val] = dictionary.pop(val)
         for key in dictionary.keys():
             if dictionary.get(key):
                 self.post_input[key] = dictionary[key]
+        self.post_input["flowcell_details"] = [flowcell_dict]
 
     def post_file(self, connection):
 
