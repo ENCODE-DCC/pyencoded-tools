@@ -76,7 +76,7 @@ class NewFile():
 def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
-    connection = encodedcc.ENC_Conenction(key)
+    connection = encodedcc.ENC_Connection(key)
     print("Running on", connection.server)
     if args.update:
         print("This is an UPDATE run, data will be changed")
