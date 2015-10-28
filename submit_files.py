@@ -41,14 +41,23 @@ class NewFile():
     def __init__(self, dictionary):
         self.data = dictionary
         self.post_input = {}
-        flowcell_list = ["lane", "barcode", "flowcell", "machine"]
+        # make flowcell dict
         flowcell_dict = {}
-        for val in flowcell_list:
+        for val in ["lane", "barcode", "flowcell", "machine"]:
             flowcell_dict[val] = dictionary.pop(val)
+        # make post_input dict
         for key in dictionary.keys():
             if dictionary.get(key):
                 self.post_input[key] = dictionary[key]
+        # add flowcell_details to post_input
         self.post_input["flowcell_details"] = [flowcell_dict]
+        # calculate md5sum
+        md5sum = hashlib.md5()
+        with open(dictionary["file_path"], "rb") as f:
+            for chunk in iter(lambda: f.read(1024*1024), b''):
+                md5sum.update(chunk)
+        # add md5sum to post_input
+        self.post_input["md5sum"] = md5sum.hexdigest()
 
     def post_file(self, connection):
 
@@ -68,9 +77,10 @@ class NewFile():
             'AWS_SECURITY_TOKEN': creds['session_token'],
         })
         print("Uploading file.")
-        print(self.file_path)
+        path = self.data["file_path"]
+        print(path)
         start = time.time()
-        subprocess.check_call(['aws', 's3', 'cp', self.file_path, creds['upload_url']], env=env)
+        subprocess.check_call(['aws', 's3', 'cp', path, creds['upload_url']], env=env)
         end = time.time()
         duration = end - start
         print("Uploaded in %.2f seconds" % duration)
