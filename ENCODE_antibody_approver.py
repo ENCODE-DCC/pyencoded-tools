@@ -2,6 +2,7 @@ import argparse
 import os.path
 import csv
 import encodedcc
+from urllib.parse import quote
 
 EPILOG = '''
 For more details:
@@ -45,7 +46,6 @@ def main():
     connection = encodedcc.ENC_Connection(key)
     if "users" not in args.user:
         args.user = "/users/" + args.user
-    reviewed_by = args.user
     data = []
     idList = []
     with open(args.infile, "r") as tsvfile:
@@ -68,17 +68,18 @@ def main():
     objDict = {key: [] for key in idList}
     for item in data:
         objDict.get(item.get("@id", ""), "").append(item)
-    print(objDict)
 
     for idNum in objDict.keys():
-        antibody = encodedcc.get_ENCODE(idNum, connection)
-        new_antibody = antibody
+        antibody = encodedcc.get_ENCODE(idNum, connection, frame="edit")
+        new_antibody = {}
         if antibody.get("primary_characterization_method"):
             reviews = antibody.get("characterization_reviews", [])
             enc_docs = antibody.get("documents", [])
             file_docs = []
             for obj in objDict[idNum]:
-                file_docs.append(obj.get("documents"))
+                if obj.get("documents"):
+                    for doc in obj["documents"].split(","):
+                        file_docs.append(doc)
             for r in reviews:
                 for line in objDict.get(idNum, ""):
                     for lane in line["lanes"]:
@@ -97,11 +98,12 @@ def main():
 
             if antibody.get("lab", "") == "/labs/michael-snyder/":
                 # make sure special document is added if not in the file
+                if "michael-snyder:biorad_protein_standard" not in file_docs:
+                    file_docs.append("michael-snyder:biorad_protein_standard")
                 if antibody["primary_characterization_method"] == "immunoprecipitation":
                     if len(reviews) == 1:
                         # fix lane number
                         reviews[0]["lane"] = 3
-
 
             enc_lanes = []
             enc_comp = 0
@@ -116,7 +118,6 @@ def main():
                     enc_ncomp = enc_ncomp + 1
                 else:
                     other = other + 1
-            print(enc_lanes)
             if other > 0:
                 print("not all lanes have allowed status")
             elif enc_comp > 0:
@@ -126,8 +127,18 @@ def main():
                 print("not compliant")
                 new_antibody["status"] = "not compliant"
 
-        else:
-            print("antibody", antibody.get("uuid"), "is not a primary characterization")
+        for doc in file_docs:
+            if ":" in doc:
+                doc = quote(doc)
+            link = encodedcc.get_ENCODE(doc, connection).get("@id")
+            if link:
+                if link not in enc_docs:
+                    enc_docs.append(link)
+        new_antibody["characterization_reviews"] = reviews
+        new_antibody["documents"] = enc_docs
+        new_antibody["reviewed_by"] = args.user
+
+        print("new_antibody", new_antibody)
 
 if __name__ == '__main__':
         main()
