@@ -2,6 +2,7 @@ import argparse
 import os.path
 import csv
 import encodedcc
+import sys
 from urllib.parse import quote
 
 EPILOG = '''
@@ -16,8 +17,8 @@ def getArgs():
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('--user',
-                        help="User uuid or @id for updating. Default is ")
+    parser.add_argument('user',
+                        help="User uuid or @id for updating.")
     parser.add_argument('--infile',
                         help="TSV with format TBD")
     parser.add_argument('--key',
@@ -44,8 +45,12 @@ def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-    if "users" not in args.user:
-        args.user = "/users/" + args.user
+    user = encodedcc.get_ENCODE(args.user, connection).get("@id")
+    if not user:
+        print(args.user, "was not found in the ENCODE database as a registered user. Please try again")
+        sys.exit()
+    else:
+        user = user.get("@id")
     data = []
     idList = []
     with open(args.infile, "r") as tsvfile:
@@ -80,31 +85,66 @@ def main():
                 if obj.get("documents"):
                     for doc in obj["documents"].split(","):
                         file_docs.append(doc)
+            for doc in file_docs:
+                if ":" in doc:
+                    doc = quote(doc)
+                link = encodedcc.get_ENCODE(doc, connection).get("@id")
+                if link:
+                    if link not in enc_docs:
+                        enc_docs.append(link)
+
+            #######################
+            # begin lanes checking
+            #######################
+            enc_lanes_check = []
+            file_lanes_check = []
+            flag = False
             for r in reviews:
-                for line in objDict.get(idNum, ""):
+                enc_lanes_check.append(r["lane"])
+            for item in objDict[idNum]:
+                for l in item["lanes"]:
+                    file_lanes_check.append(int(l))
+            if len(set(enc_lanes_check)) < len(enc_lanes_check):
+                # duplicate lanes in ENCODE
+                print("Possible duplicate lanes in ENCODE")
+                flag = True
+            if len(set(file_lanes_check)) < len(file_lanes_check):
+                # duplicate lanes in file
+                print("Possible duplicate lanes in file")
+                flag = True
+            if len(set(enc_lanes_check) - set(file_lanes_check)) > 0:
+                # more lanes in ENCODE than in file
+                print("Foudn lanes in ENCODE not in the file")
+                flag = True
+            if len(set(file_lanes_check) - set(enc_lanes_check)) > 0:
+                # more lanes in file than in ENCODE
+                print("Found lanes in the file not in ENCODE")
+                flag = True
+            if flag:
+                print("Some problem was found with the number of lanes in the file as compared to ENCODE")
+                print("Do you want to continue running the program or exit and check the data?")
+                i = input("Continue? y/n ")
+                if i.upper() != "Y":
+                    # exit the script
+                    sys.exit()
+
+            for r in reviews:
+                for line in objDict[idNum]:
                     for lane in line["lanes"]:
                         if lane == r["lane"]:
                             if line["status"] == "pending dcc review":
                                 print("can't set to pending review, need manual override")
-                                fin = input("Change the status to 'pending dcc review'? Y/N ")
+                                fin = input("Change the status to 'pending dcc review'? y/n ")
                                 if fin.upper() == "Y":
                                     r["lane_status"] = line["lane_status"]
+                                    for link in enc_docs:
+                                        if encodedcc.get_ENCODE(link, connection).get("document_type", "") == "standards document":
+                                            enc_docs.pop(link)
                                 else:
                                     pass
                             else:
                                 r["lane_status"] = line["lane_status"]
             # now all lanes in reviews should be updated to document
-            # there could be lane in document not in reviews
-
-            if antibody.get("lab", "") == "/labs/michael-snyder/":
-                # make sure special document is added if not in the file
-                if "michael-snyder:biorad_protein_standard" not in file_docs:
-                    file_docs.append("michael-snyder:biorad_protein_standard")
-                if antibody["primary_characterization_method"] == "immunoprecipitation":
-                    if len(reviews) == 1:
-                        # fix lane number
-                        reviews[0]["lane"] = 3
-
             enc_lanes = []
             enc_comp = 0
             enc_ncomp = 0
@@ -121,24 +161,34 @@ def main():
             if other > 0:
                 print("not all lanes have allowed status")
             elif enc_comp > 0:
-                print("compliant")
                 new_antibody["status"] = "compliant"
             elif other == 0 and enc_comp == 0 and enc_ncomp > 0:
-                print("not compliant")
                 new_antibody["status"] = "not compliant"
+            ######################
+            # end lanes checking
+            ######################
 
-        for doc in file_docs:
-            if ":" in doc:
-                doc = quote(doc)
-            link = encodedcc.get_ENCODE(doc, connection).get("@id")
-            if link:
-                if link not in enc_docs:
-                    enc_docs.append(link)
+            if antibody.get("lab", "") == "/labs/michael-snyder/":
+                # make sure special document is added if not in the file
+                if "michael-snyder:biorad_protein_standard" not in file_docs:
+                    file_docs.append("michael-snyder:biorad_protein_standard")
+                if antibody["primary_characterization_method"] == "immunoprecipitation":
+                    if len(reviews) == 1:
+                        # fix lane number
+                        reviews[0]["lane"] = 3
+
+        for obj in objDict[idNum]:
+            if obj.get("notes"):
+                new_antibody["notes"] = obj["notes"]
         new_antibody["characterization_reviews"] = reviews
         new_antibody["documents"] = enc_docs
-        new_antibody["reviewed_by"] = args.user
+        new_antibody["reviewed_by"] = user
 
-        print("new_antibody", new_antibody)
+        if args.update:
+            print("PATCHing antibody characterization", idNum)
+            encodedcc.patch_ENCODE(idNum, connection, new_antibody)
+        else:
+            print("PATCH data:", new_antibody)
 
 if __name__ == '__main__':
         main()
