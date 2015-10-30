@@ -15,6 +15,12 @@ def files(objList, fileCheckedItems, connection):
             fileob['biosample'] = exp.get('biosample_term_name', '')
             fileob['flowcell'] = []
             fileob['lane'] = []
+            fileob["Uniquely mapped reads number"] = ""
+            if exp['files'][i].get("file_format", "") == "bam":
+                temp_file = exp['files'][i]
+                for q in temp_file.get("quality_metrics", []):
+                    if "star-quality-metrics" in q.get("@id", ""):
+                        fileob["Uniquely mapped reads number"] = q.get("Uniquely mapped reads number")
             for fcd in file['flowcell_details']:
                 fileob['flowcell'].append(fcd.get('flowcell', ''))
                 fileob['lane'].append(fcd['lane'])
