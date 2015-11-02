@@ -41,6 +41,10 @@ class NewFile():
     def __init__(self, dictionary):
         self.data = dictionary
         self.post_input = {}
+        # get controlled_by list
+        if dictionary.get("controlled_by"):
+            control = dictionary.pop("controlled_by")
+            self.post_input["controlled_by"] = control.split(",")
         # make flowcell dict
         flowcell_dict = {}
         for val in ["lane", "barcode", "flowcell", "machine"]:
@@ -52,6 +56,7 @@ class NewFile():
         # add flowcell_details to post_input
         self.post_input["flowcell_details"] = [flowcell_dict]
         # calculate md5sum
+        dictionary["file_path"] = "DOCS.txt"
         md5sum = hashlib.md5()
         with open(dictionary["file_path"], "rb") as f:
             for chunk in iter(lambda: f.read(1024*1024), b''):
@@ -101,11 +106,11 @@ def main():
     with open(args.infile, "r") as tsvfile:
         reader = csv.DictReader(tsvfile, delimiter='\t')
         for row in reader:
-            n = NewFile(row)
+            newF = NewFile(row)
             if args.update:
-                n.post_file(connection)
+                newF.post_file(connection)
             else:
-                print("Data to POST: ", n.post_input)
+                print("Data to POST: ", newF.post_input)
 
 if __name__ == '__main__':
     main()
