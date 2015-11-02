@@ -74,7 +74,7 @@ class NewFile():
         ####################
         # POST metadata
         print("Submitting metadata.")
-        r = encodedcc.new_ENCODE(connection, "/files/", self.post_input)
+        r = encodedcc.new_ENCODE(connection, "files", self.post_input)
         item = r["@graph"][0]
         #####################
         # POST file to S3
