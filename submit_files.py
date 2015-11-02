@@ -56,7 +56,6 @@ class NewFile():
         # add flowcell_details to post_input
         self.post_input["flowcell_details"] = [flowcell_dict]
         # calculate md5sum
-        dictionary["file_path"] = "DOCS.txt"
         md5sum = hashlib.md5()
         with open(dictionary["file_path"], "rb") as f:
             for chunk in iter(lambda: f.read(1024*1024), b''):
