@@ -2,7 +2,6 @@ import hashlib
 import os.path
 import subprocess
 import time
-import sys
 import csv
 import encodedcc
 import argparse
@@ -50,14 +49,21 @@ class NewFile():
         for val in ["lane", "barcode", "flowcell", "machine"]:
             flowcell_dict[val] = dictionary.pop(val)
         # make post_input dict
+        path = dictionary.pop("file_path")
         for key in dictionary.keys():
-            if dictionary.get(key):
-                self.post_input[key] = dictionary[key]
+            if key == "file_submitted_name":
+                if any(dictionary.get("file_submitted_name")):
+                    self.post_input["file_submitted_name"] = dictionary["file_submitted_name"]
+                else:
+                    self.post_input["file_submitted_name"] = path.rsplit("/", 1)[-1]
+            else:
+                if dictionary.get(key):
+                    self.post_input[key] = dictionary[key]
         # add flowcell_details to post_input
         self.post_input["flowcell_details"] = [flowcell_dict]
         # calculate md5sum
         md5sum = hashlib.md5()
-        with open(dictionary["file_path"], "rb") as f:
+        with open(path, "rb") as f:
             for chunk in iter(lambda: f.read(1024*1024), b''):
                 md5sum.update(chunk)
         # add md5sum to post_input
