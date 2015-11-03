@@ -4,7 +4,7 @@ optional arguments:
   --outfile	TSV file with fields, first line is column headings
   --query	A custom query to get accessions.
   --key		The keypair identifier from the keyfile. Default is --key=default
-  --keyfile	The keypair file. Default is --keyfile=/Users/marissa/keypairs.json
+  --keyfile	The keypair file. Default is --keyfile=~/keypairs.json
   --debug	Print debug messages. Default is False.
   --multifield	File of fieldnames with one per line
   --onefield	single field entered at command line
@@ -32,7 +32,7 @@ To use a custom query for your object list:
 ENCODE_patchSet.py
   --infile	A minimum two column list with identifier and value to patch
   --key		The keypair identifier from the keyfile. Default is --key=default
-  --keyfile     The keypair file. Default is --keyfile=/Users/marissa/keypairs.json
+  --keyfile     The keypair file. Default is --keyfile=~/keypairs.json
   --debug	Print debug messages. Default is False.
   --remove	Patch to remove the value specified in the input file from the given field. Default is False.
   --update	Let the script PATCH the data. Default is False
@@ -63,3 +63,28 @@ To PATCH a single object, field, and data:
 For more details:
 
         ENCODE_patchSet.py --help
+
+
+
+
+dataRelease.py [-h] [--infile INFILE] [--accession ACCESSION]
+                      [--outfile OUTFILE] [--key KEY] [--keyfile KEYFILE]
+                      [--update] [--query QUERY] [--force] [--debug]
+                      [--logall]
+
+optional arguments:
+  -h, --help	show this help message and exit
+  --infile	File containing accessions
+  --accession	Accession number for experiment
+  --outfile	Output file name
+  --key		The keypair identifier from the keyfile.
+  --keyfile	The keyfile
+  --update	Run script and update the objects. Default is off
+  --query	Custom query for accessions
+  --force	Forces release of experiments that did not pass audit. Default is off
+  --debug	Run script in debug mode. Default is off
+  --logall	Adds status of 'released' objects to output file. Default is off
+
+takes a file with a list of experiment accessions, a query, or a single
+accession and checks all associated objects and sets them to their released
+status
