@@ -143,7 +143,8 @@ class Data_Release():
         '''takes the object created by expand_links and makes a new dict,
         with each subobject and its status {@id : [uuid, status]}'''
         d = dictionary
-        name = d.get("@type")[0].lower()
+        name = d.get("@type")[0]
+        name = self.convert(name)
         self.statusDict[d.get("@id")] = [d.get("uuid"), d.get("status")]
         for key in d.keys():
             if key in self.PROFILES.get(name, []):
