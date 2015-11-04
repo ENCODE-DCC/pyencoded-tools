@@ -68,7 +68,8 @@ class NewFile():
                     self.post_input[key] = dictionary[key]
         # add flowcell_details to post_input
         self.post_input["flowcell_details"] = [flowcell_dict]
-        # calculate md5sum
+        # calculate
+
         md5sum = hashlib.md5()
         with open(path, "rb") as f:
             for chunk in iter(lambda: f.read(1024*1024), b''):
@@ -80,8 +81,8 @@ class NewFile():
 
         ####################
         # POST metadata
-        print("Submitting metadata.")
-        encodedcc.new_ENCODE(connection, "files", self.post_input)
+        r = encodedcc.new_ENCODE(connection, "files", self.post_input)
+        print(r)
         #####################
         # POST file to S3
         '''item = r["@graph"][0]
