@@ -46,8 +46,8 @@ class NewFile():
             self.post_input["controlled_by"] = control.split(",")
         # get aliases list
         if dictionary.get("aliases"):
-            control = dictionary.pop("aliases")
-            self.post_input["aliases"] = control.split(",")
+            alias = dictionary.pop("aliases")
+            self.post_input["aliases"] = alias.split(",")
         # make flowcell dict
         flowcell_dict = {}
         for val in ["lane", "barcode", "flowcell", "machine"]:

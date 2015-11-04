@@ -292,6 +292,7 @@ def new_ENCODE(connection, collection_name, post_input):
     else:
         print('Datatype to POST is not string or dict.', file=sys.stderr)
     url = urljoin(connection.server, collection_name)
+    print(url)
     logging.debug("POST URL : %s" % (url))
     logging.debug("POST data: %s" % (json.dumps(post_input,
                                      sort_keys=True, indent=4,
