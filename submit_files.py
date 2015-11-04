@@ -5,7 +5,10 @@ import time
 import csv
 import encodedcc
 import argparse
-
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename="log.txt", filemode="w", format='%(message)s', level=logging.INFO)
+logging.getLogger("requests").setLevel(logging.WARNING)
 #############################
 # Set defaults
 
@@ -78,7 +81,7 @@ class NewFile():
         ####################
         # POST metadata
         print("Submitting metadata.")
-        r = encodedcc.new_ENCODE(connection, "files", self.post_input)
+        encodedcc.new_ENCODE(connection, "files", self.post_input)
         #####################
         # POST file to S3
         '''item = r["@graph"][0]
