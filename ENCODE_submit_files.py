@@ -68,8 +68,7 @@ class NewFile():
                     self.post_input[key] = dictionary[key]
         # add flowcell_details to post_input
         self.post_input["flowcell_details"] = [flowcell_dict]
-        # calculate
-
+        # calculate md5sum
         md5sum = hashlib.md5()
         with open(path, "rb") as f:
             for chunk in iter(lambda: f.read(1024*1024), b''):
@@ -77,11 +76,12 @@ class NewFile():
         # add md5sum to post_input
         self.post_input["md5sum"] = md5sum.hexdigest()
 
-        for header, sequence, qual_header, quality in encodedcc.fastq_read(self.connection, filename=path):
-            header = header.decode("UTF-8")
-            sequence = sequence.decode("UTF-8")
-            read_length = len(sequence)
-        self.post_input["read_length"] = read_length
+        if dictionary.get("file_format") == "fastq":
+            for header, sequence, qual_header, quality in encodedcc.fastq_read(self.connection, filename=path):
+                header = header.decode("UTF-8")
+                sequence = sequence.decode("UTF-8")
+                read_length = len(sequence)
+            self.post_input["read_length"] = read_length
 
     def post_file(self):
         ####################
