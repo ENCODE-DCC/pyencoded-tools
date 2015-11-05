@@ -7,8 +7,7 @@ import encodedcc
 import argparse
 import logging
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename="log.txt", filemode="w", format='%(message)s', level=logging.INFO)
-logging.getLogger("requests").setLevel(logging.WARNING)
+logging.basicConfig(filename="log.txt", filemode="w", format='%(message)s')
 #############################
 # Set defaults
 
@@ -40,9 +39,10 @@ def getArgs():
 
 
 class NewFile():
-    def __init__(self, dictionary):
+    def __init__(self, dictionary, connection):
         self.data = dictionary
         self.post_input = {}
+        self.connection = connection
         # get controlled_by list
         if dictionary.get("controlled_by"):
             control = dictionary.pop("controlled_by")
@@ -77,12 +77,17 @@ class NewFile():
         # add md5sum to post_input
         self.post_input["md5sum"] = md5sum.hexdigest()
 
-    def post_file(self, connection):
+        for header, sequence, qual_header, quality in encodedcc.fastq_read(self.connection, filename=path):
+            header = header.decode("UTF-8")
+            sequence = sequence.decode("UTF-8")
+            read_length = len(sequence)
+        self.post_input["read_length"] = read_length
 
+    def post_file(self):
         ####################
         # POST metadata
-        r = encodedcc.new_ENCODE(connection, "files", self.post_input)
-        print(r)
+        encodedcc.new_ENCODE(self.connection, "files", self.post_input)
+
         #####################
         # POST file to S3
         '''item = r["@graph"][0]
@@ -118,9 +123,9 @@ def main():
     with open(args.infile, "r") as tsvfile:
         reader = csv.DictReader(tsvfile, delimiter='\t')
         for row in reader:
-            newF = NewFile(row)
+            newF = NewFile(row, connection)
             if args.update:
-                newF.post_file(connection)
+                newF.post_file()
             else:
                 print("Data to POST: ", newF.post_input)
 
