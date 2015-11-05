@@ -1,7 +1,7 @@
 import hashlib
 import os.path
-import subprocess
-import time
+# import subprocess
+# import time
 import csv
 import encodedcc
 import argparse
@@ -40,23 +40,35 @@ def getArgs():
 
 class NewFile():
     def __init__(self, dictionary, connection):
-        self.data = dictionary
         self.post_input = {}
         self.connection = connection
         # get controlled_by list
         if dictionary.get("controlled_by"):
             control = dictionary.pop("controlled_by")
             self.post_input["controlled_by"] = control.split(",")
+
         # get aliases list
         if dictionary.get("aliases"):
             alias = dictionary.pop("aliases")
             self.post_input["aliases"] = alias.split(",")
+
         # make flowcell dict
         flowcell_dict = {}
         for val in ["lane", "barcode", "flowcell", "machine"]:
             flowcell_dict[val] = dictionary.pop(val)
-        # make post_input dict
+        # add flowcell_details to post_input
+        self.post_input["flowcell_details"] = [flowcell_dict]
+
+        # calculate md5sum
+        md5sum = hashlib.md5()
         path = dictionary.pop("file_path")
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1024*1024), b''):
+                md5sum.update(chunk)
+        # add md5sum to post_input
+        self.post_input["md5sum"] = md5sum.hexdigest()
+
+        # fill in rest of post_input
         for key in dictionary.keys():
             if key == "submitted_file_name":
                 if any(dictionary.get("submitted_file_name")):
@@ -66,19 +78,10 @@ class NewFile():
             else:
                 if dictionary.get(key):
                     self.post_input[key] = dictionary[key]
-        # add flowcell_details to post_input
-        self.post_input["flowcell_details"] = [flowcell_dict]
-        # calculate md5sum
-        md5sum = hashlib.md5()
-        with open(path, "rb") as f:
-            for chunk in iter(lambda: f.read(1024*1024), b''):
-                md5sum.update(chunk)
-        # add md5sum to post_input
-        self.post_input["md5sum"] = md5sum.hexdigest()
 
+        # if fastq get the read_length
         if dictionary.get("file_format") == "fastq":
             for header, sequence, qual_header, quality in encodedcc.fastq_read(self.connection, filename=path):
-                header = header.decode("UTF-8")
                 sequence = sequence.decode("UTF-8")
                 read_length = len(sequence)
             self.post_input["read_length"] = read_length
@@ -106,9 +109,6 @@ class NewFile():
         end = time.time()
         duration = end - start
         print("Uploaded in %.2f seconds" % duration)'''
-
-######################
-# Main
 
 
 def main():
