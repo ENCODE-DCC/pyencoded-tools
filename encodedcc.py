@@ -349,7 +349,8 @@ def get_fields(args, connection):
             args.query = "/search/?type=" + args.query
         temp = get_ENCODE(args.query, connection).get("@graph", [])
         for obj in temp:
-            accessions.append(obj.get("accession"))
+            if obj.get("accession"):
+                accessions.append(obj["accession"])
     else:
         accessions = [line.strip() for line in open(args.infile)]
     if args.multifield:
