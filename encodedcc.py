@@ -349,7 +349,8 @@ def get_fields(args, connection):
             args.query = "/search/?type=" + args.query
         temp = get_ENCODE(args.query, connection).get("@graph", [])
         for obj in temp:
-            accessions.append(obj.get("accession"))
+            if obj.get("accession"):
+                accessions.append(obj["accession"])
     else:
         accessions = [line.strip() for line in open(args.infile)]
     if args.multifield:
@@ -422,11 +423,10 @@ def patch_set(args, connection):
                     l = new_data[key].strip("[]").split(", ")
                     l = [x.replace("'", "") for x in l]
                     new_data[key] = l
+            if "number" in key:
+                new_data[key] = int(new_data[key])
         accession = quote(accession)
         full_data = get_ENCODE(accession, connection, frame="edit")
-        old_data = {}
-        for key in new_data.keys():
-            old_data[key] = full_data.get(key)
         if args.remove:
             if args.update:
                 put_dict = full_data
@@ -440,5 +440,33 @@ def patch_set(args, connection):
                 patch_ENCODE(accession, connection, new_data)
             print("OBJECT:", accession)
             for key in new_data.keys():
-                print("OLD DATA:", key, old_data[key])
+                print("OLD DATA:", key, full_data[key])
                 print("NEW DATA:", key, new_data[key])
+
+
+def fastq_read(connection, uri=None, filename=None, reads=1):
+    '''Read a few fastq records
+    '''
+    # https://github.com/detrout/encode3-curation/blob/master/validate_encode3_aliases.py#L290
+    # originally written by Diane Trout
+    import gzip
+    from io import BytesIO
+    # Reasonable power of 2 greater than 50 + 100 + 5 + 100
+    # which is roughly what a single fastq read is.
+    if uri:
+        BLOCK_SIZE = 512
+        url = urljoin(connection.server, quote(uri))
+        data = requests.get(url, auth=connection.auth, stream=True)
+        block = BytesIO(next(data.iter_content(BLOCK_SIZE * reads)))
+        compressed = gzip.GzipFile(None, 'r', fileobj=block)
+    elif filename:
+        compressed = gzip.GzipFile(filename, 'r')
+    else:
+        print("No url or filename provided! Cannot access file!")
+        return
+    for i in range(reads):
+        header = compressed.readline().rstrip()
+        sequence = compressed.readline().rstrip()
+        qual_header = compressed.readline().rstrip()
+        quality = compressed.readline().rstrip()
+        yield (header, sequence, qual_header, quality)
