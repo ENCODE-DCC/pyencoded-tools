@@ -463,6 +463,7 @@ def fastq_read(connection, uri=None, filename=None, reads=1):
         compressed = gzip.GzipFile(filename, 'r')
     else:
         print("No url or filename provided! Cannot access file!")
+        return
     for i in range(reads):
         header = compressed.readline().rstrip()
         sequence = compressed.readline().rstrip()
