@@ -55,7 +55,7 @@ def main():
         link = "/files/" + acc + "/@@download/" + acc + ".fastq.gz"
         for header, sequence, qual_header, quality in encodedcc.fastq_read(connection, uri=link):
             sequence = sequence.decode("UTF-8")
-            print(acc, len(sequence))
+            print(acc + "\t" + str(len(sequence)))
 
 if __name__ == '__main__':
         main()
