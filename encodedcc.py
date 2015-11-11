@@ -427,6 +427,9 @@ def patch_set(args, connection):
                 new_data[key] = int(new_data[key])
         accession = quote(accession)
         full_data = get_ENCODE(accession, connection, frame="edit")
+        old_data = {}
+        for key in new_data.keys():
+            old_data[key] = full_data.get(key)
         if args.remove:
             if args.update:
                 put_dict = full_data
@@ -440,7 +443,7 @@ def patch_set(args, connection):
                 patch_ENCODE(accession, connection, new_data)
             print("OBJECT:", accession)
             for key in new_data.keys():
-                print("OLD DATA:", key, full_data[key])
+                print("OLD DATA:", key, old_data[key])
                 print("NEW DATA:", key, new_data[key])
 
 
