@@ -373,7 +373,6 @@ def get_fields(args, connection):
                     name = f
                     if type(result[f]) == int:
                         name = name + ":int"
-                        print("name is", name)
                     elif type(result[f]) == list:
                         name = name + ":list"
                     elif type(result[f]) == dict:
