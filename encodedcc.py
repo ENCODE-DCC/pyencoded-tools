@@ -363,8 +363,6 @@ def get_fields(args, connection):
     header = []
     if "accession" not in fields:
             header = ["accession"]
-    #for x in fields:
-    #    header.append(x)
     if any(accessions) and any(fields):
         for a in accessions:
             a = quote(a)
@@ -373,13 +371,16 @@ def get_fields(args, connection):
             for f in fields:
                 if result.get(f):
                     name = f
-                    print(type(result[f]))
                     if type(result[f]) == int:
                         name = name + ":int"
                         print("name is", name)
                     elif type(result[f]) == list:
                         name = name + ":list"
-                    # else this must be a string
+                    elif type(result[f]) == dict:
+                        name = name + ":dict"
+                    else:
+                        # this must be a string
+                        pass
                     temp[name] = result[f]
                     header.append(name)
             if "accession" not in fields:
@@ -406,10 +407,10 @@ def patch_set(args, connection):
     if args.accession:
         if args.field and args.data:
             if args.array:
-                args.data = [args.data]
+                args.data = args.data.split(",")
             data.append({"accession": args.accession, args.field: args.data})
         else:
-            print("Missing information! Cannot PATCH object", args.accession)
+            print("Missing field/data! Cannot PATCH object", args.accession)
             return
     elif args.infile:
         with open(args.infile, "r") as tsvfile:
@@ -428,13 +429,16 @@ def patch_set(args, connection):
         new_data = d
         new_data.pop("accession")
         for key in new_data.keys():
-            for c in ["[", "]"]:
-                if c in new_data[key]:
-                    l = new_data[key].strip("[]").split(", ")
-                    l = [x.replace("'", "") for x in l]
-                    new_data[key] = l
-            if "number" in key:
-                new_data[key] = int(new_data[key])
+            k = key.split(":")
+            if len(k) > 1:
+                if k[1] == "int":
+                    new_data[k[0]] = int(new_data[key])
+                elif k[1] == "list":
+                    l = new_data[key].strip("[]").split(",")
+                    l = [x.replace(" ", "") for x in l]
+                    new_data[k[0]] = l
+                else:
+                    new_data[k[0]] = new_data[key]
         accession = quote(accession)
         full_data = get_ENCODE(accession, connection, frame="edit")
         old_data = {}
