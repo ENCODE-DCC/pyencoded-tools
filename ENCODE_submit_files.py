@@ -90,25 +90,28 @@ class NewFile():
         ####################
         # POST metadata
         r = encodedcc.new_ENCODE(self.connection, "files", self.post_input)
-
-        #####################
-        # POST file to S3
-        item = r["@graph"][0]
-        creds = item['upload_credentials']
-        env = os.environ.copy()
-        env.update({
-            'AWS_ACCESS_KEY_ID': creds['access_key'],
-            'AWS_SECRET_ACCESS_KEY': creds['secret_key'],
-            'AWS_SECURITY_TOKEN': creds['session_token'],
-        })
-        print("Uploading file.")
-        path = self.data["file_path"]
-        print(path)
-        start = time.time()
-        subprocess.check_call(['aws', 's3', 'cp', path, creds['upload_url']], env=env)
-        end = time.time()
-        duration = end - start
-        print("Uploaded in %.2f seconds" % duration)
+        if r.get("@graph"):
+            #####################
+            # POST file to S3
+            item = r["@graph"][0]
+            creds = item['upload_credentials']
+            env = os.environ.copy()
+            env.update({
+                'AWS_ACCESS_KEY_ID': creds['access_key'],
+                'AWS_SECRET_ACCESS_KEY': creds['secret_key'],
+                'AWS_SECURITY_TOKEN': creds['session_token'],
+            })
+            print("Uploading file.")
+            path = self.data["file_path"]
+            print(path)
+            start = time.time()
+            subprocess.check_call(['aws', 's3', 'cp', path, creds['upload_url']], env=env)
+            end = time.time()
+            duration = end - start
+            print("Uploaded in %.2f seconds" % duration)
+        else:
+            print("Couldn't upload to S3")
+            print(r)
 
 
 def main():
