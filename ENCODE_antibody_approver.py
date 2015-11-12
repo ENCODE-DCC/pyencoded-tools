@@ -17,7 +17,7 @@ def getArgs():
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('user',
+    parser.add_argument('--user',
                         help="User uuid or @id for updating.")
     parser.add_argument('--infile',
                         help="TSV with format TBD")
@@ -58,12 +58,7 @@ def main():
             data.append(row)
     for item in data:
         lanes = item.get("lanes", "")
-        if "," in lanes:
-            # split the item into a list
-            lanes = list(set(lanes.split(",")))
-        else:
-            # just one put it into a list
-            lanes = [lanes]
+        lanes = list(set(lanes.split(",")))
         item["lanes"] = lanes
         if not any(item["notes"]):
             item.pop("notes")
