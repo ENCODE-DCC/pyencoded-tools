@@ -381,7 +381,8 @@ def get_fields(args, connection):
                         # this must be a string
                         pass
                     temp[name] = result[f]
-                    header.append(name)
+                    if name not in header:
+                        header.append(name)
             if "accession" not in fields:
                 temp["accession"] = a
             data[a] = temp
