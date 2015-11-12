@@ -1,7 +1,7 @@
 import hashlib
 import os.path
-# import subprocess
-# import time
+import subprocess
+import time
 import csv
 import encodedcc
 import argparse
@@ -89,11 +89,11 @@ class NewFile():
     def post_file(self):
         ####################
         # POST metadata
-        encodedcc.new_ENCODE(self.connection, "files", self.post_input)
+        r = encodedcc.new_ENCODE(self.connection, "files", self.post_input)
 
         #####################
         # POST file to S3
-        '''item = r["@graph"][0]
+        item = r["@graph"][0]
         creds = item['upload_credentials']
         env = os.environ.copy()
         env.update({
@@ -108,7 +108,7 @@ class NewFile():
         subprocess.check_call(['aws', 's3', 'cp', path, creds['upload_url']], env=env)
         end = time.time()
         duration = end - start
-        print("Uploaded in %.2f seconds" % duration)'''
+        print("Uploaded in %.2f seconds" % duration)
 
 
 def main():
