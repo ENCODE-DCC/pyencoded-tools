@@ -45,12 +45,11 @@ def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-    user = encodedcc.get_ENCODE(args.user, connection).get("@id")
-    if not user:
-        print(args.user, "was not found in the ENCODE database as a registered user. Please try again")
-        sys.exit()
-    else:
-        user = user.get("@id")
+    if args.update:
+        assert args.user, "A user must be provided to run this script!"
+        user = encodedcc.get_ENCODE(args.user, connection).get("@id")
+        assert user, " user was not found in the ENCODE database as a registered user. Please try again"
+
     data = []
     idList = []
     with open(args.infile, "r") as tsvfile:
@@ -124,9 +123,8 @@ def main():
                 print("Some problem was found with the number of lanes in the file as compared to ENCODE")
                 print("Do you want to continue running the program or exit and check the data?")
                 i = input("Continue? y/n ")
-                if i.upper() != "Y":
-                    # exit the script
-                    sys.exit()
+                assert i.upper() == "Y"
+                # exit the script
 
             for r in reviews:
                 for line in objDict[idNum]:
@@ -182,7 +180,8 @@ def main():
                 new_antibody["notes"] = obj["notes"]
         new_antibody["characterization_reviews"] = reviews
         new_antibody["documents"] = enc_docs
-        new_antibody["reviewed_by"] = user
+        if args.update:
+            new_antibody["reviewed_by"] = user
 
         if args.update:
             print("PATCHing antibody characterization", idNum)
