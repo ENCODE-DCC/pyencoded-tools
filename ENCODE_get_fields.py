@@ -27,6 +27,12 @@ To use a custom query for your object list:
         %(prog)s --query www.my/custom/url
 
     this can be used with multifield or onefield
+
+
+Output prints in format of fieldname:object_type for non-strings
+
+    Ex: accession    read_length:int    documents:list
+        ENCSR000AAA  31                 [document1,document2]
 '''
 
 

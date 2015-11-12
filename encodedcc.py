@@ -406,9 +406,8 @@ def patch_set(args, connection):
     else:
         print("This is a test run, nothing will be changed")
     if args.accession:
+        assert args.field and args.data
         if args.field and args.data:
-            if args.array:
-                args.data = args.data.split(",")
             data.append({"accession": args.accession, args.field: args.data})
         else:
             print("Missing field/data! Cannot PATCH object", args.accession)
