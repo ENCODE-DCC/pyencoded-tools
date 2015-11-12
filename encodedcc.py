@@ -360,24 +360,34 @@ def get_fields(args, connection):
     else:
         fields = []
     data = {}
+    header = []
+    if "accession" not in fields:
+            header = ["accession"]
+    #for x in fields:
+    #    header.append(x)
     if any(accessions) and any(fields):
         for a in accessions:
             a = quote(a)
             result = get_ENCODE(a, connection)
             temp = {}
             for f in fields:
-                temp[f] = result.get(f, "")
+                if result.get(f):
+                    name = f
+                    print(type(result[f]))
+                    if type(result[f]) == int:
+                        name = name + ":int"
+                        print("name is", name)
+                    elif type(result[f]) == list:
+                        name = name + ":list"
+                    # else this must be a string
+                    temp[name] = result[f]
+                    header.append(name)
             if "accession" not in fields:
                 temp["accession"] = a
             data[a] = temp
     else:
         print("Could not complete request one or more arugments were not supplied")
         return
-    header = []
-    if "accession" not in fields:
-            header = ["accession"]
-    for x in fields:
-        header.append(x)
     writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=header)
     writer.writeheader()
     for key in data.keys():
