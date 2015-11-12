@@ -398,6 +398,7 @@ def get_fields(args, connection):
 def patch_set(args, connection):
     import csv
     data = []
+    print("Running on", connection.server)
     if args.update:
         print("This is an UPDATE run, data will be patched")
         if args.remove:
@@ -426,39 +427,40 @@ def patch_set(args, connection):
         if not accession:
             print("Missing accession!  Cannot PATCH data")
             return
-        new_data = d
-        new_data.pop("accession")
-        for key in new_data.keys():
+        temp_data = d
+        temp_data.pop("accession")
+        patch_data = {}
+        for key in temp_data.keys():
             k = key.split(":")
             if len(k) > 1:
                 if k[1] == "int":
-                    new_data[k[0]] = int(new_data[key])
+                    patch_data[k[0]] = int(temp_data[key])
                 elif k[1] == "list":
-                    l = new_data[key].strip("[]").split(",")
+                    l = temp_data[key].strip("[]").split(",")
                     l = [x.replace(" ", "") for x in l]
-                    new_data[k[0]] = l
+                    patch_data[k[0]] = l
                 else:
-                    new_data[k[0]] = new_data[key]
+                    patch_data[k[0]] = temp_data[key]
         accession = quote(accession)
         full_data = get_ENCODE(accession, connection, frame="edit")
         old_data = {}
-        for key in new_data.keys():
+        for key in patch_data.keys():
             old_data[key] = full_data.get(key)
         if args.remove:
             if args.update:
                 put_dict = full_data
-                for key in new_data.keys():
+                for key in patch_data.keys():
                     put_dict.pop(key, None)
                 replace_ENCODE(accession, connection, put_dict)
             print("OBJECT:", accession)
-            print("Removing values", str(new_data.keys()))
+            print("Removing values", str(patch_data.keys()))
         else:
             if args.update:
-                patch_ENCODE(accession, connection, new_data)
+                patch_ENCODE(accession, connection, patch_data)
             print("OBJECT:", accession)
-            for key in new_data.keys():
+            for key in patch_data.keys():
                 print("OLD DATA:", key, old_data[key])
-                print("NEW DATA:", key, new_data[key])
+                print("NEW DATA:", key, patch_data[key])
 
 
 def fastq_read(connection, uri=None, filename=None, reads=1):
