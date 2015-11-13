@@ -108,7 +108,7 @@ def main():
                 flag = True
             if len(set(enc_lanes_check) - set(file_lanes_check)) > 0:
                 # more lanes in ENCODE than in file
-                print("Foudn lanes in ENCODE not in the file")
+                print("Found lanes in ENCODE not in the file")
                 flag = True
             if len(set(file_lanes_check) - set(enc_lanes_check)) > 0:
                 # more lanes in file than in ENCODE
@@ -124,8 +124,8 @@ def main():
             for r in reviews:
                 for line in objDict[idNum]:
                     for lane in line["lanes"]:
-                        if lane == r["lane"]:
-                            if line["status"] == "pending dcc review":
+                        if int(lane) == r["lane"]:
+                            if line["lane_status"] == "pending dcc review":
                                 print("can't set to pending review, need manual override")
                                 fin = input("Change the status to 'pending dcc review'? y/n ")
                                 if fin.upper() == "Y":
@@ -138,21 +138,20 @@ def main():
                             else:
                                 r["lane_status"] = line["lane_status"]
             # now all lanes in reviews should be updated to document
-            enc_lanes = []
             enc_comp = 0
             enc_ncomp = 0
             other = 0
-            for r in reviews:
-                if r.get("lane"):
-                    enc_lanes.append(r["lane"])
-                if r.get("lane_status", "") == "compliant":
+
+            for line in objDict[idNum]:
+                if line.get("lane_status", "") == "compliant":
                     enc_comp = enc_comp + 1
-                elif r.get("lane_status", "") == "not compliant":
+                elif line.get("lane_status", "") == "not compliant":
                     enc_ncomp = enc_ncomp + 1
                 else:
                     other = other + 1
             if other > 0:
-                print("not all lanes have allowed status")
+                print("not all lanes have allowed status, antibody characterization status set to not compliant")
+                new_antibody["status"] = "not compliant"
             elif enc_comp > 0:
                 new_antibody["status"] = "compliant"
             elif other == 0 and enc_comp == 0 and enc_ncomp > 0:
