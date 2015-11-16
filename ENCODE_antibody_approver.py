@@ -51,6 +51,7 @@ def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
+    print("Running on", connection.server)
     if args.update:
         assert args.user, "A user must be provided to run this script!"
         user = encodedcc.get_ENCODE(args.user, connection).get("@id")
@@ -85,6 +86,8 @@ def main():
                 if obj.get("documents"):
                     for doc in obj["documents"].split(","):
                         file_docs.append(doc)
+                if obj.get("notes"):
+                    new_antibody["notes"] = obj["notes"]
             for doc in file_docs:
                 if ":" in doc:
                     doc = quote(doc)
@@ -174,13 +177,10 @@ def main():
                         # fix lane number
                         reviews[0]["lane"] = 3
 
-        for obj in objDict[idNum]:
-            if obj.get("notes"):
-                new_antibody["notes"] = obj["notes"]
-        new_antibody["characterization_reviews"] = reviews
-        new_antibody["documents"] = enc_docs
-        if args.update:
-            new_antibody["reviewed_by"] = user
+            new_antibody["characterization_reviews"] = reviews
+            new_antibody["documents"] = enc_docs
+            if args.update:
+                new_antibody["reviewed_by"] = user
 
         if args.update:
             print("PATCHing antibody characterization", idNum)
