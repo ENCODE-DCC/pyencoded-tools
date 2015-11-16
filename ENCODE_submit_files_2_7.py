@@ -149,7 +149,7 @@ class NewFile():
         elif isinstance(post_input, str):
             json_payload = post_input
         else:
-            print('Datatype to POST is not string or dict.', file=sys.stderr)
+            print 'Datatype to POST is not string or dict.'
         url = urljoin(connection.server, collection_name)
         logging.debug("POST URL : %s" % (url))
         logging.debug("POST data: %s" % (json.dumps(post_input,
@@ -171,7 +171,7 @@ class NewFile():
         '''
         # https://github.com/detrout/encode3-curation/blob/master/validate_encode3_aliases.py#L290
         # originally written by Diane Trout
-        
+
         # Reasonable power of 2 greater than 50 + 100 + 5 + 100
         # which is roughly what a single fastq read is.
         if uri:
