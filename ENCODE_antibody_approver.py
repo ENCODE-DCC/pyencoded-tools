@@ -2,10 +2,15 @@ import argparse
 import os.path
 import csv
 import encodedcc
-import sys
 from urllib.parse import quote
 
 EPILOG = '''
+Example TSV file:
+@id    lanes    lane_status         notes    documents
+someID  2,3     compliant           get it?  important_document.pdf
+someID  1,4     not compliant       got it   important_document.pdf
+someID  5       pending dcc review  good     important_document.pdf
+
 For more details:
 
         %(prog)s --help
@@ -20,7 +25,8 @@ def getArgs():
     parser.add_argument('--user',
                         help="User uuid or @id for updating.")
     parser.add_argument('--infile',
-                        help="TSV with format TBD")
+                        help="TSV with headers of @id, lanes, lane_status, notes, documents\
+                        this is created and filled out by the wrangler")
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  \
@@ -120,32 +126,31 @@ def main():
                 i = input("Continue? y/n ")
                 assert i.upper() == "Y"
                 # exit the script
-
             for r in reviews:
                 for line in objDict[idNum]:
                     for lane in line["lanes"]:
                         if int(lane) == r["lane"]:
-                            if line["lane_status"] == "pending dcc review":
+                            if line["lane_status"].lower() == "pending dcc review":
                                 print("can't set to pending review, need manual override")
                                 fin = input("Change the status to 'pending dcc review'? y/n ")
                                 if fin.upper() == "Y":
-                                    r["lane_status"] = line["lane_status"]
+                                    r["lane_status"] = line["lane_status"].lower()
                                     for link in enc_docs:
                                         if encodedcc.get_ENCODE(link, connection).get("document_type", "") == "standards document":
                                             enc_docs.pop(link)
                                 else:
                                     pass
                             else:
-                                r["lane_status"] = line["lane_status"]
+                                r["lane_status"] = line["lane_status"].lower()
             # now all lanes in reviews should be updated to document
             enc_comp = 0
             enc_ncomp = 0
             other = 0
 
-            for line in objDict[idNum]:
-                if line.get("lane_status", "") == "compliant":
+            for r in reviews:
+                if r.get("lane_status", "") == "compliant":
                     enc_comp = enc_comp + 1
-                elif line.get("lane_status", "") == "not compliant":
+                elif r.get("lane_status", "") == "not compliant":
                     enc_ncomp = enc_ncomp + 1
                 else:
                     other = other + 1
