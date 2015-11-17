@@ -33,6 +33,10 @@ Output prints in format of fieldname:object_type for non-strings
 
     Ex: accession    read_length:int    documents:list
         ENCSR000AAA  31                 [document1,document2]
+
+    integers  ':int'
+    lists     ':list'
+    string are the default and do not have an identifier
 '''
 
 
