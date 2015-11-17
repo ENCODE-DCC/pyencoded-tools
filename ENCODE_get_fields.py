@@ -45,6 +45,8 @@ def getArgs():
                         help="File containing a list of ENCs as a column")
     parser.add_argument('--query',
                         help="A custom query to get accessions.")
+    parser.add_argument('--accession',
+                        help="A single accession")
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  \

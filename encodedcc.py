@@ -345,20 +345,25 @@ def get_fields(args, connection):
     import csv
     accessions = []
     if args.query:
-        if "search" not in args.query:
-            args.query = "/search/?type=" + args.query
-        temp = get_ENCODE(args.query, connection).get("@graph", [])
-        for obj in temp:
-            if obj.get("accession"):
-                accessions.append(obj["accession"])
-    else:
+        if "search" in args.query:
+            temp = get_ENCODE(args.query, connection).get("@graph", [])
+            for obj in temp:
+                if obj.get("accession"):
+                    accessions.append(obj["accession"])
+        else:
+            accessions = [get_ENCODE(args.query, connection).get("accession")]
+    elif args.infile:
         accessions = [line.strip() for line in open(args.infile)]
+    elif args.accession:
+        accessions = [args.accession]
+    else:
+        assert args.query or args.infile or args.accession, "ERROR: Need to provide accessions"
     if args.multifield:
         fields = [line.strip() for line in open(args.multifield)]
     elif args.onefield:
         fields = [args.onefield]
     else:
-        fields = []
+        assert args.multifield or args.onefield, "ERROR: Need to provide fields!"
     data = {}
     header = []
     if "accession" not in fields:
@@ -386,9 +391,6 @@ def get_fields(args, connection):
             if "accession" not in fields:
                 temp["accession"] = a
             data[a] = temp
-    else:
-        print("Could not complete request one or more arugments were not supplied")
-        return
     writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=header)
     writer.writeheader()
     for key in data.keys():
