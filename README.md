@@ -1,55 +1,45 @@
 # pyencoded-tools
 
 
-## ENCODE_get_fields.py
+### ENCODE_get_fields.py
 
-BASIC REPORTER SCRIPT
+**Input options:**
+        * *--infile* infile with format defined below (ex: *--infile myfile.txt*)
+        * *--query* url query that points to the objects you want to view (ex: *--query /search/?type=experiment&assay_term_name=ChIP-seq&assembly=mm10*)
+        * *--accession* single object accession (ex: *--accession ENCSR000AAA*)
 
-ENCODE_get_fields.py can take in a file with a single column list of object identifiers (accessions, uuids, alises),
-or an ENCODE query that will point to the list of objects you want
-For the fieldnames either a file with a single column list of field names you want or use the "--onefield" and give a single fieldname
+**Infile format:**
+        Single column of object accessions, uuids, aliases, or other unique identifier
 
-
-To get multiple fields use the multifield argument:
-
-        $ python3 ENCODE_get_fields.py --infile filename --multifield fieldnames
-
-    where the infile is a list of object identifiers
-    and the multifield is a list of fields desired
-
-To get a single field use the onefield argument:
-
-        $ python3 ENCODE_get_fields.py --infile filename --onefield field
-
-    where onefield is a string containing the field name
-
-To use a custom query for your object list:
-
-        $ python3 ENCODE_get_fields.py --query www.my/custom/url
-
-    this can be used with multifield or onefield
+**Field options:**
+        * *--onefield* single fieldname (ex: *--onefield read_length*)
+        * *--multifield* file with single column fieldnames (ex: *--multifield myfields.txt*)
 
 
-## ENCODE_patchSet.py
+### ENCODE_patchSet.py
 
-Read in a file of object, correction fields and patch each object
+**_PLEASE NOTE:_** This script is a dryrun-default script, run it with the *--update* option to make any changes
 
+**Input options:**
+    Input file should be a TSV (tab separated value) file with headers
+    if the field value is a non-string value, list its type separated by a colon
 
-Input file should be a TSV (tab separated value) file with headers
-if the field value is a non-string value, list its type separated by a colon
+    accession   header1  header2:list  header3:int ...
+    ENCSR000AAA value1   list1,list2   value3  ...
 
-accession   header1  header2:list  header3:int ...
-ENCSR000AAA value1   list1,list2   value3  ...
+    Whatever data is used to identify the object (accession, uuid, alias)
+    goes in the accession column to be used for identification of object
 
-Whatever data is used to identify the object (accession, uuid, alias)
-goes in the accession column to be used for identification of object
-
-To PATCH a single object, field with field type, and data:
+**Input file format:**
+    To PATCH a single object, field with field type, and data:
 
         $ python3 ENCODE_patchSet.py --accession ENCSR000AAA --field assay_term_name --data ChIP-seq
         $ python3 ENCODE_patchSet.py --accession ENCSR000AAA --field read_length:int --data 31
         $ python3 ENCODE_patchSet.py --accession ENCSR000AAA --field documents:list --data document1,document2
 
-    for integers use ':int'
-    for lists use    ':list'
-    string are the default and do not require an identifier
+    * For integers use ':int'
+    * For lists use    ':list'
+    *String are the default and do not require an identifier*
+
+**Removing data:**
+    Data can be removed with the *--remove* option.  This must be run with the *--update* command to make the changes.
