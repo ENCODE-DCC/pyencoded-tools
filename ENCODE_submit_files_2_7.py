@@ -3,7 +3,6 @@ import os.path
 import subprocess
 import time
 import csv
-import argparse
 import logging
 import json
 import sys
@@ -19,35 +18,9 @@ logging.basicConfig(filename="log.txt", filemode="w", format='%(message)s')
 # Set defaults
 
 
-def getArgs():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        )
-    parser.add_argument('--infile',
-                        help="TSV file with data, needs headers")
-    parser.add_argument('--key',
-                        default='default',
-                        help="The keypair identifier from the keyfile.  \
-                        Default is --key=default")
-    parser.add_argument('--keyfile',
-                        default=os.path.expanduser("~/keypairs.json"),
-                        help="The keypair file.  Default is --keyfile=%s" % (os.path.expanduser("~/keypairs.json")))
-    parser.add_argument('--debug',
-                        default=False,
-                        action='store_true',
-                        help="Print debug messages.  Default is False.")
-    parser.add_argument('--update',
-                        default=False,
-                        action="store_true",
-                        help="Allows script to update, default is false")
-    args = parser.parse_args()
-    return args
-
-
 class ENC_Key:
-    def __init__(self, keyfile, keyname):
-        keys_f = open(keyfile, 'r')
+    def __init__(self):
+        keys_f = open("keypairs.json", 'r')
         keys_json_string = keys_f.read()
         keys_f.close()
         keys = json.loads(keys_json_string)
@@ -118,6 +91,7 @@ class NewFile():
         ####################
         # POST metadata
         r = self.new_ENCODE(self.connection, "files", self.post_input)
+        print repr (r)
         if r.get("@graph"):
             #####################
             # POST file to S3
@@ -194,20 +168,17 @@ class NewFile():
 
 
 def main():
-    args = getArgs()
-    key = ENC_Key(args.keyfile, args.key)
+    keyfile = raw_input("keyfile: ")
+    keyname = raw_input("key: ")
+    infile = raw_input("infile: ")
+    key = ENC_Key(keyfile, keyname)
     connection = ENC_Connection(key)
     print "Running on", connection.server
-    if args.update:
-        print "This is an UPDATE run, data will be changed"
-    else:
-        print "This is a TEST run, nothing gets altered"
-    with open(args.infile, "r") as tsvfile:
+    with open(infile, "r") as tsvfile:
         reader = csv.DictReader(tsvfile, delimiter='\t')
         for row in reader:
             newF = NewFile(row, connection)
-            if args.update:
-                newF.post_file()
+            newF.post_file()
             print "Data to POST: ", newF.post_input
 
 if __name__ == '__main__':
