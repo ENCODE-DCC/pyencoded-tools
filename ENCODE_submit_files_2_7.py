@@ -19,8 +19,8 @@ logging.basicConfig(filename="log.txt", filemode="w", format='%(message)s')
 
 
 class ENC_Key:
-    def __init__(self):
-        keys_f = open("keypairs.json", 'r')
+    def __init__(self, keyfile, keyname):
+        keys_f = open(keyfile, 'r')
         keys_json_string = keys_f.read()
         keys_f.close()
         keys = json.loads(keys_json_string)
