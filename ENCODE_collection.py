@@ -30,10 +30,7 @@ Same for human-donors
 
 def get_without_ESearch(obj_id, connection):
     '''GET an ENCODE object as JSON and return as dict'''
-    if '?' in obj_id:
-        url = urljoin(connection.server, obj_id)
-    else:
-        url = urljoin(connection.server, obj_id)
+    url = urljoin(connection.server, obj_id + "?limit=all")
     logging.debug('GET %s' % (url))
     response = requests.get(url, auth=connection.auth, headers=connection.headers)
     logging.debug('GET RESPONSE code %s' % (response.status_code))
@@ -151,6 +148,12 @@ def main():
     exclude_unsubmittable = ['accession', 'uuid', 'schema_version', 'alternate_accessions', 'submitted_by']
 
     global collection
+    if supplied_name.endswith('s'):
+        supplied_name = supplied_name.rstrip('s').replace('-', '_')
+    elif supplied_name.endswith('.json'):
+        supplied_name = supplied_name.rstrip('.json')
+    else:
+        supplied_name = supplied_name.replace('-', '_')
     if args.query:
         uri = args.query
         collection = encodedcc.get_ENCODE(uri, connection)
