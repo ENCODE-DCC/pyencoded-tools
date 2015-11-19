@@ -258,7 +258,7 @@ def main():
         else:
             if not GET_ONLY:
                 print("POST'ing new object")
-                encodedcc.new_ENCODE(collection, connection, new_json)
+                encodedcc.new_ENCODE(connection, collection, new_json)
 
 
 if __name__ == '__main__':
