@@ -345,90 +345,148 @@ def get_fields(args, connection):
     import csv
     accessions = []
     if args.query:
-        if "search" not in args.query:
-            args.query = "/search/?type=" + args.query
-        temp = get_ENCODE(args.query, connection).get("@graph", [])
-        for obj in temp:
-            accessions.append(obj.get("accession"))
-    else:
+        if "search" in args.query:
+            temp = get_ENCODE(args.query, connection).get("@graph", [])
+            for obj in temp:
+                if obj.get("accession"):
+                    accessions.append(obj["accession"])
+        else:
+            accessions = [get_ENCODE(args.query, connection).get("accession")]
+    elif args.infile:
         accessions = [line.strip() for line in open(args.infile)]
+    elif args.accession:
+        accessions = [args.accession]
+    else:
+        assert args.query or args.infile or args.accession, "ERROR: Need to provide accessions"
     if args.multifield:
         fields = [line.strip() for line in open(args.multifield)]
     elif args.onefield:
         fields = [args.onefield]
     else:
-        fields = []
+        assert args.multifield or args.onefield, "ERROR: Need to provide fields!"
     data = {}
-    if any(accessions) and any(fields):
-        for a in accessions:
-            result = get_ENCODE(a, connection)
-            temp = {}
-            for f in fields:
-                temp[f] = result.get(f, "")
-            if "accession" not in fields:
-                temp["accession"] = a
-            data[a] = temp
-    else:
-        print("Could not complete request one or more arugments were not supplied")
-        return
     header = []
     if "accession" not in fields:
             header = ["accession"]
-    for x in fields:
-        header.append(x)
-    with open(args.outfile, "w") as tsvfile:
-        writer = csv.DictWriter(tsvfile, delimiter='\t', fieldnames=header)
-        writer.writeheader()
-        for key in data.keys():
-            writer.writerow(data.get(key))
+    if any(accessions) and any(fields):
+        for a in accessions:
+            a = quote(a)
+            result = get_ENCODE(a, connection)
+            temp = {}
+            for f in fields:
+                if result.get(f):
+                    name = f
+                    if type(result[f]) == int:
+                        name = name + ":int"
+                    elif type(result[f]) == list:
+                        name = name + ":list"
+                    elif type(result[f]) == dict:
+                        name = name + ":dict"
+                    else:
+                        # this must be a string
+                        pass
+                    temp[name] = result[f]
+                    if name not in header:
+                        header.append(name)
+            if "accession" not in fields:
+                temp["accession"] = a
+            data[a] = temp
+    writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=header)
+    writer.writeheader()
+    for key in data.keys():
+        writer.writerow(data.get(key))
 
 
 def patch_set(args, connection):
     import csv
     data = []
+    print("Running on", connection.server)
     if args.update:
         print("This is an UPDATE run, data will be patched")
+        if args.remove:
+            print("On this run data will be REMOVED")
     else:
         print("This is a test run, nothing will be changed")
     if args.accession:
+        assert args.field and args.data
         if args.field and args.data:
-            if args.array:
-                args.data = [args.data]
             data.append({"accession": args.accession, args.field: args.data})
         else:
-            print("Missing information! Cannot PATCH object", args.accession)
+            print("Missing field/data! Cannot PATCH object", args.accession)
             return
-    else:
+    elif args.infile:
         with open(args.infile, "r") as tsvfile:
             reader = csv.DictReader(tsvfile, delimiter='\t')
             for row in reader:
                 data.append(row)
+    else:
+        reader = csv.DictReader(sys.stdin, delimiter='\t')
+        for row in reader:
+            data.append(row)
     for d in data:
         accession = d.get("accession")
         if not accession:
             print("Missing accession!  Cannot PATCH data")
             return
-        new_data = d
-        del new_data["accession"]
-        for key in new_data.keys():
-            for c in [",", "[", "]"]:
-                if c in new_data[key]:
-                    l = new_data[key].strip("[]").split(", ")
-                    l = [x.replace("'", "") for x in l]
-                    new_data[key] = l
-        if args.alias:
-            accession = quote(accession)
-        full_data = get_ENCODE(accession, connection)
+        temp_data = d
+        temp_data.pop("accession")
+        patch_data = {}
+        for key in temp_data.keys():
+            k = key.split(":")
+            if len(k) > 1:
+                if k[1] == "int":
+                    patch_data[k[0]] = int(temp_data[key])
+                elif k[1] == "list":
+                    l = temp_data[key].strip("[]").split(",")
+                    l = [x.replace(" ", "") for x in l]
+                    patch_data[k[0]] = l
+                else:
+                    patch_data[k[0]] = temp_data[key]
+        accession = quote(accession)
+        full_data = get_ENCODE(accession, connection, frame="edit")
         old_data = {}
-        for key in new_data.keys():
+        for key in patch_data.keys():
             old_data[key] = full_data.get(key)
-        if args.update:
-            patch_ENCODE(accession, connection, new_data)
         if args.remove:
-            for key in new_data.keys():
-                new_data[key] = None
-            patch_ENCODE(accession, connection, new_data)
-        print("OBJECT:", accession)
-        for key in new_data.keys():
-            print("OLD DATA:", key, old_data[key])
-            print("NEW DATA:", key, new_data[key])
+            if args.update:
+                put_dict = full_data
+                for key in patch_data.keys():
+                    put_dict.pop(key, None)
+                replace_ENCODE(accession, connection, put_dict)
+            print("OBJECT:", accession)
+            print("Removing values", str(patch_data.keys()))
+        else:
+            if args.update:
+                patch_ENCODE(accession, connection, patch_data)
+            print("OBJECT:", accession)
+            for key in patch_data.keys():
+                print("OLD DATA:", key, old_data[key])
+                print("NEW DATA:", key, patch_data[key])
+
+
+def fastq_read(connection, uri=None, filename=None, reads=1):
+    '''Read a few fastq records
+    '''
+    # https://github.com/detrout/encode3-curation/blob/master/validate_encode3_aliases.py#L290
+    # originally written by Diane Trout
+    import gzip
+    from io import BytesIO
+    # Reasonable power of 2 greater than 50 + 100 + 5 + 100
+    # which is roughly what a single fastq read is.
+    if uri:
+        BLOCK_SIZE = 512
+        url = urljoin(connection.server, quote(uri))
+        data = requests.get(url, auth=connection.auth, stream=True)
+        block = BytesIO(next(data.iter_content(BLOCK_SIZE * reads)))
+        compressed = gzip.GzipFile(None, 'r', fileobj=block)
+    elif filename:
+        compressed = gzip.GzipFile(filename, 'r')
+    else:
+        print("No url or filename provided! Cannot access file!")
+        return
+    for i in range(reads):
+        header = compressed.readline().rstrip()
+        sequence = compressed.readline().rstrip()
+        qual_header = compressed.readline().rstrip()
+        quality = compressed.readline().rstrip()
+        yield (header, sequence, qual_header, quality)

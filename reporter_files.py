@@ -12,11 +12,17 @@ def files(objList, fileCheckedItems, connection):
             fileob['submitted_by'] = file['submitted_by']['title']
             fileob['experiment'] = exp['accession']
             fileob['experiment-lab'] = exp['lab']['name']
-            fileob['biosample'] = exp['biosample_term_name']
+            fileob['biosample'] = exp.get('biosample_term_name', '')
             fileob['flowcell'] = []
             fileob['lane'] = []
+            fileob["Uniquely mapped reads number"] = ""
+            if exp['files'][i].get("file_format", "") == "bam":
+                temp_file = exp['files'][i]
+                for q in temp_file.get("quality_metrics", []):
+                    if "star-quality-metrics" in q.get("@id", ""):
+                        fileob["Uniquely mapped reads number"] = q.get("Uniquely mapped reads number")
             for fcd in file['flowcell_details']:
-                fileob['flowcell'].append(fcd['flowcell'])
+                fileob['flowcell'].append(fcd.get('flowcell', ''))
                 fileob['lane'].append(fcd['lane'])
             try:
                 fileob['platform'] = fileob['platform']['title']

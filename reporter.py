@@ -158,7 +158,8 @@ fileCheckedItems = ['accession',
                     'paired_with',
                     'flowcell',
                     'lane',
-                    'notes'
+                    'notes',
+                    "Uniquely mapped reads number"
                     ]
 libraryCheckedItems = [
                        'accession',
