@@ -31,6 +31,32 @@ def get_experiment_list(file, search, connection):
         return objList
 
 
+def get_char_summary(lot, connection):
+
+    anti = encodedcc.get_ENCODE(lot, connection, frame="embedded")
+    charas = anti.get("characterizations", [])
+    number_chars_in_progress = 0
+    number_chars_passing = 0
+    number_chars_failing = 0
+    for c in charas:
+        s = c["status"]
+        if s == "in progress":
+            number_chars_in_progress += 1
+        elif s == "pending dcc review":
+            number_chars_in_progress += 1
+        elif s == 'exempt from standards':
+            number_chars_passing += 1
+        elif s == "compliant":
+            number_chars_passing += 1
+        else:
+            number_chars_failing += 1
+    char_dict = {"number_chars_in_progress": number_chars_in_progress,
+                 "number_chars_passing": number_chars_passing,
+                 "number_chars_failing": number_chars_failing
+                 }
+    return char_dict
+
+
 def get_antibody_approval(antibody, target, connection):
         search = encodedcc.get_ENCODE('search/?searchTerm='+antibody+'&type=antibody_approval', connection, frame='embedded')
         for approval in search['@graph']:
@@ -87,6 +113,7 @@ checkedItems = ['project',
                 'experiment_documents',
                 'control_exps',
                 'theTarget',
+                'eligible_antibody',
                 'file_count',
                 'date_created'
                 ]
@@ -221,7 +248,11 @@ def main():
     parser.add_argument('--files',
                         default=False,
                         action='store_true',
-                        help="Print a file based report versus a replicate based one.  Default off")
+                        help="Print a file based report. Default off")
+    parser.add_argument('--nhgri',
+                        default=False,
+                        action='store_true',
+                        help="Print a library based report based on standards. Default off")
     parser.add_argument('--encode2',
                         default=False,
                         action='store_true',
@@ -400,10 +431,22 @@ def main():
                     repOb['platform'] = rep['platform']['term_name']
                 if 'antibody' in rep:
                         repOb['antibody'] = rep['antibody']['accession']
+                        summary = get_char_summary(rep['antibody']['accession'], connection)
+                        if len(rep['antibody']['lot_reviews']) < 1:
+                            continue
+                        print ('\t'.join(['NHGRI',
+                                        exp['accession'],
+                                        rep['antibody']['accession'],
+                                        rep['antibody']['lot_reviews'][0]['status'],
+                                        'Characterizations failing:' + repr(summary['number_chars_failing']),
+                                        'Characterizations passing:' + repr(summary['number_chars_passing']),
+                                        'Characterizations in progress:' + repr(summary['number_chars_in_progress']),
+                                        ]))
                         # repOb['antibody_status'] = rep['antibody']['approvals'][0]['status']
                         repOb['antibody_source'] = rep['antibody']['source']
                         repOb['antibody_product'] = rep['antibody']['product_id']
                         repOb['antibody_lot'] = rep['antibody']['lot_id']
+                        repOb['antibody_status'] = rep['antibody']['lot_reviews'][0]['status']
                 lib = []
 
                 # inititalize the lib with repItems
