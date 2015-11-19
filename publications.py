@@ -22,7 +22,7 @@ def getArgs():
                         default='default')
     parser.add_argument('--keyfile',
                         help="The keyfile",
-                        default=os.path.expanduser('./keypairs.json'))
+                        default=os.path.expanduser('~/keypairs.json'))
     parser.add_argument('--debug',
                         help="Debug prints out HTML requests and returned JSON \
                         objects. Default is off",
@@ -44,8 +44,9 @@ def getArgs():
                         action='store_true',
                         default=False)
     parser.add_argument('--updateonly',
-                        help="File containing PMIDs from ENCODE database for\
-                        updating. PMIDs ONLY!")
+                        help="File containing publication UUIDS from ENCODE database for\
+                        updating.  If the publication does not have PMID the script will\
+                        find it comparing based on title and assuming unique title")
     parser.add_argument('email',
                         help="Email needed to make queries to Entrez process")
     args = parser.parse_args()
@@ -58,6 +59,7 @@ def getArgs():
         logging.basicConfig(filename=args.outfile, filemode="w",
                             format='%(levelname)s:%(message)s',
                             level=logging.INFO)
+    logging.getLogger("requests").setLevel(logging.WARNING)
 
     return args
 
@@ -144,7 +146,7 @@ class PublicationUpdate:
                 titleEntrez = self.entrezDict[pmid].get("title")
                 found = False
                 for otherID in otherIdList:
-                    titleENCODE = encodedcc.get_ENCODE(otherID, connection)
+                    titleENCODE = encodedcc.get_ENCODE("/search/?type=publication&searchTerm=" + otherID, connection)
                     if titleENCODE.get("title") == titleEntrez:
                         log = pmid + " is in ENCODE by a different name " + titleENCODE.get("uuid")
                         logger.warning('%s' % log)
@@ -194,6 +196,8 @@ class PublicationUpdate:
             log = "PMID " + pmid + " was not found in Entrez database!!"
             logger.warning('%s' % log)
         else:
+            log = "PMID " + pmid
+            logger.info('%s' % log)
             for key in entrez.keys():
                 if key in encode.keys():
                     if entrez[key] == encode[key]:
@@ -341,16 +345,53 @@ def main():
     else:
         infile = UPDATE_ONLY
         with open(infile, 'r') as readfile:
-            pmidList = [x.rstrip('\n') for x in readfile]
+            uuidList = [x.rstrip('\n') for x in readfile]
+        # check each publication to see if it has a PMID, if it does add it to the PMIDlist
+        # if it does not have one look it up on Entrez
+        pmid_uuid_dict = {}
+        for uuid in uuidList:
+            pub = encodedcc.get_ENCODE(uuid, connection)
+            title = pub.get("title", "")
+            identifiers = pub.get("identifiers", [])
+            found = False
+            for i in identifiers:
+                if "PMID:" in i:
+                    p = i.split(":")[1]
+                    found = True
+            if found:
+                pmid_uuid_dict[p] = uuid
+            else:
+                # search Entrez for publication by title
+                handle = Entrez.esearch(db="pubmed", term=title)
+                record = Entrez.read(handle)
+                idlist = record["IdList"]
+                if len(idlist) > 1:
+                    log = "More than one possible PMID found for " + uuid
+                    logger.error('%s' % log)
+                    log = str(idlist) + " are possible PMIDs"
+                    logger.error('%s' % log)
+                elif len(idlist) == 0:
+                    log = "No possible PMID found for " + uuid
+                    logger.error('%s' % log)
+                else:
+                    handle = Entrez.efetch(db="pubmed", id=idlist, rettype="medline", retmode="text")
+                    records = Medline.parse(handle)
+                    # save the records, you can convert them to a list
+                    records = list(records)
+                    for record in records:
+                        pm = record.get("PMID")
+                        ti = record.get("TI")
+                        log = "Publication " + uuid + " with title \"" + title + "\" matches PMID:" + pm + " with title \"" + ti + "\""
+                        logger.info('%s' % log)
+                        identifiers.append("PMID:" + pm)
+                        encodedcc.patch_ENCODE(uuid, connection, {"identifiers": identifiers})
+                        pmid_uuid_dict[pm] = uuid
+        pmidList = list(pmid_uuid_dict.keys())
         publication.get_entrez(pmidList)
-        with open("ENCODE_update.txt", "w") as f:
-            for pmid in pmidList:
-                val = "/search/?searchTerm=PMID:" + pmid
-                ENCODEvalue = encodedcc.get_ENCODE(val, connection)
-                if ENCODEvalue.get("@graph"):
-                    uuid = ENCODEvalue['@graph'][0].get("uuid")
-                    publication.compare_entrez_ENCODE(uuid, pmid, connection)
-            f.write(str(len(pmidList)) + " publications checked " + str(publication.PATCH_COUNT) + " publications PATCHed")
+        with open("pub_update.txt", "w") as f:
+            for pmid in pmid_uuid_dict.keys():
+                publication.compare_entrez_ENCODE(pmid_uuid_dict[pmid], pmid, connection)
+            f.write(str(len(pmid_uuid_dict.keys())) + " publications checked " + str(publication.PATCH_COUNT) + " publications PATCHed")
 
 if __name__ == '__main__':
     main()
