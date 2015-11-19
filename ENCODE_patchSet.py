@@ -32,6 +32,8 @@ To PATCH a single object, field with field type, and data:
     for lists use    ':list'
     string are the default and do not require an identifier
 
+    lists are appended to unless the --overwite command is used
+
 For more details:
 
         %(prog)s --help
@@ -75,6 +77,10 @@ def getArgs():
                                 strings don't need to have their type listed")
     parser.add_argument('--data',
                         help='Data for single accession')
+    parser.add_argument('--overwrite',
+                        help="If field is an list then overwrite it with new data. Default is False, and data is appended",
+                        action='store_true',
+                        default=False)
     args = parser.parse_args()
     return args
 
