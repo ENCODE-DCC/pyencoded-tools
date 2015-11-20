@@ -9,7 +9,6 @@ from base64 import b64encode
 #import magic
 import mimetypes
 import encodedcc
-import re
 
 
 EPILOG = '''Examples:
@@ -89,6 +88,9 @@ def main():
                         default=False,
                         action='store_true',
                         help="Print debug messages.  Default is False.")
+    parser.add_argument('--frame',
+                        help="define a frame to get back the JSON object, for use with --id. Default is frame=object",
+                        default="object")
     args = parser.parse_args()
 
     global DEBUG_ON
@@ -110,7 +112,7 @@ def main():
         uuid_response = {}
         accession_response = {}
         try:
-            id_response = encodedcc.get_ENCODE(args.id, connection)
+            id_response = encodedcc.get_ENCODE(args.id, connection, frame=args.frame)
         except:
             id_response = {}
             new_object = True
@@ -174,24 +176,20 @@ def main():
     if new_object and object_exists:
         print("Conflict:  At least one identifier already exists and at least one does not exist")
 
-    supported_collections = ['access_key', 'antibody_approval',
-                             'antibody_characterization', 'antibody_lot',
-                             'award', 'biosample', 'biosample_characterization',
-                             'construct', 'construct_characterization', 'dataset',
-                             'document', 'donor', 'edw_key', 'experiment', 'file',
-                             'file_relationship', 'human_donor', 'lab', 'library',
-                             'mouse_donor', 'organism', 'platform', 'replicate',
-                             'rnai', 'rnai_characterization', 'software',
-                             'source', 'target', 'treatment', 'user',
-                             'analysis_step_run', 'pipeline', 'workflow_run',
-                             'analysis_step', 'software_version', 'publication']
+    supported_collections = ['AccessKey', 'AntibodyApproval',
+                             'AntibodyCharacterization', 'AntibodyLot',
+                             'Award', 'Biosample', 'BiosampleCharacterization',
+                             'Construct', 'ConstructCharacterization', 'Dataset',
+                             'Document', 'Donor', 'EdwKey', 'Experiment', 'File',
+                             'FileRelationship', 'HumanDonor', 'Lab', 'Library',
+                             'MouseDonor', 'Organism', 'Platform', 'Replicate',
+                             'Rnai', 'RnaiCharacterization', 'Software',
+                             'Source', 'Target', 'Treatment', 'User',
+                             'AnalysisStepRun', 'Pipeline', 'WorkflowRun',
+                             'AnalysisStep', 'SoftwareVersion', 'Publication']
 
-    def convert(name):
-        '''used to convert CamelCase text to snake_case'''
-        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
     type_list = new_json.pop('@type', [])
-    possible_collections = [convert(x) for x in type_list if x in supported_collections]
+    possible_collections = [x for x in type_list if x in supported_collections]
     if possible_collections:
         # collection = possible_collections[0] + 's/'
         collection = possible_collections[0]
@@ -245,20 +243,24 @@ def main():
         if args.force_put:
             if not GET_ONLY:
                 print("Replacing existing object")
-                encodedcc.replace_ENCODE(identifier, connection, new_json)
+                e = encodedcc.replace_ENCODE(identifier, connection, new_json)
+                print(e)
         else:
             if not GET_ONLY:
                 print("Patching existing object")
-                encodedcc.patch_ENCODE(identifier, connection, new_json)
+                e = encodedcc.patch_ENCODE(identifier, connection, new_json)
+                print(e)
     elif new_object:
         if args.force_put:
             if not GET_ONLY:
                 print("PUT'ing new object")
-                encodedcc.replace_ENCODE(identifier, connection, new_json)
+                e = encodedcc.replace_ENCODE(identifier, connection, new_json)
+                print(e)
         else:
             if not GET_ONLY:
                 print("POST'ing new object")
-                encodedcc.new_ENCODE(collection, connection, new_json)
+                e = encodedcc.new_ENCODE(connection, collection, new_json)
+                print(e)
 
 
 if __name__ == '__main__':
