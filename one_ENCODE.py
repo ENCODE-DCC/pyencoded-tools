@@ -174,24 +174,20 @@ def main():
     if new_object and object_exists:
         print("Conflict:  At least one identifier already exists and at least one does not exist")
 
-    supported_collections = ['access_key', 'antibody_approval',
-                             'antibody_characterization', 'antibody_lot',
-                             'award', 'biosample', 'biosample_characterization',
-                             'construct', 'construct_characterization', 'dataset',
-                             'document', 'donor', 'edw_key', 'experiment', 'file',
-                             'file_relationship', 'human_donor', 'lab', 'library',
-                             'mouse_donor', 'organism', 'platform', 'replicate',
-                             'rnai', 'rnai_characterization', 'software',
-                             'source', 'target', 'treatment', 'user',
-                             'analysis_step_run', 'pipeline', 'workflow_run',
-                             'analysis_step', 'software_version', 'publication']
+    supported_collections = ['AccessKey', 'AntibodyApproval',
+                             'AntibodyCharacterization', 'AntibodyLot',
+                             'Award', 'Biosample', 'BiosampleCharacterization',
+                             'Construct', 'ConstructCharacterization', 'Dataset',
+                             'Document', 'Donor', 'EdwKey', 'Experiment', 'File',
+                             'FileRelationship', 'HumanDonor', 'Lab', 'Library',
+                             'MouseDonor', 'Organism', 'Platform', 'Replicate',
+                             'Rnai', 'RnaiCharacterization', 'Software',
+                             'Source', 'Target', 'Treatment', 'User',
+                             'AnalysisStepRun', 'Pipeline', 'WorkflowRun',
+                             'AnalysisStep', 'SoftwareVersion', 'Publication']
 
-    def convert(name):
-        '''used to convert CamelCase text to snake_case'''
-        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
     type_list = new_json.pop('@type', [])
-    possible_collections = [convert(x) for x in type_list if x in supported_collections]
+    possible_collections = [x for x in type_list if x in supported_collections]
     if possible_collections:
         # collection = possible_collections[0] + 's/'
         collection = possible_collections[0]
