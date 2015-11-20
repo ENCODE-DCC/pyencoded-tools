@@ -243,20 +243,24 @@ def main():
         if args.force_put:
             if not GET_ONLY:
                 print("Replacing existing object")
-                encodedcc.replace_ENCODE(identifier, connection, new_json)
+                e = encodedcc.replace_ENCODE(identifier, connection, new_json)
+                print(e)
         else:
             if not GET_ONLY:
                 print("Patching existing object")
-                encodedcc.patch_ENCODE(identifier, connection, new_json)
+                e = encodedcc.patch_ENCODE(identifier, connection, new_json)
+                print(e)
     elif new_object:
         if args.force_put:
             if not GET_ONLY:
                 print("PUT'ing new object")
-                encodedcc.replace_ENCODE(identifier, connection, new_json)
+                e = encodedcc.replace_ENCODE(identifier, connection, new_json)
+                print(e)
         else:
             if not GET_ONLY:
                 print("POST'ing new object")
-                encodedcc.new_ENCODE(connection, collection, new_json)
+                e = encodedcc.new_ENCODE(connection, collection, new_json)
+                print(e)
 
 
 if __name__ == '__main__':
