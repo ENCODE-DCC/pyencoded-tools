@@ -9,8 +9,8 @@ import sys
 import requests
 import gzip
 from io import BytesIO
-from urllib.parse import urljoin
-from urllib.parse import quote
+from urlparse import urljoin
+from urllib import quote
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename="log.txt", filemode="w", format='%(message)s')
@@ -91,29 +91,25 @@ class NewFile():
         ####################
         # POST metadata
         r = self.new_ENCODE(self.connection, "files", self.post_input)
-        print repr (r)
-        if r.get("@graph"):
-            #####################
-            # POST file to S3
-            item = r["@graph"][0]
-            creds = item['upload_credentials']
-            env = os.environ.copy()
-            env.update({
-                'AWS_ACCESS_KEY_ID': creds['access_key'],
-                'AWS_SECRET_ACCESS_KEY': creds['secret_key'],
-                'AWS_SECURITY_TOKEN': creds['session_token'],
-            })
-            print "Uploading file"
-            path = self.data["file_path"]
-            print path
-            start = time.time()
-            subprocess.check_call(['aws', 's3', 'cp', path, creds['upload_url']], env=env)
-            end = time.time()
-            duration = end - start
-            print "Uploaded in %.2f seconds" % duration
-        else:
-            print "Couldn't upload to S3"
-            print r
+        print repr(r)
+        #####################
+        # POST file to S3
+        item = r["@graph"][0]
+        creds = item['upload_credentials']
+        env = os.environ.copy()
+        env.update({
+            'AWS_ACCESS_KEY_ID': creds['access_key'],
+            'AWS_SECRET_ACCESS_KEY': creds['secret_key'],
+            'AWS_SECURITY_TOKEN': creds['session_token'],
+        })
+        print "Uploading file"
+        path = self.data["file_path"]
+        print path
+        start = time.time()
+        subprocess.check_call(['aws', 's3', 'cp', path, creds['upload_url']], env=env)
+        end = time.time()
+        duration = end - start
+        print "Uploaded in %.2f seconds" % duration
 
     def new_ENCODE(self, connection, collection_name, post_input):
         '''POST an ENCODE object as JSON and return the response JSON
