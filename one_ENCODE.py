@@ -9,7 +9,6 @@ from base64 import b64encode
 #import magic
 import mimetypes
 import encodedcc
-import re
 
 
 EPILOG = '''Examples:
@@ -89,6 +88,9 @@ def main():
                         default=False,
                         action='store_true',
                         help="Print debug messages.  Default is False.")
+    parser.add_argument('--frame',
+                        help="define a frame to get back the JSON object, for use with --id. Default is frame=object",
+                        default="object")
     args = parser.parse_args()
 
     global DEBUG_ON
@@ -110,7 +112,7 @@ def main():
         uuid_response = {}
         accession_response = {}
         try:
-            id_response = encodedcc.get_ENCODE(args.id, connection)
+            id_response = encodedcc.get_ENCODE(args.id, connection, frame=args.frame)
         except:
             id_response = {}
             new_object = True
