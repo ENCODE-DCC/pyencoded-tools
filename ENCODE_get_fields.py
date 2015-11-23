@@ -27,6 +27,16 @@ To use a custom query for your object list:
         %(prog)s --query www.my/custom/url
 
     this can be used with multifield or onefield
+
+
+Output prints in format of fieldname:object_type for non-strings
+
+    Ex: accession    read_length:int    documents:list
+        ENCSR000AAA  31                 [document1,document2]
+
+    integers  ':int'
+    lists     ':list'
+    string are the default and do not have an identifier
 '''
 
 
@@ -39,6 +49,8 @@ def getArgs():
                         help="File containing a list of ENCs as a column")
     parser.add_argument('--query',
                         help="A custom query to get accessions.")
+    parser.add_argument('--accession',
+                        help="A single accession")
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  \
