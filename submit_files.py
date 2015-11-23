@@ -6,6 +6,7 @@ import os
 import sys
 import logging
 from urllib.parse import urljoin
+from urllib.parse import quote
 import requests
 import csv
 import copy
@@ -85,6 +86,9 @@ def get_args():
                         help="Directory in which https://github.com/ENCODE-DCC/encValData.git is cloned.\
                         Default is --encvaldata=%s" % (os.path.expanduser("./encValData/")),
                         default=os.path.expanduser("./encValData/"))
+    parser.add_argument('--validatefiles',
+                        help="validateFiles program needed to run script.  Default is --validatefiles=%s" % (os.path.expanduser("./validateFiles")),
+                        default=os.path.expanduser("./validateFiles"))
 
     args = parser.parse_args()
 
@@ -100,6 +104,9 @@ def get_args():
 
     if not os.path.isdir(args.encvaldata):
         logger.error('No ENCODE validation data.  git clone https://github.com/ENCODE-DCC/encValData.git')
+        sys.exit(1)
+    if not os.path.exists(args.validatefiles):
+        logger.error("validateFiles not found. See http://hgdownload.cse.ucsc.edu/admin/exe/")
         sys.exit(1)
 
     return args
@@ -141,7 +148,16 @@ def output_csv(fh, fieldnames):
 
 def init_csvs(in_fh, out_fh):
     input_reader = input_csv(in_fh)
-    output_writer = output_csv(out_fh, input_reader.fieldnames)
+    flowcells = ["flowcell", "machine", "lane", "barcode"]
+    headers = list(input_reader.fieldnames)
+    details = False
+    for f in flowcells:
+        if f in headers:
+            headers.remove(f)
+            details = True
+    if details:
+        headers.append("flowcell_details")
+    output_writer = output_csv(out_fh, headers)
     return input_reader, output_writer
 
 
@@ -338,9 +354,14 @@ def get_asfile(uri_json, connection):
         return f
 
 
-def process_row(row):
+def process_row(row, connection):
     json_payload = {}
     flowcell_dict = {}
+    if row.get("file_format", "") == "fastq":
+        for header, sequence, qual_header, quality in fastq_read(connection, filename=row["submitted_file_name"]):
+                sequence = sequence.decode("UTF-8")
+                read_length = len(sequence)
+                json_payload.update({"read_length": read_length})
     for key in row.keys():
         if key in ["flowcell", "machine", "lane", "barcode"]:
             flowcell_dict[key] = row[key]
@@ -379,35 +400,54 @@ def process_row(row):
     return json_payload"""
 
 
+def fastq_read(connection, uri=None, filename=None, reads=1):
+    '''Read a few fastq records
+    '''
+    # https://github.com/detrout/encode3-curation/blob/master/validate_encode3_aliases.py#L290
+    # originally written by Diane Trout
+    import gzip
+    from io import BytesIO
+    # Reasonable power of 2 greater than 50 + 100 + 5 + 100
+    # which is roughly what a single fastq read is.
+    if uri:
+        BLOCK_SIZE = 512
+        url = urljoin(connection.server, quote(uri))
+        data = requests.get(url, auth=connection.auth, stream=True)
+        block = BytesIO(next(data.iter_content(BLOCK_SIZE * reads)))
+        compressed = gzip.GzipFile(None, 'r', fileobj=block)
+    elif filename:
+        compressed = gzip.GzipFile(filename, 'r')
+    else:
+        print("No url or filename provided! Cannot access file!")
+        return
+    for i in range(reads):
+        header = compressed.readline().rstrip()
+        sequence = compressed.readline().rstrip()
+        qual_header = compressed.readline().rstrip()
+        quality = compressed.readline().rstrip()
+        yield (header, sequence, qual_header, quality)
+
+
 def main():
 
     args = get_args()
     key = ENC_Key(args.keyfile, args.key)
     connection = ENC_Connection(key)
 
-    if args.update:
-        print("This is UPDATE run, files will be POSTed")
-    else:
-        print("Test run only.  Data will be validated.")
+#    if args.update:
+#        print("This is UPDATE run, files will be POSTed")
+#    else:
+#        print("Test run only.  Data will be validated.")
 
     if not test_encode_keys(connection):
         logger.error("Invalid ENCODE server or keys: server=%s auth=%s" % (connection.server, connection.auth))
         sys.exit(1)
 
-    try:
-        subprocess.check_output('which validateFiles', shell=True)
-    except:
-        logger.error("validateFiles is not in path. See http://hgdownload.cse.ucsc.edu/admin/exe/")
-        sys.exit(1)
-
     input_csv, output_csv = init_csvs(args.infile, args.outfile)
 
-    output_csv.writeheader()
-
     for n, row in enumerate(input_csv, start=2):  # row 1 is the header
-
-        as_file = get_asfile(row.get('file_format_specifications'), connection)
-        if as_file:
+        if row.get("file_format_specifications"): #if there is no "file_format_spec" then no point in running get_asfile()
+            as_file = get_asfile(row['file_format_specifications'], connection)
             as_file.close()  # validateFiles needs a closed file for -as, otherwise it gives a return code of -11
             validated = validate_file(row, args.encvaldata, row.get('assembly'), as_file.name)
             os.unlink(as_file.name)
@@ -418,7 +458,7 @@ def main():
             logger.warning('Skipping row %d: file %s failed validation' % (n, row['submitted_file_name']))
             continue
 
-        json_payload = process_row(row)
+        json_payload = process_row(row, connection)
         if not json_payload:
             logger.warning('Skipping row %d: invalid field format for JSON' % (n))
             continue
@@ -432,6 +472,7 @@ def main():
         if aws_return_code:
             logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_return_code))
 
+        output_csv.writeheader()
         output_row = {}
         for key in output_csv.fieldnames:
             output_row.update({key: file_object.get(key)})
