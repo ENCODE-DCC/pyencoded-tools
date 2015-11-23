@@ -32,6 +32,27 @@ GET_HEADERS = {'accept': 'application/json'}
 POST_HEADERS = {'accept': 'application/json', 'content-type': 'application/json'}
 
 
+class ENC_Key:
+    def __init__(self, keyfile, keyname):
+        keys_f = open(keyfile, 'r')
+        keys_json_string = keys_f.read()
+        keys_f.close()
+        keys = json.loads(keys_json_string)
+        key_dict = keys[keyname]
+        self.authid = key_dict['key']
+        self.authpw = key_dict['secret']
+        self.server = key_dict['server']
+        if not self.server.endswith("/"):
+            self.server += "/"
+
+
+class ENC_Connection(object):
+    def __init__(self, key):
+        self.headers = {'content-type': 'application/json'}
+        self.server = key.server
+        self.auth = (key.authid, key.authpw)
+
+
 def get_args():
     import argparse
     parser = argparse.ArgumentParser(
@@ -50,21 +71,20 @@ def get_args():
     parser.add_argument('--debug',
                         help="Print debug messages",
                         default=False, action='store_true')
-    parser.add_argument('--server',
-                        help="The server to POST to.",
-                        default=os.getenv('ENCODE_SERVER', None))
-    parser.add_argument('--authid',
-                        help="The authorization key ID for the server.",
-                        default=os.getenv('ENCODE_AUTHID', None))
-    parser.add_argument('--authpw',
-                        help="The authorization key for the server.",
-                        default=os.getenv('ENCODE_AUTHPW', None))
-    parser.add_argument('--dryrun',
-                        help="Don't POST to the database, just validate input.",
+    parser.add_argument('--key',
+                        default='default',
+                        help="The keypair identifier from the keyfile.  \
+                        Default is --key=default")
+    parser.add_argument('--keyfile',
+                        default=os.path.expanduser("./keypairs.json"),
+                        help="The keypair file.  Default is --keyfile=%s" % (os.path.expanduser("./keypairs.json")))
+    parser.add_argument('--update',
+                        help="POST data to server, default is False.",
                         default=False, action='store_true')
     parser.add_argument('--encvaldata',
-                        help="Directory in which https://github.com/ENCODE-DCC/encValData.git is cloned.",
-                        default=os.path.expanduser("~/encValData/"))
+                        help="Directory in which https://github.com/ENCODE-DCC/encValData.git is cloned.\
+                        Default is --encvaldata=%s" % (os.path.expanduser("./encValData/")),
+                        default=os.path.expanduser("./encValData/"))
 
     args = parser.parse_args()
 
@@ -78,12 +98,6 @@ def get_args():
     else:
         logger.setLevel(logging.INFO)
 
-    if not args.server:
-        logger.error('Server name must be specified on the command line or in environment ENCODE_SERVER')
-        sys.exit(1)
-    if not args.authid or not args.authpw:
-        logger.error('Authorization keypair must be specified on the command line or in environment ENCODE_AUTHID, ENCODE_AUTHPW')
-        sys.exit(1)
     if not os.path.isdir(args.encvaldata):
         logger.error('No ENCODE validation data.  git clone https://github.com/ENCODE-DCC/encValData.git')
         sys.exit(1)
@@ -98,31 +112,11 @@ def md5(path):
             md5sum.update(chunk)
     return md5sum.hexdigest()
 
-    # This does not depend on hashlib
-    # if 'md5_command' not in globals():
-    #   global md5_command
-    #   if subprocess.check_output('which md5', shell=True):
-    #       md5_command = 'md5 -q'
-    #   elif subprocess.check_output('which md5sum', shell=True):
-    #       md5_command = 'md5sum'
-    #   else:
-    #       md5_command = ''
-    # if not md5_command:
-    #   logger.error("No MD5 command found (tried md5 and md5sum)")
-    #   return None
-    # else:
-    #   try:
-    #       md5_output = subprocess.check_output(' '.join([md5_command, fn]), shell=True)
-    #   except:
-    #       return None
-    #   else:
-    #       return md5_output.partition(' ')[0].rstrip()
 
-
-def test_encode_keys(server, keypair):
+def test_encode_keys(connection):
     test_URI = "ENCBS000AAA"
-    url = urljoin(server, test_URI)
-    r = requests.get(url, auth=keypair, headers=GET_HEADERS)
+    url = urljoin(connection.server, test_URI)
+    r = requests.get(url, auth=connection.auth, headers=connection.headers)
     try:
         r.raise_for_status()
     except:
@@ -134,7 +128,6 @@ def test_encode_keys(server, keypair):
 
 def input_csv(fh):
     csv_args = CSV_ARGS
-    #input_fieldnames = csv.reader(fh, **csv_args).next()
     return csv.DictReader(fh, **csv_args)
 
 
@@ -271,7 +264,7 @@ def validate_file(f_obj, encValData, assembly=None, as_path=None):
         return True
 
 
-def post_file(file_metadata, server, keypair, dryrun=False):
+def post_file(file_metadata, connection, update=False):
     local_path = file_metadata.get('submitted_file_name')
     if not file_metadata.get('md5sum'):
         file_metadata['md5sum'] = md5(local_path)
@@ -279,13 +272,9 @@ def post_file(file_metadata, server, keypair, dryrun=False):
         logger.debug("POST JSON: %s" % (json.dumps(file_metadata)))
     except:
         pass
-    if dryrun:
-        file_obj = copy.copy(file_metadata)
-        file_obj.update({'accession': None})
-        return file_obj
-    else:
-        url = urljoin(server, '/files/')
-        r = requests.post(url, auth=keypair, headers=POST_HEADERS, data=json.dumps(file_metadata))
+    if update:
+        url = urljoin(connection.server, '/files/')
+        r = requests.post(url, auth=connection.auth, headers=connection.headers, data=json.dumps(file_metadata))
         try:
             r.raise_for_status()
         except:
@@ -294,12 +283,14 @@ def post_file(file_metadata, server, keypair, dryrun=False):
             return None
         else:
             return r.json()['@graph'][0]
-
-
-def upload_file(file_obj, dryrun=False):
-    if dryrun:
-        return None
     else:
+        file_obj = copy.copy(file_metadata)
+        file_obj.update({'accession': None})
+        return file_obj
+
+
+def upload_file(file_obj, update=False):
+    if update:
         creds = file_obj['upload_credentials']
         logger.debug('AWS creds: %s' % (creds))
         env = os.environ.copy()
@@ -317,24 +308,26 @@ def upload_file(file_obj, dryrun=False):
             return e.returncode
         else:
             return 0
+    else:
+        return None
 
 
-def get_asfile(uri_json, server, keypair):
+def get_asfile(uri_json, connection):
     try:
         uris = json.loads(uri_json)
     except:
         logger.error("Could not parse as JSON: %s" % (uri_json))
         return None
     for uri in uris:
-        url = server + '/' + uri
-        r = requests.get(url, headers=GET_HEADERS, auth=keypair)
+        url = urljoin(connection.server, uri)
+        r = requests.get(url, headers=connection.headers, auth=connection.auth)
         try:
             r.raise_for_status()
         except:
             logger.error("Failed to get ENCODE object %s" % (uri))
             return None
         document_obj = r.json()
-        r = requests.get(urljoin(server, document_obj['uuid'] + '/' + document_obj['attachment']['href']), auth=keypair)
+        r = requests.get(urljoin(connection.server, document_obj['uuid'] + '/' + document_obj['attachment']['href']), auth=connection.auth)
         try:
             r.raise_for_status()
         except:
@@ -347,6 +340,31 @@ def get_asfile(uri_json, server, keypair):
 
 def process_row(row):
     json_payload = {}
+    flowcell_dict = {}
+    for key in row.keys():
+        if key in ["flowcell", "machine", "lane", "barcode"]:
+            flowcell_dict[key] = row[key]
+        else:
+            if not key:
+                continue
+            try:
+                json_payload.update({key: json.loads(row[key])})
+            except:
+                try:
+                    json_payload.update({key: json.loads('"%s"' % (row[key]))})
+                except:
+                    logger.warning('Could not convert field %s value %s to JSON' % (key, row[key]))
+                    return None
+    if any(flowcell_dict):
+        flowcell_list = [flowcell_dict]
+        json_payload.update({"flowcell_details": flowcell_list})
+    print(json_payload)
+    return json_payload
+
+
+"""def process_row(row):
+#### this version works when the flowcell data is its own column ####
+    json_payload = {}
     for key in row.keys():
         if not key:
             continue
@@ -358,18 +376,22 @@ def process_row(row):
             except:
                 logger.warning('Could not convert field %s value %s to JSON' % (key, row[key]))
                 return None
-    return json_payload
+    return json_payload"""
 
 
 def main():
 
     args = get_args()
+    key = ENC_Key(args.keyfile, args.key)
+    connection = ENC_Connection(key)
 
-    server = args.server
-    keypair = (args.authid, args.authpw)
+    if args.update:
+        print("This is UPDATE run, files will be POSTed")
+    else:
+        print("Test run only.  Data will be validated.")
 
-    if not test_encode_keys(server, keypair):
-        logger.error("Invalid ENCODE server or keys: server=%s authid=%s authpw=%s" % (args.server, args.authid, args.authpw))
+    if not test_encode_keys(connection):
+        logger.error("Invalid ENCODE server or keys: server=%s auth=%s" % (connection.server, connection.auth))
         sys.exit(1)
 
     try:
@@ -384,7 +406,7 @@ def main():
 
     for n, row in enumerate(input_csv, start=2):  # row 1 is the header
 
-        as_file = get_asfile(row.get('file_format_specifications'), server, keypair)
+        as_file = get_asfile(row.get('file_format_specifications'), connection)
         if as_file:
             as_file.close()  # validateFiles needs a closed file for -as, otherwise it gives a return code of -11
             validated = validate_file(row, args.encvaldata, row.get('assembly'), as_file.name)
@@ -401,12 +423,12 @@ def main():
             logger.warning('Skipping row %d: invalid field format for JSON' % (n))
             continue
 
-        file_object = post_file(json_payload, server, keypair, args.dryrun)
+        file_object = post_file(json_payload, connection, args.update)
         if not file_object:
             logger.warning('Skipping row %d: POST file object failed' % (n))
             continue
 
-        aws_return_code = upload_file(file_object, args.dryrun)
+        aws_return_code = upload_file(file_object, args.update)
         if aws_return_code:
             logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_return_code))
 
