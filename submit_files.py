@@ -317,7 +317,7 @@ def upload_file(file_obj, update=False):
         })
         path = file_obj.get('submitted_file_name')
         try:
-            subprocess.check_call(['aws', 's3', 'cp', path, creds['upload_url']], env=env)
+            subprocess.check_call(['/bin/aws', 's3', 'cp', path, creds['upload_url']], env=env)
         except subprocess.CalledProcessError as e:
             # The aws command returns a non-zero exit code on error.
             logger.error("AWS upload failed with exit code %d" % (e.returncode))
