@@ -62,6 +62,9 @@ def main():
         con_fastqs = {}
         print("Experiment", acc)
         obj = encodedcc.get_ENCODE(acc, connection, frame="embedded")
+        target =  obj.get("target", {})
+        if target.get("Label", "") == "Control":
+            print(acc, "is a control experiment")
         for f in obj.get("files", []):
             if f.get("file_type") == "fastq":
                 if f.get("biological_replicates"):
@@ -86,12 +89,15 @@ def main():
         else:
             print("ERROR", acc, "has", len(possible_controls), "possible_controls")
         # here we check the two dictionaries
+        temp = []
         for e in exp_fastqs.keys():
             for c in con_fastqs.keys():
                 if exp_fastqs[e] == con_fastqs[c]:
-                    print(e, c, "have same biological_replicates value")
-        print(exp_fastqs)
-        print(con_fastqs)
+                    temp.append(c)
+                    #print(e, c, "have same biological_replicates value")
+        print(e, temp)
+        print("Experiment", exp_fastqs)
+        print("Control", con_fastqs)
 
 if __name__ == '__main__':
         main()
