@@ -12,7 +12,7 @@ For more details:
 def get_fastq_dictionary(exp, connection):
 
     controlfiles = {}
-    control = encodedcc.get_ENCODE(exp, connection)
+    control = encodedcc.get_ENCODE(exp, connection, frame="embedded")
     for ff in control['files']:
         if ff.get('file_format') != 'fastq':
             continue
@@ -25,7 +25,6 @@ def get_fastq_dictionary(exp, connection):
         # rep = biorep + '-' + techrep
         # key = rep + '-' + pair
         biokey = biorep + '-' + pair
-
         if biokey not in controlfiles:
             controlfiles[biokey] = [ff['accession']]
         else:
@@ -66,7 +65,7 @@ def get_HAIB_fastq_dictionary(controls, connection):
     return controlfiles
 
 
-def getArgs():
+def get_args():
     parser = argparse.ArgumentParser(
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -99,7 +98,7 @@ def getArgs():
 
 def main():
 
-    args = getArgs()
+    args = get_args()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
     accessions = []
@@ -116,7 +115,7 @@ def main():
 
     for acc in accessions:
         print("Experiment:", acc)
-        obj = encodedcc.get_ENCODE(acc, connection)
+        obj = encodedcc.get_ENCODE(acc, connection, frame="embedded")
         controlfiles = {}
         # Missing possible controls, bail out
         if 'possible_controls' not in obj or len(obj['possible_controls']) == 0:
@@ -125,15 +124,47 @@ def main():
 
         # If it is HAIB
         elif obj['lab']['name'] == 'richard-myers':
-            controlfiles = get_HAIB_fastq_dictionary(obj['possible_controls'])
+            controlfiles = get_HAIB_fastq_dictionary(obj['possible_controls'], connection)
 
         # Single possible control
         elif len(obj['possible_controls']) == 1:
             controlId = obj['possible_controls'][0]['accession']
-            controlfiles = get_fastq_dictionary(controlId)
+            controlfiles = get_fastq_dictionary(controlId, connection)
+# More than 1 possible controls
+        else:
+            print('error: {} has more than 1 possible_controls'.format(obj['accession']))
+            continue
 
-        if args.debug:
-            print(controlfiles)
+        print(controlfiles)
+
+        for ff in obj['files']:
+            findold = (ff.get('controlled_by') == [] or ff.get('controlled_by') is None)
+            if ff.get('file_format') == 'fastq' and findold:
+                biorep = str(ff['replicate']['biological_replicate_number'])
+                techrep = str(ff['replicate']['technical_replicate_number'])
+                pair = str(ff.get('paired_end'))
+                rep = biorep + '-' + techrep + '-' + pair
+                biokey = biorep + '-' + pair
+                if ff['lab']['name'] == 'richard-myers':
+                    if 'replicate' in ff:
+                        if 'library' in ff['replicate']:
+                            if 'biosample' in ff['replicate']['library']:
+                                biokey = ff['replicate']['library']['biosample']['accession']
+                                print(ff['replicate']['library']['biosample']['accession'])
+                    else:
+                        biokey = None
+
+                if rep in controlfiles:
+                    answer = controlfiles[rep]
+                    biokey = rep
+                    print("if:", biokey, ff['accession'], answer)
+                elif biokey in controlfiles:
+                    answer = controlfiles[biokey]
+                    print("elif:", biokey, ff['accession'], answer)
+                else:
+                    answer = 'error: control had no corresponding replicate'
+                    print("else:", biokey, ff['accession'], answer)
+        print('')
 
 if __name__ == '__main__':
         main()
