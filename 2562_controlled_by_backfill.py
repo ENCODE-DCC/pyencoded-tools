@@ -49,29 +49,28 @@ def main():
     if args.query:
         temp = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
         for obj in temp:
-            accessions.append(obj.get("@id"))
+            accessions.append(obj.get("accession"))
     elif args.infile:
         accessions = [line.strip() for line in open(args.infile)]
     elif args.accession:
         accessions = [args.accession]
     else:
         assert args.query or args.infile or args.accession, "No accessions to check!"
-    data = []
+
     for acc in accessions:
-        controlFiles = {}
-        exp_bio_num = []
-        con_bio_num = []
+        exp_fastqs = {}
+        con_fastqs = {}
+        print("Experiment", acc)
         obj = encodedcc.get_ENCODE(acc, connection, frame="embedded")
         for f in obj.get("files", []):
             if f.get("file_type") == "fastq":
                 if f.get("biological_replicates"):
-                    exp_bio_num += f["biological_replicates"]
+                    exp_fastqs[f["accession"]] = f["biological_replicates"][0]
                 else:
-                    print("Exp File", f.get("uuid"), "is missing biological_replicates")
+                    print("Exp File", f["accession"], "is missing biological_replicates")
         possible_controls = obj.get("possible_controls", [])
         if len(possible_controls) == 0:
             print("ERROR", obj["accession"], "has no possible_controls")
-            continue
         elif len(possible_controls) == 1:
             control = encodedcc.get_ENCODE(possible_controls[0]["accession"], connection, frame="embedded")
             control_files = control.get("files", [])
@@ -81,22 +80,18 @@ def main():
                 for f in control_files:
                     if f.get("file_type") == "fastq":
                         if f.get("biological_replicates"):
-                            con_bio_num += f["biological_replicates"]
+                            con_fastqs[f["accession"]] = f["biological_replicates"][0]
                         else:
-                            print("Control File", f.get("uuid"), "is missing biological_replicates")
-                    else:
-                        pass
+                            print("Control File", f["accession"], "is missing biological_replicates")
         else:
             print("ERROR", acc, "has", len(possible_controls), "possible_controls")
-            continue
-
-        ##### put the dictionary together ####
-        controlFiles["accession"] = obj["accession"]
-        controlFiles["exp_bio_num"] = exp_bio_num
-        controlFiles["con_bio_num"] = con_bio_num
-        data.append(controlFiles)
-
-    print(data)
+        # here we check the two dictionaries
+        for e in exp_fastqs.keys():
+            for c in con_fastqs.keys():
+                if exp_fastqs[e] == con_fastqs[c]:
+                    print(e, c, "have same biological_replicates value")
+        print(exp_fastqs)
+        print(con_fastqs)
 
 if __name__ == '__main__':
         main()
