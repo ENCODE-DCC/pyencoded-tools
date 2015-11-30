@@ -75,6 +75,7 @@ def main():
                 else:
                     print("Exp File", f["accession"], "is missing biological_replicates")
         possible_controls = obj.get("possible_controls", [])
+        exp_replicates = obj.get("replicates", [])
         if len(possible_controls) == 0:
             print("ERROR", obj["accession"], "has no possible_controls")
         elif len(possible_controls) == 1:
@@ -93,36 +94,44 @@ def main():
                         else:
                             print("Control File", f["accession"], "is missing biological_replicates")
         else:
-            if len(obj.get("replicates", [])) == len(possible_controls):
+            if len(exp_replicates) == len(possible_controls):
                 # https://www.encodeproject.org/experiments/ENCSR757IIU/
                 # biological replicate has a biosample, match the exp biosample to control biosample
                 # if they match then the fastq of the control will match the fastq of the experiment based on bio_rep_num
-                for rep in obj["replicates"]:
-                    bio_num = rep.get("biological_replicate_number")
-                    bio = rep["library"]["biosample"]["accession"]
-                    fastq_bio_num = 0
-                    if bio_num == fastq_bio_num:
-                        pass
-                        'this fastq goes with this replicate WITHIN THE EXPERIMENT'
-                    for con in possible_controls:
-                        control = encodedcc.get_ENCODE(con, connection, frame="embedded")
-                        con_rep = control.get("replicates", [])
-                        for cr in con_rep:
-                            con_num = cr.get("biological_replicate_number")
-                            con_fastq_bio_num = 0
-                            if con_num == con_fastq_bio_num:
-                                pass
-                                'this fastq goes with this replicate WITHIN THE CONTROL'
-                files = []
-                con = []
-                for f in obj.get("files", []):
-                    files.append(f["accession"])
+                control_data = {}
                 for c in possible_controls:
-                    con.append(c.get("accession"))
-                print(acc, "has", len(obj.get("replicates", [])), "replicates and", len(possible_controls), "possible_controls")
-                data.append({"Experiment": files, "Control": con})
+                    con = encodedcc.get_ENCODE(c["accession"], connection, frame="embedded")
+                    for rep in con.get("replicates", []):
+                        con_bio_acc = rep["library"]["biosample"]["accession"]
+                        con_bio_num = rep["biological_replicate_number"]
+                        for fi in c.get("files", []):
+                            f = encodedcc.get_ENCODE(fi, connection, frame="embedded")
+                            if f.get("file_type", "") == "fastq":
+                                con_file_bio_num = f["biological_replicates"]
+                                if con_bio_num in con_file_bio_num:
+                                    con_file_acc = f["accession"]
+                                    control_data[con_bio_acc] = con_file_acc
+
+                exp_data = {}
+                for e in exp_replicates:
+                    exp_bio_acc = e["library"]["biosample"]["accession"]
+                    exp_bio_num = e["biological_replicate_number"]
+                    for f in obj.get("files", []):
+                        if f.get("file_type", "") == "fastq":
+                            exp_file_bio_num = f["biological_replicates"]
+                            if exp_bio_num in exp_file_bio_num:
+                                exp_file_acc = f["accession"]
+                                exp_data[exp_bio_acc] = exp_file_acc
+
+                for key in exp_data.keys():
+                    if control_data.get(key):
+                        temp = {"Experiment": exp_data[key], "Control": control_data[key]}
+                        #print(exp_data[key], control_data[key])
+                    data.append(temp)
+                #print("control_data", control_data)
+                #print("exp_data", exp_data)
             else:
-                print("ERROR", acc, "has", len(possible_controls), "possible_controls")
+                print("ERROR", acc, "has", len(possible_controls), "possible_controls and", len(exp_replicates), "replicates")
         # here we check the two dictionaries
         for e in exp_fastqs.keys():
             for c in con_fastqs.keys():
@@ -131,16 +140,11 @@ def main():
                     con = [c, con_fastqs[c]]
                     temp = {"Experiment": exp, "Control": con}
                     data.append(temp)
-                    #print(e + "\t" + c)
-                    #print(e, c, "have same biological_replicates value")
-        #data[e] = temp
-        #print(e, temp)
-        #print("Experiment", exp_fastqs)
-        #print("Control", con_fastqs)
-    #print(data)
-    print("Experiment File\tControl File")
-    for d in data:
-        print(d["Experiment"], d["Control"])
+
+    if len(data) > 0:
+        print("Experiment_File\tControl_File")
+        for d in data:
+            print(d["Experiment"], d["Control"])
 
 if __name__ == '__main__':
         main()
