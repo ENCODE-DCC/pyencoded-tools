@@ -263,20 +263,22 @@ def validate_file(f_obj, encValData, assembly=None, as_path=None):
     if validate_args == "":
         logger.warning('No rules to validate file_format %s and file_format_type %s' % (file_format, file_format_type))
         return False
+    if validate_args is not None:
+        if (file_format, file_format_type) in [('bed', 'bed3'), ('bed', 'bed3+')] and as_file:  # TODO: Update file schema and change to bed3+
+            validate_args = ['-type=bed3+', chromInfo]  # TODO: Update file schema.  This is to foce bed3+ for validateFiles but pass bed3 to file_format_type
+            validate_args.append(as_file)
 
-    if (file_format, file_format_type) in [('bed', 'bed3'), ('bed', 'bed3+')] and as_file:  # TODO: Update file schema and change to bed3+
-        validate_args = ['-type=bed3+', chromInfo]  # TODO: Update file schema.  This is to foce bed3+ for validateFiles but pass bed3 to file_format_type
-        validate_args.append(as_file)
-
-    tokens = ['validateFiles'] + validate_args + [path]
-    logger.debug('Running: %s' % (tokens))
-    try:
-        subprocess.check_output(tokens)
-    except subprocess.CalledProcessError as e:
-        logger.error("validateFiles returned %s" % (e.output))
-        return False
+        tokens = ['validateFiles'] + validate_args + [path]
+        logger.debug('Running: %s' % (tokens))
+        try:
+            subprocess.check_output(tokens)
+        except subprocess.CalledProcessError as e:
+            logger.error("validateFiles returned %s" % (e.output))
+            return False
+        else:
+            logger.debug("%s: validateFiles passed" % (path))
+            return True
     else:
-        logger.debug("%s: validateFiles passed" % (path))
         return True
 
 
