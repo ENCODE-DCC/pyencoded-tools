@@ -75,7 +75,11 @@ def main():
         temp = {}
         obj = encodedcc.get_ENCODE(acc, connection)
         for h in headers:
-            temp[h] = obj.get(h, "")
+            x = obj.get(h, "")
+            if any(x):
+                temp[h] = x
+            else:
+                temp[h] = ""
         data.append(temp)
     writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=headers)
     writer.writeheader()
