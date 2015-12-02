@@ -6,7 +6,6 @@ import os
 import sys
 import logging
 from urllib.parse import urljoin
-from urllib.parse import quote
 import requests
 import csv
 import copy
@@ -360,7 +359,7 @@ def process_row(row, connection):
     json_payload = {}
     flowcell_dict = {}
     if row.get("file_format", "") == "fastq":
-        for header, sequence, qual_header, quality in fastq_read(connection, filename=row["submitted_file_name"]):
+        for header, sequence, qual_header, quality in fastq_read(connection, row["submitted_file_name"]):
                 sequence = sequence.decode("UTF-8")
                 read_length = len(sequence)
                 json_payload.update({"read_length": read_length})
@@ -385,43 +384,13 @@ def process_row(row, connection):
     return json_payload
 
 
-"""def process_row(row):
-#### this version works when the flowcell data is its own column ####
-    json_payload = {}
-    for key in row.keys():
-        if not key:
-            continue
-        try:
-            json_payload.update({key: json.loads(row[key])})
-        except:
-            try:
-                json_payload.update({key: json.loads('"%s"' % (row[key]))})
-            except:
-                logger.warning('Could not convert field %s value %s to JSON' % (key, row[key]))
-                return None
-    return json_payload"""
-
-
-def fastq_read(connection, uri=None, filename=None, reads=1):
+def fastq_read(connection, filename, reads=1):
     '''Read a few fastq records
     '''
     # https://github.com/detrout/encode3-curation/blob/master/validate_encode3_aliases.py#L290
     # originally written by Diane Trout
     import gzip
-    from io import BytesIO
-    # Reasonable power of 2 greater than 50 + 100 + 5 + 100
-    # which is roughly what a single fastq read is.
-    if uri:
-        BLOCK_SIZE = 512
-        url = urljoin(connection.server, quote(uri))
-        data = requests.get(url, auth=connection.auth, stream=True)
-        block = BytesIO(next(data.iter_content(BLOCK_SIZE * reads)))
-        compressed = gzip.GzipFile(None, 'r', fileobj=block)
-    elif filename:
-        compressed = gzip.GzipFile(filename, 'r')
-    else:
-        print("No url or filename provided! Cannot access file!")
-        return
+    compressed = gzip.GzipFile(filename, 'r')
     for i in range(reads):
         header = compressed.readline().rstrip()
         sequence = compressed.readline().rstrip()
@@ -436,11 +405,6 @@ def main():
     key = ENC_Key(args.keyfile, args.key)
     connection = ENC_Connection(key)
 
-#    if args.update:
-#        print("This is UPDATE run, files will be POSTed")
-#    else:
-#        print("Test run only.  Data will be validated.")
-
     if not test_encode_keys(connection):
         logger.error("Invalid ENCODE server or keys: server=%s auth=%s" % (connection.server, connection.auth))
         sys.exit(1)
@@ -448,7 +412,7 @@ def main():
     input_csv, output_csv = init_csvs(args.infile, args.outfile)
 
     for n, row in enumerate(input_csv, start=2):  # row 1 is the header
-        if row.get("file_format_specifications"): #if there is no "file_format_spec" then no point in running get_asfile()
+        if row.get("file_format_specifications"):  #if there is no "file_format_spec" then no point in running get_asfile()
             as_file = get_asfile(row['file_format_specifications'], connection)
             as_file.close()  # validateFiles needs a closed file for -as, otherwise it gives a return code of -11
             validated = validate_file(row, args.encvaldata, row.get('assembly'), as_file.name)
