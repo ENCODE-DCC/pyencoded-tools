@@ -258,9 +258,9 @@ def validate_file(f_obj, encValData, assembly=None, as_path=None):
         ('gff', None): None
     }
 
-    validate_args = validate_map.get((file_format, file_format_type))
+    validate_args = validate_map.get((file_format, file_format_type), "")
 
-    if validate_args is None:
+    if validate_args == "":
         logger.warning('No rules to validate file_format %s and file_format_type %s' % (file_format, file_format_type))
         return False
 
