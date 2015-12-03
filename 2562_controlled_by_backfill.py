@@ -21,6 +21,10 @@ def getArgs():
                               'biosample' = multiple controls should be matched on the biosample\
                               default is multi",
                         choices=["single", "multi", "biosample"], default="multi")
+    parser.add_argument('--rampage',
+                        help="Used for RAMPAGE experiments, ignores value of paired-end. Default is False",
+                        default=False,
+                        action='store_true')
     parser.add_argument('--infile',
                         help="single column list of object accessions")
     parser.add_argument('--query',
@@ -47,62 +51,69 @@ def getArgs():
 
 
 class BackFill:
-    def __init__(self, connection, debug=False):
+    def __init__(self, connection, rampage=False, debug=False):
         self.connection = connection
         self.data = []
         self.DEBUG = debug
+        self.RAMPAGE = rampage
 
     def single_rep(self, obj):
-        '''one replicate in control'''
-        possible_controls = obj.get("possible_controls", [])
-        exp_replicates = obj.get("replicates", [])
-        exp_files = obj.get("files", [])
-        control_files = possible_controls[0].get("files", [])
-        control_replicates = possible_controls[0].get("replicates", [])
+        '''one control with one replicate in control,
+        multiple replicates in experiment'''
+        control_files = obj["possible_controls"][0].get("files")
+        control_replicates = obj["possible_controls"][0].get("replicates")
         exp_data = {}
         con_data = {}
-        c = encodedcc.get_ENCODE(control_files[0], self.connection, frame="embedded")
-        if c.get("file_type", "") == "fastq":
-            con_file_bio_num = c.get("biological_replicates")
-            con_file_paired = c.get("paired_end")
-            con_file_acc = c["accession"]
-            con_pair = str(con_file_bio_num[0]) + "-" + str(con_file_paired)
-            con_data[con_file_acc] = con_pair
+        if control_files:
+            c = encodedcc.get_ENCODE(control_files[0], self.connection, frame="embedded")
+            if c.get("file_type", "") == "fastq":
+                con_file_bio_num = c.get("biological_replicates")
+                con_file_paired = c.get("paired_end")
+                con_file_acc = c["accession"]
+                if self.RAMPAGE:
+                    con_file_paired = "rampage"
+                con_pair = str(con_file_bio_num[0]) + "-" + str(con_file_paired)
+                con_data[con_file_acc] = con_pair
 
-        if (exp_replicates and control_replicates):
-            for e in exp_files:
-                if e.get("file_type", "") == "fastq":
-                    exp_file_bio_num = e.get("biological_replicates")
-                    exp_file_paired = e.get("paired_end")
-                    exp_file_acc = e["accession"]
-                    exp_pair = str(exp_file_bio_num[0]) + "-" + str(exp_file_paired)
-                    exp_data[exp_file_acc] = exp_pair
+            if control_replicates:
+                for e in obj["files"]:
+                    if e.get("file_type", "") == "fastq":
+                        exp_file_bio_num = e.get("biological_replicates")
+                        exp_file_paired = e.get("paired_end")
+                        exp_file_acc = e["accession"]
+                        if self.RAMPAGE:
+                            exp_file_paired = "rampage"
+                        exp_pair = str(exp_file_bio_num[0]) + "-" + str(exp_file_paired)
+                        exp_data[exp_file_acc] = exp_pair
 
-        for e_key in exp_data.keys():
-            for c_key in con_data.keys():
-                if con_data[c_key] == exp_data[e_key]:
-                    temp = {"Experiment": e_key, "Control": c_key}
-                    self.data.append(temp)
+            for e_key in exp_data.keys():
+                for c_key in con_data.keys():
+                    if con_data[c_key] == exp_data[e_key]:
+                        temp = {"Experiment": e_key, "Control": c_key}
+                        self.data.append(temp)
 
-        if self.DEBUG:
-            print("experiment files", exp_data)
-            print("control files", con_data)
+            if self.DEBUG:
+                print("experiment files", exp_data)
+                print("control files", con_data)
 
     def multi_rep(self, obj):
-        '''one replicate in experiment per replicate in control'''
-        possible_controls = obj.get("possible_controls", [])
-        exp_replicates = obj.get("replicates", [])
-        exp_files = obj.get("files", [])
-        control_files = possible_controls[0].get("files", [])
-        control_replicates = possible_controls[0].get("replicates", [])
+        '''one control, with one replicate in
+        control per replicate in experiment'''
+        control_files = obj["possible_controls"][0].get("files", [])
+        control_replicates = obj["possible_controls"][0].get("replicates", [])
         exp_data = {}
         con_data = {}
-        if (exp_replicates and control_replicates) and (len(exp_replicates) == len(control_replicates)):
-            for e in exp_files:
+        print(len(obj["replicates"]))
+        print(len(control_replicates))
+        if control_replicates and (len(obj["replicates"]) == len(control_replicates)):
+            print("hihihihih")
+            for e in obj["files"]:
                 if e.get("file_type", "") == "fastq":
                     exp_file_bio_num = e.get("biological_replicates")
                     exp_file_paired = e.get("paired_end")
                     exp_file_acc = e["accession"]
+                    if self.RAMPAGE:
+                        exp_file_paired = "rampage"
                     exp_pair = str(exp_file_bio_num[0]) + "-" + str(exp_file_paired)
                     exp_data[exp_file_acc] = exp_pair
 
@@ -112,6 +123,8 @@ class BackFill:
                     con_file_bio_num = c.get("biological_replicates")
                     con_file_paired = c.get("paired_end")
                     con_file_acc = c["accession"]
+                    if self.RAMPAGE:
+                        con_file_paired = "rampage"
                     con_pair = str(con_file_bio_num[0]) + "-" + str(con_file_paired)
                     con_data[con_file_acc] = con_pair
 
@@ -127,10 +140,8 @@ class BackFill:
 
     def multi_control(self, obj):
         '''multiple controls, match on biosample'''
-        possible_controls = obj.get("possible_controls", [])
-        exp_replicates = obj.get("replicates", [])
         con_data = {}
-        for c in possible_controls:
+        for c in obj["possible_controls"]:
             con = encodedcc.get_ENCODE(c["accession"], self.connection, frame="embedded")
             for rep in con.get("replicates", []):
                 con_bio_acc = rep["library"]["biosample"]["accession"]
@@ -144,10 +155,10 @@ class BackFill:
                             con_data[con_bio_acc] = con_file_acc
 
         exp_data = {}
-        for e in exp_replicates:
+        for e in obj["replicates"]:
             exp_bio_acc = e["library"]["biosample"]["accession"]
             exp_bio_num = e["biological_replicate_number"]
-            for f in obj.get("files", []):
+            for f in obj["files"]:
                 if f.get("file_type", "") == "fastq":
                     exp_file_bio_num = f["biological_replicates"]
                     if exp_bio_num in exp_file_bio_num:
@@ -181,17 +192,33 @@ def main():
         print("No accessions to check!")
     else:
         for acc in accessions:
+            if args.debug:
+                print("Experiment", acc)
             obj = encodedcc.get_ENCODE(acc, connection, frame="embedded")
-            b = BackFill(connection, args.debug)
-            if args.method == "single":
-                b.single_rep(obj)
-            elif args.method == "multi":
-                b.multi_rep(obj)
-            elif args.method == "biosample":
-                b.multi_control(obj)
-            else:
-                print("ERROR: no method found!", file=sys.stderr)
-                sys.exit(1)
+            isValid = True
+            if len(obj.get("possible_controls", [])) == 0:
+                if args.debug:
+                    print("Missing possible controls for " + acc, file=sys.stderr)
+                isValid = False
+            if len(obj.get("replicates", [])) == 0:
+                if args.debug:
+                    print("Missing replicates for " + acc, file=sys.stderr)
+                isValid = False
+            if len(obj.get("files", [])) == 0:
+                if args.debug:
+                    print("Missing files for " + acc, file=sys.stderr)
+                isValid = False
+            if isValid:
+                b = BackFill(connection, rampage=args.rampage, debug=args.debug)
+                if args.method == "single":
+                    b.single_rep(obj)
+                elif args.method == "multi":
+                    b.multi_rep(obj)
+                elif args.method == "biosample":
+                    b.multi_control(obj)
+                else:
+                    print("ERROR: unrecognized method: " + args.method, file=sys.stderr)
+                    sys.exit(1)
         if len(b.data) > 0:
             print("Experiment_File\tControl_File")
             for d in b.data:
