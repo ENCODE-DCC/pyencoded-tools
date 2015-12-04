@@ -95,11 +95,14 @@ def main():
     supplied_name = args.collection
 
     if supplied_name.endswith('s'):
-        schema_name = supplied_name.rstrip('s').replace('-', '_') + '.json'
+        search_name = supplied_name.rstrip('s').replace('-', '_')
+        schema_name = search_name + '.json'
     elif supplied_name.endswith('.json'):
         schema_name = supplied_name
+        search_name = supplied_name.rstrip('.json')
     else:
-        schema_name = supplied_name.replace('-', '_') + '.json'
+        search_name = supplied_name.replace('-', '_')
+        schema_name = search_name + '.json'
 
     schema_uri = '/profiles/' + schema_name
     object_schema = encodedcc.get_ENCODE(schema_uri, connection)
@@ -148,20 +151,14 @@ def main():
     exclude_unsubmittable = ['accession', 'uuid', 'schema_version', 'alternate_accessions', 'submitted_by']
 
     global collection
-    if supplied_name.endswith('s'):
-        supplied_name = supplied_name.rstrip('s').replace('-', '_')
-    elif supplied_name.endswith('.json'):
-        supplied_name = supplied_name.rstrip('.json')
-    else:
-        supplied_name = supplied_name.replace('-', '_')
     if args.query:
         uri = args.query
         collection = encodedcc.get_ENCODE(uri, connection)
     elif args.es:
-        uri = '/search/?format=json&limit=all&type=' + supplied_name
+        uri = '/search/?type=' + search_name
         collection = encodedcc.get_ENCODE(uri, connection)
     else:
-        collection = get_without_ESearch(supplied_name, connection)
+        collection = get_without_ESearch(search_name, connection)
     collected_items = collection['@graph']
 
     headstring = ""
