@@ -61,7 +61,8 @@ class BackFill:
         multiple replicates in experiment'''
         control_files = encodedcc.get_ENCODE(obj["possible_controls"][0]["accession"], self.connection, frame="embedded").get("files", [])
         if len(control_files) == 0:
-            print("Control object {} has no files".format(obj["possible_controls"][0]["accession"]), file=sys.stderr)
+            if self.DEBUG:
+                print("Control object {} has no files".format(obj["possible_controls"][0]["accession"]), file=sys.stderr)
             return
         for c in control_files:
             if c.get("file_type", "") == "fastq":
@@ -83,10 +84,12 @@ class BackFill:
         exp_data = {}
         con_data = {}
         if len(control_replicates) != len(obj["replicates"]):
-            print("Control has {} replicates and experiment has {} replicates".format(len(control_replicates), len(obj["replicates"])), file=sys.stderr)
+            if self.DEBUG:
+                print("Control has {} replicates and experiment has {} replicates".format(len(control_replicates), len(obj["replicates"])), file=sys.stderr)
             return
         if len(control_files) == 0:
-            print("Control {} has no files".format(obj["possible_controls"][0]["accession"]), file=sys.stderr)
+            if self.DEBUG:
+                print("Control {} has no files".format(obj["possible_controls"][0]["accession"]), file=sys.stderr)
             return
         for e in obj["files"]:
             if e.get("file_type", "") == "fastq":
@@ -108,30 +111,47 @@ class BackFill:
                 con_pair = str(con_file_bio_num[0]) + "-" + str(con_file_paired)
                 con_data[con_file_acc] = con_pair
 
-        for c_key in con_data.keys():
-            exp_list = []
+        if ignore_runtype:
             for e_key in exp_data.keys():
-                if con_data[c_key] == exp_data[e_key]:
-                    exp_list.append(e_key)
-            temp = {"Experiment": exp_list, "Control": c_key}
-            self.data.append(temp)
-            if self.DEBUG:
-                print("experiment files", exp_list)
-                print("control files", c_key)
+                con_list = []
+                for c_key in con_data.keys():
+                    if exp_data[e_key] == con_data[c_key]:
+                        con_list.append(c_key)
+                temp = {"Experiment": e_key, "Control": con_list}
+                self.data.append(temp)
+                if self.DEBUG:
+                    print("experiment files", e_key)
+                    print("control files", con_list)
+        else:
+            for c_key in con_data.keys():
+                exp_list = []
+                for e_key in exp_data.keys():
+                    if con_data[c_key] == exp_data[e_key]:
+                        exp_list.append(e_key)
+                temp = {"Experiment": exp_list, "Control": c_key}
+                self.data.append(temp)
+                if self.DEBUG:
+                    print("experiment files", exp_list)
+                    print("control files", c_key)
 
     def multi_control(self, obj):
         '''multiple controls, match on biosample'''
         con_data = {}
+        val = True
         for con in obj["possible_controls"]:
             c = encodedcc.get_ENCODE(con["accession"], self.connection, frame="embedded")
             if len(c.get("replicates", [])) == 0:
-                print("No replicates found in control {}".format(con["accession"]), file=sys.stderr)
+                if self.DEBUG:
+                    print("No replicates found in control {}".format(con["accession"]), file=sys.stderr)
+                val = False
             else:
                 for rep in c["replicates"]:
                     con_bio_acc = rep["library"]["biosample"]["accession"]
                     con_bio_num = rep["biological_replicate_number"]
                     if len(c.get("files", [])) == 0:
-                        print("No files found for control {}".format(con["accession"]), file=sys.stderr)
+                        if self.DEBUG:
+                            print("No files found for control {}".format(con["accession"]), file=sys.stderr)
+                        val = False
                     else:
                         for f in c["files"]:
                             if f.get("file_type", "") == "fastq":
@@ -139,24 +159,24 @@ class BackFill:
                                 if con_bio_num in con_file_bio_num:
                                     con_file_acc = f["accession"]
                                     con_data[con_bio_acc] = con_file_acc
+        if val:
+            exp_data = {}
+            for e in obj["replicates"]:
+                exp_bio_acc = e["library"]["biosample"]["accession"]
+                exp_bio_num = e["biological_replicate_number"]
+                for f in obj["files"]:
+                    if f.get("file_type", "") == "fastq":
+                        exp_file_bio_num = f["biological_replicates"]
+                        if exp_bio_num in exp_file_bio_num:
+                            exp_file_acc = f["accession"]
+                            exp_data[exp_bio_acc] = exp_file_acc
 
-        exp_data = {}
-        for e in obj["replicates"]:
-            exp_bio_acc = e["library"]["biosample"]["accession"]
-            exp_bio_num = e["biological_replicate_number"]
-            for f in obj["files"]:
-                if f.get("file_type", "") == "fastq":
-                    exp_file_bio_num = f["biological_replicates"]
-                    if exp_bio_num in exp_file_bio_num:
-                        exp_file_acc = f["accession"]
-                        exp_data[exp_bio_acc] = exp_file_acc
-
-        for key in exp_data.keys():
-            if con_data.get(key):
-                temp = {"Experiment": exp_data[key], "Control": con_data[key]}
-                self.data.append(temp)
-                if self.DEBUG:
-                    print("Biosample {}: files {}".format(key, temp))
+            for key in exp_data.keys():
+                if con_data.get(key):
+                    temp = {"Experiment": exp_data[key], "Control": con_data[key]}
+                    self.data.append(temp)
+                    if self.DEBUG:
+                        print("Biosample {}: files {}".format(key, temp))
 
 
 def main():
@@ -197,10 +217,10 @@ def main():
                 else:
                     print("ERROR: unrecognized method:", args.method, file=sys.stderr)
                     sys.exit(1)
-        if len(b.data) > 0:
-            print("Experiment_File\tControl_File")
-            for d in b.data:
-                print("{}\t{}".format(d["Experiment"], d["Control"]))
+                if len(b.data) > 0:
+                    print("Control Files\tExperiment Files")
+                    for d in b.data:
+                        print("{}\t{}".format(d["Control"], d["Experiment"]))
 
 if __name__ == '__main__':
         main()
