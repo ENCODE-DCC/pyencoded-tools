@@ -21,7 +21,7 @@ def getArgs():
                               'biosample' = multiple controls should be matched on the biosample\
                               default is multi",
                         choices=["single", "multi", "biosample"], default="multi")
-    parser.add_argument('--rampage',
+    parser.add_argument('--ignore_runtype',
                         help="Ignores value of paired-end. Default is False",
                         default=False,
                         action='store_true')
@@ -75,7 +75,7 @@ class BackFill:
                     print("experiment files {}".format(temp["Experiment"]))
                     print("control files {}".format(temp["Control"]))
 
-    def multi_rep(self, obj, rampage=False):
+    def multi_rep(self, obj, ignore_runtype=False):
         '''one control, with one replicate in
         control per replicate in experiment'''
         control_files = encodedcc.get_ENCODE(obj["possible_controls"][0]["accession"], self.connection, frame="embedded").get("files", [])
@@ -93,7 +93,7 @@ class BackFill:
                 exp_file_bio_num = e.get("biological_replicates")
                 exp_file_paired = e.get("paired_end")
                 exp_file_acc = e["accession"]
-                if rampage:
+                if ignore_runtype:
                     exp_file_paired = None
                 exp_pair = str(exp_file_bio_num[0]) + "-" + str(exp_file_paired)
                 exp_data[exp_file_acc] = exp_pair
@@ -103,7 +103,7 @@ class BackFill:
                 con_file_bio_num = c.get("biological_replicates")
                 con_file_paired = c.get("paired_end")
                 con_file_acc = c["accession"]
-                if rampage:
+                if ignore_runtype:
                     con_file_paired = None
                 con_pair = str(con_file_bio_num[0]) + "-" + str(con_file_paired)
                 con_data[con_file_acc] = con_pair
@@ -191,7 +191,7 @@ def main():
                 if args.method == "single":
                     b.single_rep(obj)
                 elif args.method == "multi":
-                    b.multi_rep(obj, rampage=args.rampage)
+                    b.multi_rep(obj, args.ignore_runtype)
                 elif args.method == "biosample":
                     b.multi_control(obj)
                 else:
