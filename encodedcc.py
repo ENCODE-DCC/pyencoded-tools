@@ -372,25 +372,43 @@ def get_fields(args, connection):
         for a in accessions:
             a = quote(a)
             result = get_ENCODE(a, connection)
-            temp = {}
+            newObj = {}
             for f in fields:
-                if result.get(f):
+                full = f.split(".")  # check to see if someone wants embedded value
+                for x in full[:-1]:  # cycle through the list except last element
+                    #print(x)
+                    if result.get(x):  # check to see if the element is in the current object
+                        if type(result[x]) == int:
+                            pass
+                        elif type(result[x]) == list:  # if we have a list of embedded objects we need to cycle through?
+                            pass
+                        elif type(result[x]) == dict:
+                            pass
+                        else:
+                            temp = get_ENCODE(result[x], connection)  # if found get_ENCODE the embedded object
+                    #print(temp)
+                    result = temp
+                last = full[-1]  # get the last element in the split list
+                #print("last", last)
+                if result.get(last):
                     name = f
-                    if type(result[f]) == int:
+                    #print("NAMENAMENAME", result[last])
+                    if type(result[last]) == int:
                         name = name + ":int"
-                    elif type(result[f]) == list:
+                    elif type(result[last]) == list:
                         name = name + ":list"
-                    elif type(result[f]) == dict:
+                    elif type(result[last]) == dict:
                         name = name + ":dict"
                     else:
                         # this must be a string
                         pass
-                    temp[name] = result[f]
+                    newObj[name] = result[last]
                     if name not in header:
                         header.append(name)
             if "accession" not in fields:
-                temp["accession"] = a
-            data[a] = temp
+                newObj["accession"] = a
+            data[a] = newObj
+    #print("HIHIHIHIHIHIHIHI", data)
     writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=header)
     writer.writeheader()
     for key in data.keys():
