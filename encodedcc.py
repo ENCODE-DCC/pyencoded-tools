@@ -341,6 +341,23 @@ def pprint_ENCODE(JSON_obj):
                          sort_keys=True, indent=4, separators=(',', ': ')))
 
 
+def small_func(f, result, last, newObj, header):
+    if result.get(last):
+        name = f
+        if type(result[last]) == int:
+            name = name + ":int"
+        elif type(result[last]) == list:
+            name = name + ":list"
+        elif type(result[last]) == dict:
+            name = name + ":dict"
+        else:
+            # this must be a string
+            pass
+        newObj[name] = result[last]
+        if name not in header:
+            header.append(name)
+
+
 def get_fields(args, connection):
     import csv
     accessions = []
@@ -381,6 +398,8 @@ def get_fields(args, connection):
                         if type(result[x]) == int:
                             pass
                         elif type(result[x]) == list:  # if we have a list of embedded objects we need to cycle through?
+                            print("list")
+                            print(x) # maybe we can use small_func in a loop when we get results from here?
                             pass
                         elif type(result[x]) == dict:
                             pass
