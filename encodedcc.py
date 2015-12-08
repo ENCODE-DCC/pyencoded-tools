@@ -439,9 +439,14 @@ def patch_set(args, connection):
                 elif k[1] == "list":
                     l = temp_data[key].strip("[]").split(",")
                     l = [x.replace(" ", "") for x in l]
-                    patch_data[k[0]] = l
-                else:
-                    patch_data[k[0]] = temp_data[key]
+                    if args.overwrite:
+                        patch_data[k[0]] = l
+                    else:
+                        append_list = get_ENCODE(accession, connection).get(k[0], [])
+                        print(append_list)
+                        patch_data[k[0]] = l + append_list
+            else:
+                patch_data[k[0]] = temp_data[key]
         accession = quote(accession)
         full_data = get_ENCODE(accession, connection, frame="edit")
         old_data = {}

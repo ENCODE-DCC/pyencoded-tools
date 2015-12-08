@@ -39,6 +39,7 @@ To PATCH a single object, field with field type, and data:
 
 * For integers use ':int'
 * For lists use    ':list'
+* Lists are appended to unless the *--overwrite* option is used
 * *String are the default and do not require an identifier*
 
 **Removing data:**
