@@ -180,6 +180,8 @@ def main():
                              'AntibodyCharacterization', 'AntibodyLot',
                              'Award', 'Biosample', 'BiosampleCharacterization',
                              'Construct', 'ConstructCharacterization', 'Dataset',
+                             'OrganismDevelopmentSeries', 'TreatmentTimeSeries',
+                             'ReplicationTimingSeries', 'TreatmentConcentrationSeries',
                              'Document', 'Donor', 'EdwKey', 'Experiment', 'File',
                              'FileRelationship', 'HumanDonor', 'Lab', 'Library',
                              'MouseDonor', 'Organism', 'Platform', 'Replicate',
