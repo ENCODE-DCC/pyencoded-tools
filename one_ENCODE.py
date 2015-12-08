@@ -176,19 +176,8 @@ def main():
     if new_object and object_exists:
         print("Conflict:  At least one identifier already exists and at least one does not exist")
 
-    supported_collections = ['AccessKey', 'AntibodyApproval',
-                             'AntibodyCharacterization', 'AntibodyLot',
-                             'Award', 'Biosample', 'BiosampleCharacterization',
-                             'Construct', 'ConstructCharacterization', 'Dataset',
-                             'OrganismDevelopmentSeries', 'TreatmentTimeSeries',
-                             'ReplicationTimingSeries', 'TreatmentConcentrationSeries',
-                             'Document', 'Donor', 'EdwKey', 'Experiment', 'File',
-                             'FileRelationship', 'HumanDonor', 'Lab', 'Library',
-                             'MouseDonor', 'Organism', 'Platform', 'Replicate',
-                             'Rnai', 'RnaiCharacterization', 'Software',
-                             'Source', 'Target', 'Treatment', 'User',
-                             'AnalysisStepRun', 'Pipeline', 'WorkflowRun',
-                             'AnalysisStep', 'SoftwareVersion', 'Publication']
+    profiles = encodedcc.get_ENCODE("/profiles/", connection)
+    supported_collections = profiles.keys()
 
     type_list = new_json.pop('@type', [])
     possible_collections = [x for x in type_list if x in supported_collections]
