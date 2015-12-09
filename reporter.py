@@ -366,7 +366,7 @@ def main():
             '''Get the experiment level ownership'''
 
             ob['lab_name'] = exp['lab']['name']
-            ob['project'] = exp['award']['rfa']
+            ob['project'] = exp['award'].get('rfa')
             ob['grant'] = exp['award']['name']
             ob['submitter'] = exp['submitted_by']['title']
             ob['experiment_documents'] = get_doc_list(exp['documents'])
