@@ -1,0 +1,10 @@
+{
+    "default": 
+        {"server":"http://test.encodedcc.org", "key":"some_key", "secret":"some_secret"},
+    "test":
+        {"server":"http://test.encodedcc.org", "key":"same_key", "secret":"same_secret"},
+    "submit":
+        {"server":"http://submit.encodedcc.org", "key":"different_key", "secret":"secrète_différent"},
+    "localhost":
+        {"server":"http://localhost:6543", "key":"local_key", "secret":"local_secret"}
+}
