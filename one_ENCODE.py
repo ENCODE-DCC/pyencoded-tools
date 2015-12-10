@@ -105,7 +105,7 @@ def main():
 
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-    args.type = args.type.capitalize()
+
     new_object = False
     if args.id:
         GET_ONLY = True
@@ -191,11 +191,13 @@ def main():
         else:
             print("Object will have type of", type_list[0])
             new_json["@type"] = [type_list[0]]
-    if args.type not in supported_collections:
-        print("Error! Supplied type is not one of the supported types")
-    else:
-        print("Object will have type of", args.type)
-        new_json["@type"] = [args.type]
+    if args.type:
+        args.type = args.type.capitalize()
+        if args.type not in supported_collections:
+            print("Error! Supplied type is not one of the supported types")
+        else:
+            print("Object will have type of", args.type)
+            new_json["@type"] = [args.type]
 
     possible_collections = [x for x in type_list if x in supported_collections]
     if possible_collections:
