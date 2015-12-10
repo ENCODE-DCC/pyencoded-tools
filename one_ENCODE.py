@@ -91,6 +91,8 @@ def main():
     parser.add_argument('--frame',
                         help="define a frame to get back the JSON object, for use with --id. Default is frame=object",
                         default="object")
+    parser.add_argument('--type',
+                        help="the object's type")
     args = parser.parse_args()
 
     global DEBUG_ON
@@ -103,7 +105,7 @@ def main():
 
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-
+    args.type = args.type.capitalize()
     new_object = False
     if args.id:
         GET_ONLY = True
@@ -180,6 +182,21 @@ def main():
     supported_collections = profiles.keys()
 
     type_list = new_json.pop('@type', [])
+    if any(type_list):
+        if type_list[0] not in supported_collections:
+            print("Error! JSON object does not contain one of the supported types")
+            print("Provided type:", type_list[0])
+            print("Please either change the JSON file or define the type with the --type feature")
+            sys.exit(1)
+        else:
+            print("Object will have type of", type_list[0])
+            new_json["@type"] = [type_list[0]]
+    if args.type not in supported_collections:
+        print("Error! Supplied type is not one of the supported types")
+    else:
+        print("Object will have type of", args.type)
+        new_json["@type"] = [args.type]
+
     possible_collections = [x for x in type_list if x in supported_collections]
     if possible_collections:
         # collection = possible_collections[0] + 's/'
