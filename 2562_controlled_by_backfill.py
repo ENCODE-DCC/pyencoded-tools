@@ -51,9 +51,9 @@ def getArgs():
 
 
 class BackFill:
-    def __init__(self, connection, debug=False):
+    def __init__(self, connection, dataList, debug=False):
         self.connection = connection
-        self.data = []
+        self.data = dataList
         self.DEBUG = debug
 
     def single_rep(self, obj):
@@ -195,6 +195,7 @@ def main():
     if len(accessions) == 0:
         print("No accessions to check!")
     else:
+        dataList = []
         for acc in accessions:
             if args.debug:
                 print("Experiment", acc)
@@ -207,7 +208,7 @@ def main():
                         print("Missing {} for {}".format(c, acc), file=sys.stderr)
                     isValid = False
             if isValid:
-                b = BackFill(connection, debug=args.debug)
+                b = BackFill(connection, dataList, debug=args.debug)
                 if args.method == "single":
                     b.single_rep(obj)
                 elif args.method == "multi":
@@ -217,10 +218,10 @@ def main():
                 else:
                     print("ERROR: unrecognized method:", args.method, file=sys.stderr)
                     sys.exit(1)
-                if len(b.data) > 0:
-                    print("Control Files\tExperiment Files")
-                    for d in b.data:
-                        print("{}\t{}".format(d["Control"], d["Experiment"]))
+        if len(dataList) > 0:
+            print("Control Files\tExperiment Files")
+            for d in dataList:
+                print("{}\t{}".format(d["Control"], d["Experiment"]))
 
 if __name__ == '__main__':
         main()
