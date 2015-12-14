@@ -46,15 +46,20 @@ def getArgs():
                         default=False,
                         action='store_true',
                         help="Let the script PATCH the data.  Default is False")
+    parser.add_argument('--missing',
+                        default=False,
+                        action='store_true',
+                        help="only print files that are missing controlled_by")
     args = parser.parse_args()
     return args
 
 
 class BackFill:
-    def __init__(self, connection, dataList, debug=False):
+    def __init__(self, connection, dataList, debug=False, missing=False):
         self.connection = connection
         self.data = dataList
         self.DEBUG = debug
+        self.MISSING = missing
 
     def single_rep(self, obj):
         '''one control with one replicate in control,
@@ -69,9 +74,11 @@ class BackFill:
                 exp_list = []
                 for e in obj["files"]:
                     if e.get("file_type", "") == "fastq":
-                        exp_list.append(e["accession"])
+                        if not self.MISSING or (self.MISSING and not e.get("controlled_by")):
+                                exp_list.append(e["accession"])
                 temp = {"Experiment": exp_list, "Control": c["accession"]}
-                self.data.append(temp)
+                if len(exp_list) > 0:
+                    self.data.append(temp)
                 if self.DEBUG:
                     print("experiment files {}".format(temp["Experiment"]))
                     print("control files {}".format(temp["Control"]))
@@ -93,13 +100,14 @@ class BackFill:
             return
         for e in obj["files"]:
             if e.get("file_type", "") == "fastq":
-                exp_file_bio_num = e.get("biological_replicates")
-                exp_file_paired = e.get("paired_end")
-                exp_file_acc = e["accession"]
-                if ignore_runtype:
-                    exp_file_paired = None
-                exp_pair = str(exp_file_bio_num[0]) + "-" + str(exp_file_paired)
-                exp_data[exp_file_acc] = exp_pair
+                if not self.MISSING or (self.MISSING and not e.get("controlled_by")):
+                    exp_file_bio_num = e.get("biological_replicates")
+                    exp_file_paired = e.get("paired_end")
+                    exp_file_acc = e["accession"]
+                    if ignore_runtype:
+                        exp_file_paired = None
+                    exp_pair = str(exp_file_bio_num[0]) + "-" + str(exp_file_paired)
+                    exp_data[exp_file_acc] = exp_pair
 
         for c in control_files:
             if c.get("file_type", "") == "fastq":
@@ -129,7 +137,8 @@ class BackFill:
                     if con_data[c_key] == exp_data[e_key]:
                         exp_list.append(e_key)
                 temp = {"Experiment": exp_list, "Control": c_key}
-                self.data.append(temp)
+                if len(exp_list) > 0:
+                    self.data.append(temp)
                 if self.DEBUG:
                     print("experiment files", exp_list)
                     print("control files", c_key)
@@ -166,10 +175,11 @@ class BackFill:
                 exp_bio_num = e["biological_replicate_number"]
                 for f in obj["files"]:
                     if f.get("file_type", "") == "fastq":
-                        exp_file_bio_num = f["biological_replicates"]
-                        if exp_bio_num in exp_file_bio_num:
-                            exp_file_acc = f["accession"]
-                            exp_data[exp_bio_acc] = exp_file_acc
+                        if not self.MISSING or (self.MISSING and not f.get("controlled_by")):
+                            exp_file_bio_num = f["biological_replicates"]
+                            if exp_bio_num in exp_file_bio_num:
+                                exp_file_acc = f["accession"]
+                                exp_data[exp_bio_acc] = exp_file_acc
 
             for key in exp_data.keys():
                 if con_data.get(key):
@@ -208,7 +218,7 @@ def main():
                         print("Missing {} for {}".format(c, acc), file=sys.stderr)
                     isValid = False
             if isValid:
-                b = BackFill(connection, dataList, debug=args.debug)
+                b = BackFill(connection, dataList, debug=args.debug, missing=args.missing)
                 if args.method == "single":
                     b.single_rep(obj)
                 elif args.method == "multi":
