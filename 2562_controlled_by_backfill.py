@@ -208,8 +208,6 @@ def main():
     else:
         dataList = []
         for acc in accessions:
-            if args.debug:
-                print("Experiment", acc)
             obj = encodedcc.get_ENCODE(acc, connection, frame="embedded")
             isValid = True
             check = ["replicates", "files"]
@@ -240,14 +238,17 @@ def main():
                         # same number experiment replicates as control replicates
                         # method is multi
                         b.multi_rep(obj, args.ignore_runtype)
-                        print("MULTI REP {}".format(acc))
+                        if args.debug:
+                            print("MULTI REP {}".format(acc))
                     elif con_rep == 1:
                         # one control replicate and multiple experiment replicates
                         # method is single
                         b.single_rep(obj)
-                        print("SINGLE REP {}".format(acc))
+                        if args.debug:
+                            print("SINGLE REP {}".format(acc))
                     else:
-                        print("Experiment {} does not fit any of the current patterns!".format(acc))
+                        if args.debug:
+                            print("Experiment {} contains {} experiment replicates and {} control replicates and so does not fit the current pattern!".format(acc, exp_rep, con_rep))
                 elif exp_con > 1:
                     # more than one possible control
                     con_reps = 0
@@ -258,11 +259,14 @@ def main():
                         # same number of controls with one replicate as number of experiment replicates
                         # method is biosample
                         b.multi_control(obj)
-                        print("MULTI CONTROL {}".format(acc))
+                        if args.debug:
+                            print("MULTI CONTROL {}".format(acc))
                     else:
-                        print("Experiment {} does not fit any of the current patterns!".format(acc))
+                        if args.debug:
+                            print("Experiment {} contains {} experiment replicates and {} control replicates between {} total controls and so does not fit the current pattern!".format(acc, exp_rep, con_rep, exp_con))
                 else:
-                    print("Experiment {} does not fit any of the current patterns!".format(acc))
+                    if args.debug:
+                        print("Experiment {} does not fit any of the current patterns!".format(acc))
 
 #                if args.method == "single":
 #                    b.single_rep(obj)
