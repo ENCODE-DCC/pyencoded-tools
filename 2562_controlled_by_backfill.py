@@ -15,11 +15,11 @@ def getArgs():
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-#    parser.add_argument('--method',
-#                        help="'single' = there is only one replicate in the control, \
-#                              'multi' = one control with same number of replicates as experiment has replicates, \
-#                              'biosample' = multiple controls should be matched on the biosample",
-#                        choices=["single", "multi", "biosample"])
+    parser.add_argument('--method',
+                        help="'single' = there is only one replicate in the control, \
+                              'multi' = one control with same number of replicates as experiment has replicates, \
+                              'biosample' = multiple controls should be matched on the biosample",
+                        choices=["single", "multi", "biosample"])
     parser.add_argument('--ignore_runtype',
                         help="Ignores value of paired-end. Default is off",
                         default=False,
@@ -229,54 +229,58 @@ def main():
                     print("Missing possible_controls for {}".format(acc), file=sys.stderr)
             if isValid:
                 b = BackFill(connection, dataList, debug=args.debug, missing=args.missing)
-                exp_rep = len(obj["replicates"])
-                exp_con = len(obj["possible_controls"])
-                if exp_con == 1:
-                    # one possible control
-                    con_rep = len(obj["possible_controls"][0]["replicates"])
-                    if con_rep == exp_rep:
-                        # same number experiment replicates as control replicates
-                        # method is multi
-                        b.multi_rep(obj, args.ignore_runtype)
-                        if args.debug:
-                            print("MULTI REP {}".format(acc))
-                    elif con_rep == 1:
-                        # one control replicate and multiple experiment replicates
-                        # method is single
-                        b.single_rep(obj)
-                        if args.debug:
-                            print("SINGLE REP {}".format(acc))
-                    else:
-                        if args.debug:
-                            print("Experiment {} contains {} experiment replicates and {} control replicates and so does not fit the current pattern!".format(acc, exp_rep, con_rep))
-                elif exp_con > 1:
-                    # more than one possible control
-                    con_reps = 0
-                    for con in obj["possible_controls"]:
-                        if len(con["replicates"]) == 1:
-                            con_reps += 1
-                    if con_reps == exp_rep:
-                        # same number of controls with one replicate as number of experiment replicates
-                        # method is biosample
-                        b.multi_control(obj)
-                        if args.debug:
-                            print("MULTI CONTROL {}".format(acc))
-                    else:
-                        if args.debug:
-                            print("Experiment {} contains {} experiment replicates and {} control replicates between {} total controls and so does not fit the current pattern!".format(acc, exp_rep, con_rep, exp_con))
-                else:
+                if args.method == "single":
+                    b.single_rep(obj)
                     if args.debug:
-                        print("Experiment {} does not fit any of the current patterns!".format(acc))
+                        print("SINGLE REP {}".format(acc))
+                elif args.method == "multi":
+                    b.multi_rep(obj, args.ignore_runtype)
+                    if args.debug:
+                        print("MULTI REP {}".format(acc))
+                elif args.method == "biosample":
+                    b.multi_control(obj)
+                    if args.debug:
+                        print("BIOSAMPLE {}".format(acc))
+                else:
+                    exp_rep = len(obj["replicates"])
+                    exp_con = len(obj["possible_controls"])
+                    if exp_con == 1:
+                        # one possible control
+                        con_rep = len(obj["possible_controls"][0]["replicates"])
+                        if con_rep == exp_rep:
+                            # same number experiment replicates as control replicates
+                            # method is multi
+                            b.multi_rep(obj, args.ignore_runtype)
+                            if args.debug:
+                                print("MULTI REP {}".format(acc))
+                        elif con_rep == 1:
+                            # one control replicate and multiple experiment replicates
+                            # method is single
+                            b.single_rep(obj)
+                            if args.debug:
+                                print("SINGLE REP {}".format(acc))
+                        else:
+                            if args.debug:
+                                print("Experiment {} contains {} experiment replicates and {} control replicates and so does not fit the current pattern!".format(acc, exp_rep, con_rep))
+                    elif exp_con > 1:
+                        # more than one possible control
+                        con_reps = 0
+                        for con in obj["possible_controls"]:
+                            if len(con["replicates"]) == 1:
+                                con_reps += 1
+                        if con_reps == exp_rep:
+                            # same number of controls with one replicate as number of experiment replicates
+                            # method is biosample
+                            b.multi_control(obj)
+                            if args.debug:
+                                print("BIOSAMPLE {}".format(acc))
+                        else:
+                            if args.debug:
+                                print("Experiment {} contains {} experiment replicates and {} control replicates between {} total controls and so does not fit the current pattern!".format(acc, exp_rep, con_rep, exp_con))
+                    else:
+                        if args.debug:
+                            print("Experiment {} does not fit any of the current patterns!".format(acc))
 
-#                if args.method == "single":
-#                    b.single_rep(obj)
-#                elif args.method == "multi":
-#                    b.multi_rep(obj, args.ignore_runtype)
-#                elif args.method == "biosample":
-#                    b.multi_control(obj)
-#                else:
-#                    print("ERROR: unrecognized method:", args.method, file=sys.stderr)
-#                    sys.exit(1)
         if len(dataList) > 0:
             print("Experiment Accession\tCheck Type\tControl Files\tExperiment Files")
             for d in dataList:
