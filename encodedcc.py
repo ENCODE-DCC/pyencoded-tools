@@ -358,29 +358,38 @@ def small_func(f, result, last, newObj, header):
             header.append(name)
 
 
-def get_fields(args, connection):
+def get_fields(args, connection, facet=None):
+    ''' facet contains a list with the first itme being a list
+    of the accessions and the second a list of the fieldnames '''
     import csv
     accessions = []
-    if args.query:
-        if "search" in args.query:
-            temp = get_ENCODE(args.query, connection).get("@graph", [])
-            for obj in temp:
-                if obj.get("accession"):
-                    accessions.append(obj["accession"])
+    if facet:
+        accessions = facet[0]
+        fields = facet[1]
+    else:
+        if args.query:
+            if "search" in args.query:
+                temp = get_ENCODE(args.query, connection).get("@graph", [])
+                for obj in temp:
+                    if obj.get("accession"):
+                        accessions.append(obj["accession"])
+            else:
+                accessions = [get_ENCODE(args.query, connection).get("accession")]
+        elif args.infile:
+            accessions = [line.strip() for line in open(args.infile)]
+        elif args.accession:
+            accessions = [args.accession]
         else:
-            accessions = [get_ENCODE(args.query, connection).get("accession")]
-    elif args.infile:
-        accessions = [line.strip() for line in open(args.infile)]
-    elif args.accession:
-        accessions = [args.accession]
-    else:
-        assert args.query or args.infile or args.accession, "ERROR: Need to provide accessions"
-    if args.multifield:
-        fields = [line.strip() for line in open(args.multifield)]
-    elif args.onefield:
-        fields = [args.onefield]
-    else:
-        assert args.multifield or args.onefield, "ERROR: Need to provide fields!"
+            print("ERROR: Need to provide accessions")
+            sys.exit(1)
+
+        if args.multifield:
+            fields = [line.strip() for line in open(args.multifield)]
+        elif args.onefield:
+            fields = [args.onefield]
+        else:
+            print("ERROR: Need to provide fields!")
+            sys.exit(1)
     data = {}
     header = []
     if "accession" not in fields:
@@ -395,32 +404,38 @@ def get_fields(args, connection):
                 for x in full[:-1]:  # cycle through the list except last element
                     #print(x)
                     if result.get(x):  # check to see if the element is in the current object
+                        #print(type(result[x]))
                         if type(result[x]) == int:
                             pass
                         elif type(result[x]) == list:  # if we have a list of embedded objects we need to cycle through?
-                            print("list")
-                            print(x) # maybe we can use small_func in a loop when we get results from here?
-                            pass
+                            if facet:
+                                temp = get_ENCODE(result[x][0], connection)
+                                result = temp
+                            else:
+                                print("list")
+                                print(x)  # maybe we can use small_func in a loop when we get results from here?
                         elif type(result[x]) == dict:
                             pass
                         else:
                             temp = get_ENCODE(result[x], connection)  # if found get_ENCODE the embedded object
+                            result = temp
                     #print(temp)
-                    result = temp
+                    #result = temp
                 last = full[-1]  # get the last element in the split list
                 #print("last", last)
                 if result.get(last):
                     name = f
-                    #print("NAMENAMENAME", result[last])
-                    if type(result[last]) == int:
-                        name = name + ":int"
-                    elif type(result[last]) == list:
-                        name = name + ":list"
-                    elif type(result[last]) == dict:
-                        name = name + ":dict"
-                    else:
-                        # this must be a string
-                        pass
+                    if not facet:
+                        #print("NAMENAMENAME", result[last])
+                        if type(result[last]) == int:
+                            name = name + ":int"
+                        elif type(result[last]) == list:
+                            name = name + ":list"
+                        elif type(result[last]) == dict:
+                            name = name + ":dict"
+                        else:
+                            # this must be a string
+                            pass
                     newObj[name] = result[last]
                     if name not in header:
                         header.append(name)
@@ -428,10 +443,13 @@ def get_fields(args, connection):
                 newObj["accession"] = a
             data[a] = newObj
     #print("HIHIHIHIHIHIHIHI", data)
-    writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=header)
-    writer.writeheader()
-    for key in data.keys():
-        writer.writerow(data.get(key))
+    if facet:
+        return data
+    else:
+        writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=header)
+        writer.writeheader()
+        for key in data.keys():
+            writer.writerow(data.get(key))
 
 
 def patch_set(args, connection):
@@ -445,12 +463,11 @@ def patch_set(args, connection):
     else:
         print("This is a test run, nothing will be changed")
     if args.accession:
-        assert args.field and args.data
         if args.field and args.data:
             data.append({"accession": args.accession, args.field: args.data})
         else:
             print("Missing field/data! Cannot PATCH object", args.accession)
-            return
+            sys.exit(1)
     elif args.infile:
         with open(args.infile, "r") as tsvfile:
             reader = csv.DictReader(tsvfile, delimiter='\t')
@@ -464,7 +481,7 @@ def patch_set(args, connection):
         accession = d.get("accession")
         if not accession:
             print("Missing accession!  Cannot PATCH data")
-            return
+            sys.exit(1)
         temp_data = d
         temp_data.pop("accession")
         patch_data = {}
