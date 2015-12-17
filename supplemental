@@ -1,0 +1,63 @@
+data = {}
+header = []
+if "accession" not in fields:
+    header = ["accession"]
+
+for acc in accessions:
+    acc = quote(acc)
+    obj = get_ENCODE(acc, connection)
+    newObj = {}
+    for f in fields:
+        path = f.split(".")  # check to see if someone wants embedded value
+        field = get_elements(path, obj) # get the last element in the split list
+        if obj.get(field):  # after the above loop, should be at correct depth level to get normal name of field ex. target.name
+            name = f
+            if not facet:
+                name = name + get_type(obj[field])
+            newObj[name] = obj[field]
+            if name not in header:
+                header.append(name)
+    if "accession" not in fields:
+        newObj["accession"] = acc
+    data[acc] = newObj
+if facet:
+    return data
+else:
+    writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=header)
+    writer.writeheader()
+    for key in data.keys():
+        writer.writerow(data.get(key))
+
+
+
+def get_type(obj):
+    if type(obj) == int:
+        return ":int"
+    elif type(obj) == list:
+        return ":list"
+    elif type(obj) == dict:
+        return ":dict"
+    else:
+        # this must be a string
+        return ""
+
+path = fieldname.split(".")  # check to see if someone wants embedded value
+def get_elements(path, obj):
+    if len(path) == 1:
+        return path.pop()
+    else:
+        field = path.pop(0)  # first element
+        if obj.get(field):  # check to see if the element is in the current object
+            if type(result[x]) == int:
+                pass
+            elif type(result[x]) == list:  # if we have a list of embedded objects we need to cycle through?
+                if facet:
+                    temp = get_ENCODE(obj[field][0], connection)
+                    get_elements(path, temp)
+                else:
+                    pass  # maybe we can use small_func in a loop when we get results from here?
+            elif type(result[x]) == dict:
+                pass
+            else:
+                temp = get_ENCODE(obj[field], connection)  # if found get_ENCODE the embedded object
+                get_elements(path, temp)

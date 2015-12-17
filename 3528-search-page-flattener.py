@@ -48,11 +48,11 @@ def main():
     facet_map = {}
     fields = []
     accessions = []
-    for f in facet_list:
+    for f in facet_list[:7]:
         facet_map[f["title"]] = f["field"]
         fields.append(f["field"])
     graph = temp.get("@graph", [])
-    for obj in graph[:2]:
+    for obj in graph[:1]:
         if obj.get("accession"):
             accessions.append(obj["accession"])
         else:
@@ -64,6 +64,7 @@ def main():
     for key in data.keys():
         data[key]["accession"] = key
         temp_list.append(data[key])
+    #print(temp_list)
     # temp list is now in the form of [{"type": "value", "id": "num"}, {"type": "value", "id", "num"}]
 
 '''

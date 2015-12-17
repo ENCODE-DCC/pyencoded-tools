@@ -393,7 +393,7 @@ def get_fields(args, connection, facet=None):
     data = {}
     header = []
     if "accession" not in fields:
-            header = ["accession"]
+        header = ["accession"]
     if any(accessions) and any(fields):
         for a in accessions:
             a = quote(a)
@@ -401,14 +401,16 @@ def get_fields(args, connection, facet=None):
             newObj = {}
             for f in fields:
                 full = f.split(".")  # check to see if someone wants embedded value
+                print("full=", full)
                 for x in full[:-1]:  # cycle through the list except last element
-                    #print(x)
+                    print("x=", x)
                     if result.get(x):  # check to see if the element is in the current object
                         #print(type(result[x]))
                         if type(result[x]) == int:
                             pass
                         elif type(result[x]) == list:  # if we have a list of embedded objects we need to cycle through?
                             if facet:
+                                print("list", result[x][0])
                                 temp = get_ENCODE(result[x][0], connection)
                                 result = temp
                             else:
@@ -417,26 +419,20 @@ def get_fields(args, connection, facet=None):
                         elif type(result[x]) == dict:
                             pass
                         else:
+                            print("string", result[x])
                             temp = get_ENCODE(result[x], connection)  # if found get_ENCODE the embedded object
                             result = temp
                     #print(temp)
                     #result = temp
                 last = full[-1]  # get the last element in the split list
-                #print("last", last)
-                if result.get(last):
+                print("last", last)
+                if result.get(last):  # after the above loop, should be at correct depth level to get normal name of field ex. target.name
                     name = f
                     if not facet:
                         #print("NAMENAMENAME", result[last])
-                        if type(result[last]) == int:
-                            name = name + ":int"
-                        elif type(result[last]) == list:
-                            name = name + ":list"
-                        elif type(result[last]) == dict:
-                            name = name + ":dict"
-                        else:
-                            # this must be a string
-                            pass
+                        name = name + get_type(result[last])
                     newObj[name] = result[last]
+                    print("new Object", newObj)
                     if name not in header:
                         header.append(name)
             if "accession" not in fields:
@@ -450,6 +446,18 @@ def get_fields(args, connection, facet=None):
         writer.writeheader()
         for key in data.keys():
             writer.writerow(data.get(key))
+
+
+def get_type(obj):
+    if type(obj) == int:
+        return ":int"
+    elif type(obj) == list:
+        return ":list"
+    elif type(obj) == dict:
+        return ":dict"
+    else:
+        # this must be a string
+        return ""
 
 
 def patch_set(args, connection):
