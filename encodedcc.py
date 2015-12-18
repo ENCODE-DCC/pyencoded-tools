@@ -409,6 +409,8 @@ class GetFields():
                 writer.writerow(d)
 
     def get_type(self, attr):
+        ''' given an object return its type as a string to append
+        '''
         if type(attr) == int:
             return ":int"
         elif type(attr) == list:
@@ -420,22 +422,43 @@ class GetFields():
             return ""
 
     def get_embedded(self, path, obj):
+        ''' recursively move down the element path
+        until you are at the bottom of the object tree
+        then return the final value'''
         if len(path) > 1:
             field = path.popleft()  # first element
             if obj.get(field):  # check to see if the element is in the current object
-                if type(obj[field]) == int:
-                    pass
-                elif type(obj[field]) == list:  # if we have a list of embedded objects we need to cycle through?
-                    if self.facet:
-                        temp = get_ENCODE(obj[field][0], self.connection)
-                        return self.get_embedded(path, temp)
-                    else:
-                        pass  # maybe we can use small_func in a loop when we get results from here?
-                elif type(obj[field]) == dict:
-                    pass
+                if field == "files":
+                    files_list = []  # empty list for later
+                    for f in obj[field]:
+                        temp = get_ENCODE(f, self.connection)
+                        if temp.get(path[0]):
+                            if len(path) == 1:  # if last element in path then get from each item in list
+                                files_list.append(temp[path[0]])  # add items to list
+                            else:
+                                return self.get_embedded(path, temp)
+                    return list(set(files_list))  # return unique list of last element items
                 else:
-                    temp = get_ENCODE(obj[field], self.connection)  # if found get_ENCODE the embedded object
-                    return self.get_embedded(path, temp)
+                    if type(obj[field]) == int:
+                        return obj[field]
+                    elif type(obj[field]) == list:
+                        if len(path) == 1:  # if last element in path then get from each item in list
+                            files_list = []
+                            for f in obj[field]:
+                                temp = get_ENCODE(f, self.connection)
+                                if temp.get(path[0]):
+                                    files_list.append(temp[path[0]])
+                            return list(set(files_list))  # return unique list of last element items
+                        elif self.facet:
+                            temp = get_ENCODE(obj[field][0], self.connection)
+                            return self.get_embedded(path, temp)
+                        else:
+                            return obj[field]
+                    elif type(obj[field]) == dict:
+                        return obj[field]
+                    else:
+                        temp = get_ENCODE(obj[field], self.connection)  # if found get_ENCODE the embedded object
+                        return self.get_embedded(path, temp)
         else:
             field = path.popleft()
             return obj.get(field)

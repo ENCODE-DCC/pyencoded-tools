@@ -2,6 +2,7 @@ import argparse
 import os.path
 import encodedcc
 import sys
+import csv
 
 EPILOG = '''
 For more details:
@@ -42,8 +43,7 @@ def main():
     if args.facet not in profiles:
         print("Facet must be one of valid options in 'https://www.encodeproject.org/profiles/'")
         sys.exit(1)
-    facet = args.facet
-    temp = encodedcc.get_ENCODE("/search/?type=" + facet, connection)
+    temp = encodedcc.get_ENCODE("/search/?type=" + args.facet, connection)
     facet_list = temp.get("facets", [])
     facet_map = {}
     fields = []
@@ -52,39 +52,31 @@ def main():
         facet_map[f["title"]] = f["field"]
         fields.append(f["field"])
     graph = temp.get("@graph", [])
-    for obj in graph[:1]:
+    for obj in graph[:10]:
         if obj.get("accession"):
             accessions.append(obj["accession"])
         else:
             accessions.append(obj["uuid"])
     accessions = ["ENCSR087PLZ"]
-    fields = ["replicates.library.biosample.donor.organism.scientific_name", "assay_term_name"]
     output = encodedcc.GetFields(connection, facet=[accessions, fields])
     output.get_fields(args)
-    print(output.data)
-    facet_dict = {}
+    data_list = []
+    headers = ["Identifier"]
     facet_map["Identifier"] = "accession"  # add the identifier to the map
-    print(facet_map)
+    for key in facet_map.keys():
+        if key not in headers:
+            headers.append(key)
     for d in output.data:
+        temp = {}
         for key in facet_map.keys():
             if d.get(facet_map[key]):
-                print(key, facet_map[key])
-                print("yay!")
-            #facet_dict[key] = d[facet_map[key]]
-    #print(facet_dict)
+                temp[key] = d[facet_map[key]]
+        data_list.append(temp)
 
-
-'''d1 = {"Data Type": "type"}
-d2 = [{"type": "value", "id": "num"}, {"type": "value", "id", "num"}]
-d3 = {}
-for d in d2:
-    for key in d1.keys():
-        d3[key] = d[d1[key]]
-
-for key in d1:
-    for d in d2:
-        d1[key] = d2[d1[key]]
-d1["Data Type"] = "value"'''
+    writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=headers)
+    writer.writeheader()
+    for d in data_list:
+        writer.writerow(d)
 
 
 if __name__ == '__main__':
