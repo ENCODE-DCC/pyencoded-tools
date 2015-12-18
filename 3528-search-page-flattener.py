@@ -61,11 +61,8 @@ def main():
     output = encodedcc.GetFields(connection, facet=[accessions, fields])
     output.get_fields(args)
     data_list = []
-    headers = ["Identifier"]
+    headers = ["Identifier"] + list(facet_map.keys())
     facet_map["Identifier"] = "accession"  # add the identifier to the map
-    for key in facet_map.keys():
-        if key not in headers:
-            headers.append(key)
     for d in output.data:
         temp = {}
         for key in facet_map.keys():
