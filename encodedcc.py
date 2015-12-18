@@ -341,123 +341,104 @@ def pprint_ENCODE(JSON_obj):
                          sort_keys=True, indent=4, separators=(',', ': ')))
 
 
-def small_func(f, result, last, newObj, header):
-    if result.get(last):
-        name = f
-        if type(result[last]) == int:
-            name = name + ":int"
-        elif type(result[last]) == list:
-            name = name + ":list"
-        elif type(result[last]) == dict:
-            name = name + ":dict"
+class GetFields():
+    def __init__(self, connection, facet=None):
+        self.connection = connection
+        self.data = []
+        self.header = []
+        self.accessions = []
+        self.field = ""
+        self.subobj = ""
+        self.facet = facet
+
+    def get_fields(self, args):
+        ''' facet contains a list with the first item being a list
+        of the accessions and the second a list of the fieldnames
+        essentially: facet = [ [accession1, accession2, ...], [field1, field2, ...] ]'''
+        import csv
+        from collections import deque
+        if self.facet:
+            self.accessions = self.facet[0]
+            fields = self.facet[1]
+        else:
+            if args.query:
+                if "search" in args.query:
+                    temp = get_ENCODE(args.query, self.connection).get("@graph", [])
+                    for obj in temp:
+                        if obj.get("accession"):
+                            self.accessions.append(obj["accession"])
+                else:
+                    self.accessions = [get_ENCODE(args.query, self.connection).get("accession")]
+            elif args.infile:
+                self.accessions = [line.strip() for line in open(args.infile)]
+            elif args.accession:
+                self.accessions = [args.accession]
+            else:
+                print("ERROR: Need to provide accessions")
+                sys.exit(1)
+
+            if args.multifield:
+                fields = [line.strip() for line in open(args.multifield)]
+            elif args.onefield:
+                fields = [args.onefield]
+            else:
+                print("ERROR: Need to provide fields!")
+                sys.exit(1)
+        if "accession" not in fields:
+            self.header = ["accession"]
+        for acc in self.accessions:
+            acc = quote(acc)
+            obj = get_ENCODE(acc, self.connection)
+            newObj = {}
+            newObj["accession"] = acc
+            for f in fields:
+                path = deque(f.split("."))  # check to see if someone wants embedded value
+                field = self.get_embedded(path, obj)  # get the last element in the split list
+                if field:  # after the above loop, should have final field value
+                    name = f
+                    if not self.facet:
+                        name = name + self.get_type(field)
+                    newObj[name] = field
+                    if name not in self.header:
+                        self.header.append(name)
+            self.data.append(newObj)
+        if not self.facet:
+            writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=self.header)
+            writer.writeheader()
+            for d in self.data:
+                writer.writerow(d)
+
+    def get_type(self, attr):
+        if type(attr) == int:
+            return ":int"
+        elif type(attr) == list:
+            return ":list"
+        elif type(attr) == dict:
+            return ":dict"
         else:
             # this must be a string
-            pass
-        newObj[name] = result[last]
-        if name not in header:
-            header.append(name)
+            return ""
 
-
-def get_fields(args, connection, facet=None):
-    ''' facet contains a list with the first itme being a list
-    of the accessions and the second a list of the fieldnames '''
-    import csv
-    accessions = []
-    if facet:
-        accessions = facet[0]
-        fields = facet[1]
-    else:
-        if args.query:
-            if "search" in args.query:
-                temp = get_ENCODE(args.query, connection).get("@graph", [])
-                for obj in temp:
-                    if obj.get("accession"):
-                        accessions.append(obj["accession"])
-            else:
-                accessions = [get_ENCODE(args.query, connection).get("accession")]
-        elif args.infile:
-            accessions = [line.strip() for line in open(args.infile)]
-        elif args.accession:
-            accessions = [args.accession]
+    def get_embedded(self, path, obj):
+        if len(path) > 1:
+            field = path.popleft()  # first element
+            if obj.get(field):  # check to see if the element is in the current object
+                if type(obj[field]) == int:
+                    pass
+                elif type(obj[field]) == list:  # if we have a list of embedded objects we need to cycle through?
+                    if self.facet:
+                        temp = get_ENCODE(obj[field][0], self.connection)
+                        return self.get_embedded(path, temp)
+                    else:
+                        pass  # maybe we can use small_func in a loop when we get results from here?
+                elif type(obj[field]) == dict:
+                    pass
+                else:
+                    temp = get_ENCODE(obj[field], self.connection)  # if found get_ENCODE the embedded object
+                    return self.get_embedded(path, temp)
         else:
-            print("ERROR: Need to provide accessions")
-            sys.exit(1)
-
-        if args.multifield:
-            fields = [line.strip() for line in open(args.multifield)]
-        elif args.onefield:
-            fields = [args.onefield]
-        else:
-            print("ERROR: Need to provide fields!")
-            sys.exit(1)
-    data = {}
-    header = []
-    if "accession" not in fields:
-        header = ["accession"]
-    if any(accessions) and any(fields):
-        for a in accessions:
-            a = quote(a)
-            result = get_ENCODE(a, connection)
-            newObj = {}
-            for f in fields:
-                full = f.split(".")  # check to see if someone wants embedded value
-                print("full=", full)
-                for x in full[:-1]:  # cycle through the list except last element
-                    print("x=", x)
-                    if result.get(x):  # check to see if the element is in the current object
-                        #print(type(result[x]))
-                        if type(result[x]) == int:
-                            pass
-                        elif type(result[x]) == list:  # if we have a list of embedded objects we need to cycle through?
-                            if facet:
-                                print("list", result[x][0])
-                                temp = get_ENCODE(result[x][0], connection)
-                                result = temp
-                            else:
-                                print("list")
-                                print(x)  # maybe we can use small_func in a loop when we get results from here?
-                        elif type(result[x]) == dict:
-                            pass
-                        else:
-                            print("string", result[x])
-                            temp = get_ENCODE(result[x], connection)  # if found get_ENCODE the embedded object
-                            result = temp
-                    #print(temp)
-                    #result = temp
-                last = full[-1]  # get the last element in the split list
-                print("last", last)
-                if result.get(last):  # after the above loop, should be at correct depth level to get normal name of field ex. target.name
-                    name = f
-                    if not facet:
-                        #print("NAMENAMENAME", result[last])
-                        name = name + get_type(result[last])
-                    newObj[name] = result[last]
-                    print("new Object", newObj)
-                    if name not in header:
-                        header.append(name)
-            if "accession" not in fields:
-                newObj["accession"] = a
-            data[a] = newObj
-    #print("HIHIHIHIHIHIHIHI", data)
-    if facet:
-        return data
-    else:
-        writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=header)
-        writer.writeheader()
-        for key in data.keys():
-            writer.writerow(data.get(key))
-
-
-def get_type(obj):
-    if type(obj) == int:
-        return ":int"
-    elif type(obj) == list:
-        return ":list"
-    elif type(obj) == dict:
-        return ":dict"
-    else:
-        # this must be a string
-        return ""
+            field = path.popleft()
+            return obj.get(field)
 
 
 def patch_set(args, connection):

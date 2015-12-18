@@ -48,7 +48,7 @@ def main():
     facet_map = {}
     fields = []
     accessions = []
-    for f in facet_list[:7]:
+    for f in facet_list:
         facet_map[f["title"]] = f["field"]
         fields.append(f["field"])
     graph = temp.get("@graph", [])
@@ -57,23 +57,24 @@ def main():
             accessions.append(obj["accession"])
         else:
             accessions.append(obj["uuid"])
-    data = encodedcc.get_fields(args, connection, facet=[accessions, fields])
-
+    accessions = ["ENCSR087PLZ"]
+    fields = ["replicates.library.biosample.donor.organism.scientific_name", "assay_term_name"]
+    output = encodedcc.GetFields(connection, facet=[accessions, fields])
+    output.get_fields(args)
+    print(output.data)
     facet_dict = {}
-    temp_list = []
-    for key in data.keys():
-        data[key]["accession"] = key
-        temp_list.append(data[key])
-    #print(temp_list)
-    # temp list is now in the form of [{"type": "value", "id": "num"}, {"type": "value", "id", "num"}]
+    facet_map["Identifier"] = "accession"  # add the identifier to the map
+    print(facet_map)
+    for d in output.data:
+        for key in facet_map.keys():
+            if d.get(facet_map[key]):
+                print(key, facet_map[key])
+                print("yay!")
+            #facet_dict[key] = d[facet_map[key]]
+    #print(facet_dict)
 
-'''
-    for key in facet_map.keys():
-    for d in data:
-        print(type(d))
-        #facet_dict[key] = d[facet_map[key]]
 
-d1 = {"Data Type": "type"}
+'''d1 = {"Data Type": "type"}
 d2 = [{"type": "value", "id": "num"}, {"type": "value", "id", "num"}]
 d3 = {}
 for d in d2:
@@ -83,8 +84,8 @@ for d in d2:
 for key in d1:
     for d in d2:
         d1[key] = d2[d1[key]]
-d1["Data Type"] = "value"
-'''
+d1["Data Type"] = "value"'''
+
 
 if __name__ == '__main__':
         main()

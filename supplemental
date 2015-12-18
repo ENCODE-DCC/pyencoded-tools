@@ -9,7 +9,7 @@ for acc in accessions:
     newObj = {}
     for f in fields:
         path = f.split(".")  # check to see if someone wants embedded value
-        field = get_elements(path, obj) # get the last element in the split list
+        field = get_embedded(path, obj) # get the last element in the split list
         if obj.get(field):  # after the above loop, should be at correct depth level to get normal name of field ex. target.name
             name = f
             if not facet:
@@ -41,23 +41,23 @@ def get_type(obj):
         # this must be a string
         return ""
 
-path = fieldname.split(".")  # check to see if someone wants embedded value
-def get_elements(path, obj):
-    if len(path) == 1:
-        return path.pop()
-    else:
+
+def get_embedded(path, obj):
+    if len(path) > 1:
         field = path.pop(0)  # first element
         if obj.get(field):  # check to see if the element is in the current object
-            if type(result[x]) == int:
+            if type(obj[field]) == int:
                 pass
-            elif type(result[x]) == list:  # if we have a list of embedded objects we need to cycle through?
+            elif type(obj[field]) == list:  # if we have a list of embedded objects we need to cycle through?
                 if facet:
                     temp = get_ENCODE(obj[field][0], connection)
-                    get_elements(path, temp)
+                    get_embedded(path, temp)
                 else:
                     pass  # maybe we can use small_func in a loop when we get results from here?
-            elif type(result[x]) == dict:
+            elif type(obj[field]) == dict:
                 pass
             else:
                 temp = get_ENCODE(obj[field], connection)  # if found get_ENCODE the embedded object
-                get_elements(path, temp)
+                get_embedded(path, temp)
+    else:
+        return path.pop()
