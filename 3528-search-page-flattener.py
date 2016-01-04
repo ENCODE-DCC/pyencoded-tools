@@ -17,8 +17,8 @@ def getArgs():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument('facet',
-                        help="name of facet")
+    parser.add_argument('search',
+                        help="the search query to use")
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  \
@@ -39,29 +39,28 @@ def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-    profiles = encodedcc.get_ENCODE("/profiles/", connection).keys()
-    if args.facet not in profiles:
-        print("Facet must be one of valid options in 'https://www.encodeproject.org/profiles/'")
-        sys.exit(1)
-    temp = encodedcc.get_ENCODE("/search/?type=" + args.facet, connection)
+    temp = encodedcc.get_ENCODE(args.search, connection)
     facet_list = temp.get("facets", [])
+    graph = temp.get("@graph", [])
     facet_map = {}
     fields = []
     accessions = []
+    headers = ["Identifier"]
     for f in facet_list:
-        facet_map[f["title"]] = f["field"]
-        fields.append(f["field"])
-    graph = temp.get("@graph", [])
-    for obj in graph[:10]:
+        if "audit" in f["field"]:
+            pass
+        else:
+            facet_map[f["title"]] = f["field"]
+            fields.append(f["field"])
+            headers.append(f["title"])
+    for obj in graph:
         if obj.get("accession"):
             accessions.append(obj["accession"])
         else:
             accessions.append(obj["uuid"])
-    accessions = ["ENCSR087PLZ"]
     output = encodedcc.GetFields(connection, facet=[accessions, fields])
     output.get_fields(args)
     data_list = []
-    headers = ["Identifier"] + list(facet_map.keys())
     facet_map["Identifier"] = "accession"  # add the identifier to the map
     for d in output.data:
         temp = {}
