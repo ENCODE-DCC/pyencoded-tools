@@ -35,7 +35,6 @@ def getArgs():
 
 
 def main():
-
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
@@ -48,6 +47,8 @@ def main():
     headers = ["Identifier"]
     for f in facet_list:
         if "audit" in f["field"]:
+            pass
+        elif f["title"] == f["field"]:
             pass
         else:
             facet_map[f["title"]] = f["field"]
@@ -68,7 +69,6 @@ def main():
             if d.get(facet_map[key]):
                 temp[key] = d[facet_map[key]]
         data_list.append(temp)
-
     writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=headers)
     writer.writeheader()
     for d in data_list:

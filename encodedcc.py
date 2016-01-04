@@ -347,6 +347,7 @@ class GetFields():
         self.data = []
         self.header = []
         self.accessions = []
+        self.fields = []
         self.field = ""
         self.subobj = ""
         self.facet = facet
@@ -359,7 +360,7 @@ class GetFields():
         from collections import deque
         if self.facet:
             self.accessions = self.facet[0]
-            fields = self.facet[1]
+            self.fields = self.facet[1]
         else:
             if args.query:
                 if "search" in args.query:
@@ -373,25 +374,26 @@ class GetFields():
                 self.accessions = [line.strip() for line in open(args.infile)]
             elif args.accession:
                 self.accessions = [args.accession]
-            else:
-                print("ERROR: Need to provide accessions")
-                sys.exit(1)
-
             if args.multifield:
-                fields = [line.strip() for line in open(args.multifield)]
+                self.fields = [line.strip() for line in open(args.multifield)]
             elif args.onefield:
-                fields = [args.onefield]
-            else:
-                print("ERROR: Need to provide fields!")
-                sys.exit(1)
-        if "accession" not in fields:
+                self.fields = [args.onefield]
+
+        if len(self.accessions) == 0:
+            print("ERROR: Need to provide accessions", file=sys.stderr)
+            sys.exit(1)
+        if len(self.fields) == 0:
+            print("ERROR: Need to provide fields!", file=sys.stderr)
+            sys.exit(1)
+
+        if "accession" not in self.fields:
             self.header = ["accession"]
         for acc in self.accessions:
             acc = quote(acc)
             obj = get_ENCODE(acc, self.connection)
             newObj = {}
             newObj["accession"] = acc
-            for f in fields:
+            for f in self.fields:
                 path = deque(f.split("."))  # check to see if someone wants embedded value
                 field = self.get_embedded(path, obj)  # get the last element in the split list
                 if field:  # after the above loop, should have final field value
@@ -445,9 +447,14 @@ class GetFields():
                         if len(path) == 1:  # if last element in path then get from each item in list
                             files_list = []
                             for f in obj[field]:
+                                if type(f) == dict:
+                                    return f
                                 temp = get_ENCODE(f, self.connection)
                                 if temp.get(path[0]):
-                                    files_list.append(temp[path[0]])
+                                    if type(temp[path[0]]) == list:
+                                        files_list.append(temp[path[0]][0])
+                                    else:
+                                        files_list.append(temp[path[0]])
                             return list(set(files_list))  # return unique list of last element items
                         elif self.facet:
                             temp = get_ENCODE(obj[field][0], self.connection)
