@@ -426,13 +426,17 @@ def patch_set(args, connection):
         reader = csv.DictReader(sys.stdin, delimiter='\t')
         for row in reader:
             data.append(row)
+    identifiers = ["accession", "uuid", "@id", "alias"]
     for d in data:
-        accession = d.get("accession")
-        if not accession:
-            print("Missing accession!  Cannot PATCH data")
-            return
         temp_data = d
-        temp_data.pop("accession")
+        accession = ''
+        for i in identifiers:
+            if d.get(i):
+                accession = d[i]
+                temp_data.pop(i)
+        if not accession:
+            print("No identifier found in headers!  Cannot PATCH data")
+            sys.exit(1)
         patch_data = {}
         for key in temp_data.keys():
             k = key.split(":")
