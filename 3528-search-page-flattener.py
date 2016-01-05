@@ -69,7 +69,20 @@ def main():
             if d.get(facet_map[key]):
                 temp[key] = d[facet_map[key]]
         data_list.append(temp)
-    writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=headers)
+    # removing empty columns from the data
+    # check a header value in each dataset, if it appears then keep that header
+    # if that header value is empty in all dataset remove header value
+    empty_columns = []
+    for h in headers:
+        count = 0
+        for d in data_list:
+            if d.get(h) is not None:
+                count += 1
+        if count == 0:
+            empty_columns.append(h)
+    fieldnames = [x for x in headers if x not in empty_columns]
+
+    writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=fieldnames)
     writer.writeheader()
     for d in data_list:
         writer.writerow(d)

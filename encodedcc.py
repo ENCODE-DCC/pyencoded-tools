@@ -236,7 +236,10 @@ def get_ENCODE(obj_id, connection, frame="object"):
     except:
         logging.debug('GET RESPONSE text %s' % (response.text))
     if not response.status_code == 200:
-        logging.warning('GET failure.  Response code = %s' % (response.text))
+        if response.json().get("notification"):
+            logging.warning('%s' % (response.json().get("notification")))
+        else:
+            logging.warning('GET failure.  Response code = %s' % (response.text))
     return response.json()
 
 
