@@ -189,14 +189,14 @@ def main():
             print("Please either change the JSON file or define the type with the --type feature")
             sys.exit(1)
         else:
-            print("Object will have type of", type_list[0])
+            #print("Object will have type of", type_list[0])
             new_json["@type"] = [type_list[0]]
     if args.type:
         args.type = args.type.capitalize()
         if args.type not in supported_collections:
             print("Error! Supplied type is not one of the supported types")
         else:
-            print("Object will have type of", args.type)
+            #print("Object will have type of", args.type)
             new_json["@type"] = [args.type]
 
     possible_collections = [x for x in type_list if x in supported_collections]
