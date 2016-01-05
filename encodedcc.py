@@ -427,12 +427,22 @@ def patch_set(args, connection):
         for row in reader:
             data.append(row)
     for d in data:
-        accession = d.get("accession")
-        if not accession:
-            print("Missing accession!  Cannot PATCH data")
-            return
         temp_data = d
-        temp_data.pop("accession")
+        if d.get("accession"):
+            accession = d["accession"]
+            temp_data.pop("accession")
+        elif d.get("uuid"):
+            accession = d["uuid"]
+            temp_data.pop("uuid")
+        elif d.get("@id"):
+            accession = d["@id"]
+            temp_data.pop("@id")
+        elif d.get("alias"):
+            accession = d["alias"]
+            temp_data.pop("alias")
+        else:
+            print("No identifier found in headers!  Cannot PATCH data")
+            return
         patch_data = {}
         for key in temp_data.keys():
             k = key.split(":")
