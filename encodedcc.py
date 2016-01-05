@@ -438,6 +438,15 @@ def patch_set(args, connection):
             print("No identifier found in headers!  Cannot PATCH data")
             sys.exit(1)
         patch_data = {}
+        if args.flowcell:
+            # if flowcell is picked search for flowcell details
+            flow = ["flowcell", "lane", "machine", "barcode"]
+            cell = {}
+            for f in flow:
+                if temp_data.get(f):
+                    cell[f] = temp_data[f]
+                    temp_data.pop(f)
+            temp_data["flowcell_details:list"] = cell
         for key in temp_data.keys():
             k = key.split(":")
             if len(k) > 1:
