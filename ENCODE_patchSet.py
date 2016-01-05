@@ -81,6 +81,12 @@ def getArgs():
                         help="If field is an list then overwrite it with new data. Default is False, and data is appended",
                         action='store_true',
                         default=False)
+    parser.add_argument('--flowcell',
+                        default=False,
+                        action='store_true',
+                        help="used when file contains flowcell information\
+                        script will seek out the flowcell data and build flowcells\
+                        unless --overwrite is used flowcells will append data")
     args = parser.parse_args()
     return args
 
