@@ -34,6 +34,18 @@ To PATCH a single object, field with field type, and data:
 
     lists are appended to unless the --overwite command is used
 
+To PATCH flowcells:
+
+        %(prog)s --flowcell
+
+    the "flowcell" option is a flag used to have the script search for\
+    flowcell data in the infile
+
+accession   flowcell   lane    barcode   machine
+ENCSR000AAA value1     value2  value3    value4
+
+    not all the columns are needed for the flowcell to be built
+
 For more details:
 
         %(prog)s --help
@@ -81,6 +93,12 @@ def getArgs():
                         help="If field is an list then overwrite it with new data. Default is False, and data is appended",
                         action='store_true',
                         default=False)
+    parser.add_argument('--flowcell',
+                        default=False,
+                        action='store_true',
+                        help="used when file contains flowcell information\
+                        script will seek out the flowcell data and build flowcells\
+                        unless --overwrite is used flowcells will append data")
     args = parser.parse_args()
     return args
 
