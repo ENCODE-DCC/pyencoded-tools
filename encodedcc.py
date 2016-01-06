@@ -453,13 +453,15 @@ def patch_set(args, connection):
                 if k[1] == "int":
                     patch_data[k[0]] = int(temp_data[key])
                 elif k[1] == "list":
-                    l = temp_data[key].strip("[]").split(",")
-                    l = [x.replace(" ", "") for x in l]
+                    if type(temp_data[key]) == dict:
+                        l = [temp_data[key]]
+                    else:
+                        l = temp_data[key].strip("[]").split(",")
+                        l = [x.replace(" ", "") for x in l]
                     if args.overwrite:
                         patch_data[k[0]] = l
                     else:
                         append_list = get_ENCODE(accession, connection).get(k[0], [])
-                        print(append_list)
                         patch_data[k[0]] = l + append_list
             else:
                 patch_data[k[0]] = temp_data[key]
