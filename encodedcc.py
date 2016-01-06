@@ -426,27 +426,42 @@ def patch_set(args, connection):
         reader = csv.DictReader(sys.stdin, delimiter='\t')
         for row in reader:
             data.append(row)
+    identifiers = ["accession", "uuid", "@id", "alias"]
     for d in data:
-        accession = d.get("accession")
-        if not accession:
-            print("Missing accession!  Cannot PATCH data")
-            return
         temp_data = d
-        temp_data.pop("accession")
+        accession = ''
+        for i in identifiers:
+            if d.get(i):
+                accession = d[i]
+                temp_data.pop(i)
+        if not accession:
+            print("No identifier found in headers!  Cannot PATCH data")
+            sys.exit(1)
         patch_data = {}
+        if args.flowcell:
+            # if flowcell is picked search for flowcell details
+            flow = ["flowcell", "lane", "machine", "barcode"]
+            cell = {}
+            for f in flow:
+                if temp_data.get(f):
+                    cell[f] = temp_data[f]
+                    temp_data.pop(f)
+            temp_data["flowcell_details:list"] = cell
         for key in temp_data.keys():
             k = key.split(":")
             if len(k) > 1:
                 if k[1] == "int":
                     patch_data[k[0]] = int(temp_data[key])
                 elif k[1] == "list":
-                    l = temp_data[key].strip("[]").split(",")
-                    l = [x.replace(" ", "") for x in l]
+                    if type(temp_data[key]) == dict:
+                        l = [temp_data[key]]
+                    else:
+                        l = temp_data[key].strip("[]").split(",")
+                        l = [x.replace(" ", "") for x in l]
                     if args.overwrite:
                         patch_data[k[0]] = l
                     else:
                         append_list = get_ENCODE(accession, connection).get(k[0], [])
-                        print(append_list)
                         patch_data[k[0]] = l + append_list
             else:
                 patch_data[k[0]] = temp_data[key]
