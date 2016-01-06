@@ -34,6 +34,18 @@ To PATCH a single object, field with field type, and data:
 
     lists are appended to unless the --overwite command is used
 
+To PATCH flowcells:
+
+        %(prog)s --flowcell
+
+    the "flowcell" option is a flag used to have the script search for\
+    flowcell data in the infile
+
+accession   flowcell   lane    barcode   machine
+ENCSR000AAA value1     value2  value3    value4
+
+    not all the columns are needed for the flowcell to be built
+
 For more details:
 
         %(prog)s --help
