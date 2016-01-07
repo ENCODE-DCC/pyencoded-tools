@@ -181,6 +181,7 @@ def main():
     profiles = encodedcc.get_ENCODE("/profiles/", connection)
     supported_collections = profiles.keys()
 
+    type_list = new_json.pop('@type', [])
     if args.type:
         args.type = args.type.capitalize()
         if args.type not in supported_collections:
@@ -190,8 +191,6 @@ def main():
             if args.debug:
                 print("Object will have type of", args.type)
             type_list = [args.type]
-    else:
-        type_list = new_json.pop('@type', [])
 
     if any(type_list):
         if type_list[0] not in supported_collections:
