@@ -181,7 +181,18 @@ def main():
     profiles = encodedcc.get_ENCODE("/profiles/", connection)
     supported_collections = profiles.keys()
 
-    type_list = new_json.pop('@type', [])
+    if args.type:
+        args.type = args.type.capitalize()
+        if args.type not in supported_collections:
+            print("Error! Supplied type is not one of the supported types")
+            sys.exit(1)
+        else:
+            if args.debug:
+                print("Object will have type of", args.type)
+            type_list = [args.type]
+    else:
+        type_list = new_json.pop('@type', [])
+
     if any(type_list):
         if type_list[0] not in supported_collections:
             print("Error! JSON object does not contain one of the supported types")
@@ -189,15 +200,11 @@ def main():
             print("Please either change the JSON file or define the type with the --type feature")
             sys.exit(1)
         else:
-            #print("Object will have type of", type_list[0])
-            new_json["@type"] = [type_list[0]]
-    if args.type:
-        args.type = args.type.capitalize()
-        if args.type not in supported_collections:
-            print("Error! Supplied type is not one of the supported types")
-        else:
-            #print("Object will have type of", args.type)
-            new_json["@type"] = [args.type]
+            if args.debug:
+                print("Object will have type of", type_list[0])
+    else:
+        print("No type found for JSON object!")
+        sys.exit(1)
 
     possible_collections = [x for x in type_list if x in supported_collections]
     if possible_collections:
@@ -269,6 +276,9 @@ def main():
         else:
             if not GET_ONLY:
                 print("POST'ing new object")
+                if not any(collection):
+                    print("ERROR: Unable to POST to non-existing collection", str(collection))
+                    sys.exit(1)
                 e = encodedcc.new_ENCODE(connection, collection, new_json)
                 print(e)
 
