@@ -364,6 +364,8 @@ def process_row(row, connection):
                 read_length = len(sequence)
                 json_payload.update({"read_length": read_length})
     for key in row.keys():
+        if key == "paired_end":
+            print("Paired end!", type(row[key]))
         if key in ["flowcell", "machine", "lane", "barcode"]:
             flowcell_dict[key] = row[key]
         else:
@@ -381,7 +383,9 @@ def process_row(row, connection):
         flowcell_list = [flowcell_dict]
         json_payload.update({"flowcell_details": flowcell_list})
     if type(json_payload.get("paired_end")) == int:
+        print("found the change")
         json_payload["paired_end"] = str(json_payload["paired_end"])
+    print("changing back!", type(json_payload["paired_end"]))
     print(json_payload)
     return json_payload
 
