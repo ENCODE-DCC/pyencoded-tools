@@ -5,6 +5,9 @@ their properties suitable for spreadsheet import'''
 import json
 import os.path
 import encodedcc
+import requests
+from urllib.parse import urljoin
+import logging
 
 EPILOG = '''Limitations:
 
@@ -23,6 +26,22 @@ Same for human-donors
     %(prog)s human-donors > human-donors.tsv
 
 '''
+
+
+def get_without_ESearch(obj_id, connection):
+    '''GET an ENCODE object as JSON and return as dict'''
+    url = urljoin(connection.server, obj_id + "?limit=all")
+    logging.debug('GET %s' % (url))
+    response = requests.get(url, auth=connection.auth, headers=connection.headers)
+    logging.debug('GET RESPONSE code %s' % (response.status_code))
+    try:
+        if response.json():
+            logging.debug('GET RESPONSE JSON: %s' % (json.dumps(response.json(), indent=4, separators=(',', ': '))))
+    except:
+        logging.debug('GET RESPONSE text %s' % (response.text))
+    if not response.status_code == 200:
+        logging.warning('GET failure.  Response code = %s' % (response.text))
+    return response.json()
 
 
 def main():
@@ -76,11 +95,14 @@ def main():
     supplied_name = args.collection
 
     if supplied_name.endswith('s'):
-        schema_name = supplied_name.rstrip('s').replace('-', '_') + '.json'
+        search_name = supplied_name.rstrip('s').replace('-', '_')
+        schema_name = search_name + '.json'
     elif supplied_name.endswith('.json'):
         schema_name = supplied_name
+        search_name = supplied_name.rstrip('.json')
     else:
-        schema_name = supplied_name.replace('-', '_') + '.json'
+        search_name = supplied_name.replace('-', '_')
+        schema_name = search_name + '.json'
 
     schema_uri = '/profiles/' + schema_name
     object_schema = encodedcc.get_ENCODE(schema_uri, connection)
@@ -128,15 +150,15 @@ def main():
 
     exclude_unsubmittable = ['accession', 'uuid', 'schema_version', 'alternate_accessions', 'submitted_by']
 
+    global collection
     if args.query:
         uri = args.query
+        collection = encodedcc.get_ENCODE(uri, connection)
     elif args.es:
-        uri = '/search/?format=json&limit=all&type=' + supplied_name
+        uri = '/search/?type=' + search_name
+        collection = encodedcc.get_ENCODE(uri, connection)
     else:
-        uri = supplied_name
-
-    global collection
-    collection = encodedcc.get_ENCODE(uri, connection)
+        collection = get_without_ESearch(search_name, connection)
     collected_items = collection['@graph']
 
     headstring = ""
