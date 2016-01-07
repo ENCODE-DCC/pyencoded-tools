@@ -180,6 +180,8 @@ def main():
 
     profiles = encodedcc.get_ENCODE("/profiles/", connection)
     supported_collections = profiles.keys()
+    if "Dataset" not in supported_collections:
+        supported_collections.append("Dataset")
 
     type_list = new_json.pop('@type', [])
     if args.type:
