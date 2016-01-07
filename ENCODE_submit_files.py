@@ -380,6 +380,10 @@ def process_row(row, connection):
     if any(flowcell_dict):
         flowcell_list = [flowcell_dict]
         json_payload.update({"flowcell_details": flowcell_list})
+    if type(json_payload.get("paired_end")) == int:
+        if json_payload["paired_end"] == 1:
+            json_payload.pop("paired_with")
+        json_payload["paired_end"] = str(json_payload["paired_end"])
     print(json_payload)
     return json_payload
 
