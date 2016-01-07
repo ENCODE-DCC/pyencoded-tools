@@ -179,7 +179,7 @@ def main():
         print("Conflict:  At least one identifier already exists and at least one does not exist")
 
     profiles = encodedcc.get_ENCODE("/profiles/", connection)
-    supported_collections = profiles.keys()
+    supported_collections = list(profiles.keys())
     if "Dataset" not in supported_collections:
         supported_collections.append("Dataset")
 
