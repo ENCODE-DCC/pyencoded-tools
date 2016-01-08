@@ -236,7 +236,10 @@ def get_ENCODE(obj_id, connection, frame="object"):
     except:
         logging.debug('GET RESPONSE text %s' % (response.text))
     if not response.status_code == 200:
-        logging.warning('GET failure.  Response code = %s' % (response.text))
+        if response.json().get("notification"):
+            logging.warning('%s' % (response.json().get("notification")))
+        else:
+            logging.warning('GET failure.  Response code = %s' % (response.text))
     return response.json()
 
 
@@ -423,50 +426,66 @@ def patch_set(args, connection):
         reader = csv.DictReader(sys.stdin, delimiter='\t')
         for row in reader:
             data.append(row)
+    identifiers = ["accession", "uuid", "@id", "alias"]
     for d in data:
-        accession = d.get("accession")
-        if not accession:
-            print("Missing accession!  Cannot PATCH data")
-            return
         temp_data = d
-        temp_data.pop("accession")
-        patch_data = {}
-        for key in temp_data.keys():
-            k = key.split(":")
-            if len(k) > 1:
-                if k[1] == "int":
-                    patch_data[k[0]] = int(temp_data[key])
-                elif k[1] == "list":
-                    l = temp_data[key].strip("[]").split(",")
-                    l = [x.replace(" ", "") for x in l]
-                    if args.overwrite:
-                        patch_data[k[0]] = l
-                    else:
-                        append_list = get_ENCODE(accession, connection).get(k[0], [])
-                        print(append_list)
-                        patch_data[k[0]] = l + append_list
-            else:
-                patch_data[k[0]] = temp_data[key]
+        accession = ''
+        for i in identifiers:
+            if d.get(i):
+                accession = d[i]
+                temp_data.pop(i)
+        if not accession:
+            print("No identifier found in headers!  Cannot PATCH data")
+            sys.exit(1)
         accession = quote(accession)
         full_data = get_ENCODE(accession, connection, frame="edit")
-        old_data = {}
-        for key in patch_data.keys():
-            old_data[key] = full_data.get(key)
         if args.remove:
-            if args.update:
-                put_dict = full_data
-                for key in patch_data.keys():
+            put_dict = full_data
+            for key in temp_data.keys():
+                if key is not None:
                     put_dict.pop(key, None)
-                replace_ENCODE(accession, connection, put_dict)
-            print("OBJECT:", accession)
-            print("Removing values", str(patch_data.keys()))
-        else:
+                    print("OBJECT:", accession)
+                    print("Removing value:", key)
             if args.update:
-                patch_ENCODE(accession, connection, patch_data)
-            print("OBJECT:", accession)
-            for key in patch_data.keys():
-                print("OLD DATA:", key, old_data[key])
-                print("NEW DATA:", key, patch_data[key])
+                replace_ENCODE(accession, connection, put_dict)
+        else:
+            patch_data = {}
+            if args.flowcell:
+                # if flowcell is picked search for flowcell details
+                flow = ["flowcell", "lane", "machine", "barcode"]
+                cell = {}
+                for f in flow:
+                    if temp_data.get(f):
+                        cell[f] = temp_data[f]
+                        temp_data.pop(f)
+                temp_data["flowcell_details:list"] = cell
+            for key in temp_data.keys():
+                k = key.split(":")
+                if len(k) > 1:
+                    if k[1] == "int":
+                        patch_data[k[0]] = int(temp_data[key])
+                    elif k[1] == "list":
+                        if type(temp_data[key]) == dict:
+                            l = [temp_data[key]]
+                        else:
+                            l = temp_data[key].strip("[]").split(",")
+                            l = [x.replace(" ", "") for x in l]
+                        if args.overwrite:
+                            patch_data[k[0]] = l
+                        else:
+                            append_list = get_ENCODE(accession, connection).get(k[0], [])
+                            patch_data[k[0]] = l + append_list
+                else:
+                    patch_data[k[0]] = temp_data[key]
+                old_data = {}
+                for key in patch_data.keys():
+                    old_data[key] = full_data.get(key)
+                print("OBJECT:", accession)
+                for key in patch_data.keys():
+                    print("OLD DATA:", key, old_data[key])
+                    print("NEW DATA:", key, patch_data[key])
+                if args.update:
+                    patch_ENCODE(accession, connection, patch_data)
 
 
 def fastq_read(connection, uri=None, filename=None, reads=1):

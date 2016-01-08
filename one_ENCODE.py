@@ -91,6 +91,8 @@ def main():
     parser.add_argument('--frame',
                         help="define a frame to get back the JSON object, for use with --id. Default is frame=object",
                         default="object")
+    parser.add_argument('--type',
+                        help="the object's type")
     args = parser.parse_args()
 
     global DEBUG_ON
@@ -177,9 +179,34 @@ def main():
         print("Conflict:  At least one identifier already exists and at least one does not exist")
 
     profiles = encodedcc.get_ENCODE("/profiles/", connection)
-    supported_collections = profiles.keys()
+    supported_collections = list(profiles.keys())
+    if "Dataset" not in supported_collections:
+        supported_collections.append("Dataset")
 
     type_list = new_json.pop('@type', [])
+    if args.type:
+        args.type = args.type.capitalize()
+        if args.type not in supported_collections:
+            print("Error! Supplied type is not one of the supported types")
+            sys.exit(1)
+        else:
+            if args.debug:
+                print("Object will have type of", args.type)
+            type_list = [args.type]
+
+    if any(type_list):
+        if type_list[0] not in supported_collections:
+            print("Error! JSON object does not contain one of the supported types")
+            print("Provided type:", type_list[0])
+            print("Please either change the JSON file or define the type with the --type feature")
+            sys.exit(1)
+        else:
+            if args.debug:
+                print("Object will have type of", type_list[0])
+    else:
+        print("No type found for JSON object!")
+        sys.exit(1)
+
     possible_collections = [x for x in type_list if x in supported_collections]
     if possible_collections:
         # collection = possible_collections[0] + 's/'
@@ -250,6 +277,9 @@ def main():
         else:
             if not GET_ONLY:
                 print("POST'ing new object")
+                if not any(collection):
+                    print("ERROR: Unable to POST to non-existing collection", str(collection))
+                    sys.exit(1)
                 e = encodedcc.new_ENCODE(connection, collection, new_json)
                 print(e)
 
