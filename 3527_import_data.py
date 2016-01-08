@@ -88,15 +88,33 @@ def cell_value(cell, datemode):
 
 def excel_reader(datafile, sheet, update, connection):
     row = reader(datafile, sheetname=sheet)
-    print(sheet)
     keys = next(row)  # grab the first row of headers
-    print("headers", keys)
     for values in row:
         post_json = dict(zip(keys, values))
-        print(post_json)
+#        print("before", post_json)
+        post_json = dict_patcher(post_json)
+#        print("after", post_json)
         if update:
-            print("Updating data!")
-            #encodedcc.new_ENCODE(connection, sheet, post_json)
+            print("POSTing data!")
+            e = encodedcc.new_ENCODE(connection, sheet, post_json)
+            print(e)
+
+
+def dict_patcher(old_dict):
+    new_dict = {}
+    for key in old_dict.keys():
+        if old_dict[key] != "":  # this removes empty cells
+            k = key.split(":")
+            if len(k) > 1:
+                if k[1] == "int":
+                    new_dict[k[0]] = int(old_dict[key])
+                elif k[1] == "list" or k[1] == "array":
+                    l = old_dict[key].strip("[]").split(",")
+                    l = [x.replace(" ", "") for x in l]
+                    new_dict[k[0]] = l
+            else:
+                new_dict[k[0]] = old_dict[key]
+    return new_dict
 
 
 def main():
@@ -111,9 +129,10 @@ def main():
         names = book.sheet_names()
     profiles = encodedcc.get_ENCODE("/profiles/", connection)
     supported_collections = list(profiles.keys())
-    supported_collections.append("Sheet1")
-    supported_collections = [s.lower() for s in supported_collections]
-#    supported_collections = [s.lower() for s in list(profiles.keys())]
+#    supported_collections.append("Sheet1")
+#    supported_collections.append("Sheet2")
+#    supported_collections = [s.lower() for s in supported_collections]
+    supported_collections = [s.lower() for s in list(profiles.keys())]
     for n in names:
         if n.lower() in supported_collections:
             excel_reader(args.infile, n, args.update, connection)
