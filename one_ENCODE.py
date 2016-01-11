@@ -185,9 +185,9 @@ def main():
 
     type_list = new_json.pop('@type', [])
     if args.type:
-        args.type = args.type.capitalize()
         if args.type not in supported_collections:
             print("Error! Supplied type is not one of the supported types")
+            print("{} might be spelled incorrectly or not added to database".format(args.type))
             sys.exit(1)
         else:
             if args.debug:
