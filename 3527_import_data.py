@@ -91,9 +91,7 @@ def excel_reader(datafile, sheet, update, connection):
     keys = next(row)  # grab the first row of headers
     for values in row:
         post_json = dict(zip(keys, values))
-#        print("before", post_json)
         post_json = dict_patcher(post_json)
-#        print("after", post_json)
         if update:
             print("POSTing data!")
             e = encodedcc.new_ENCODE(connection, sheet, post_json)
@@ -129,9 +127,6 @@ def main():
         names = book.sheet_names()
     profiles = encodedcc.get_ENCODE("/profiles/", connection)
     supported_collections = list(profiles.keys())
-#    supported_collections.append("Sheet1")
-#    supported_collections.append("Sheet2")
-#    supported_collections = [s.lower() for s in supported_collections]
     supported_collections = [s.lower() for s in list(profiles.keys())]
     for n in names:
         if n.lower() in supported_collections:
