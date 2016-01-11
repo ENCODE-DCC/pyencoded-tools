@@ -96,6 +96,8 @@ def excel_reader(datafile, sheet, update, connection):
             print("POSTing data!")
             e = encodedcc.new_ENCODE(connection, sheet, post_json)
             print(e)
+        else:
+            print(post_json)
 
 
 def dict_patcher(old_dict):
@@ -116,10 +118,14 @@ def dict_patcher(old_dict):
 
 
 def main():
-
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
+    print("Running on {}".format(connection.server))
+    if args.update:
+        print("This is an update run.  Data will be POSTed.")
+    else:
+        print("This is a test run.  No data will be loaded.")
     if args.type:
         names = [args.type]
     else:
