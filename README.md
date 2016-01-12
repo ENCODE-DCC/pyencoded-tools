@@ -7,8 +7,7 @@ To get multiple objects use the '--object' argument
 and provide a file with the list of object identifiers
 
         ENCODE_get_fields.py --object filenames.txt
-
-    this can take accessions, uuids, @ids, or aliases
+this can take accessions, uuids, @ids, or aliases
 
 To get a single object use the '--object' argument
 and use the object's identifier
@@ -21,27 +20,24 @@ To get multiple fields use the '--field' argument
 and feed it a file with the list of fieldnames
 
         ENCODE_get_fields.py --field fieldnames.txt
-
-    this should be a single column file
+this should be a single column file
 
 To get a single field use the field argument:
 
         ENCODE_get_fields.py --field status
-
-    where field is a string containing the field name
+where field is a string containing the field name
 
 To get embedded field values (such as target name from an experiment):
 
         ENCODE_get_fields.py --field target.title
-    this can also get embedded values from lists
+this can also get embedded values from lists
 
         ENCODE_get_fields.py --field files.status
 
 To use a custom query for your object list:
 
         ENCODE_get_fields.py --query www.my/custom/url
-
-    this can be used with either useage of the '--field' option
+this can be used with either useage of the '--field' option
 
 Output prints in format of fieldname:object_type for non-strings
 
@@ -57,9 +53,7 @@ Output prints in format of fieldname:object_type for non-strings
 
     accession       file.status:list
     ENCSR000AAA     ['released']
-
-possible output even if multiple files exist in experiment
-
+this is a possible output even if multiple files exist in experiment
 To show all possible outputs from a list type field
 use the '--listfull' argument
 
@@ -68,7 +62,7 @@ use the '--listfull' argument
     accession       file.status:list
     ENCSR000AAA     ['released', 'released', 'released']
 
-    *** ENCODE_collection useage and functionality  ***
+**ENCODE_collection useage and functionality**
 ENCODE_get_fields.py has ported over some functions of ENCODE_collection
 and now supports the '--collection' and '--allfields' options
 
@@ -98,7 +92,7 @@ preferable to your application
 '--collection' also overrides any other '--object' option and so but it
 can be combined with any of the '--field' or '--allfields' options
 
-NOTE: while '--collection' should work with the '--field' field.embeddedfield
+**NOTE:** while '--collection' should work with the '--field' field.embeddedfield
 functionality I cannot guarantee speed when running due to embedded
 objects being extracted
 
