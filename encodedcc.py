@@ -225,7 +225,10 @@ class ENC_Item(object):
 def get_ENCODE(obj_id, connection, frame="object"):
     '''GET an ENCODE object as JSON and return as dict'''
     if frame is None:
-        url = urljoin(connection.server, obj_id + "?limit=all")
+        if '?' in obj_id:
+            url = urljoin(connection.server, obj_id+'&limit=all')
+        else:
+            url = urljoin(connection.server, obj_id+'?limit=all')
     elif '?' in obj_id:
         url = urljoin(connection.server, obj_id+'&limit=all&frame='+frame)
     else:
@@ -367,27 +370,36 @@ class GetFields():
             self.accessions = self.facet[0]
             self.fields = self.facet[1]
         else:
-            if self.args.query:
+            temp = []
+            if self.args.collection:
+                if self.args.es:
+                    temp = get_ENCODE("/search/?type=" + self.args.collection, self.connection).get("@graph", [])
+                else:
+                    temp = get_ENCODE(self.args.collection, self.connection, frame=None).get("@graph", [])
+            elif self.args.query:
                 if "search" in self.args.query:
                     temp = get_ENCODE(self.args.query, self.connection).get("@graph", [])
                 else:
                     temp = get_ENCODE(self.args.query, self.connection)
-                if any(temp):
-                    for obj in temp:
-                        if obj.get("accession"):
-                            self.accessions.append(obj["accession"])
-                        elif obj.get("uuid"):
-                            self.accessions.append(obj["uuid"])
-                        elif obj.get("aliases"):
-                            self.accessions.append(obj["aliases"][0])
-                        else:
-                            print("ERROR: object has no identifier", file=sys.stderr)
             elif self.args.object:
                 if os.path.isfile(self.args.object):
                     self.accessions = [line.strip() for line in open(self.args.object)]
                 else:
                     self.accessions = [self.args.object]
-            if self.args.field:
+            if any(temp):
+                for obj in temp:
+                    if obj.get("accession"):
+                        self.accessions.append(obj["accession"])
+                    elif obj.get("uuid"):
+                        self.accessions.append(obj["uuid"])
+                    elif obj.get("aliases"):
+                        self.accessions.append(obj["aliases"][0])
+                    else:
+                        print("ERROR: object has no identifier", file=sys.stderr)
+            if self.args.allfields:
+                obj = get_ENCODE(self.accessions[0], self.connection)
+                self.fields = list(obj.keys())
+            elif self.args.field:
                 if os.path.isfile(self.args.field):
                     self.fields = [line.strip() for line in open(self.args.field)]
                 else:
