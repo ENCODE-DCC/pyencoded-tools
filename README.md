@@ -30,14 +30,19 @@ where field is a string containing the field name
 To get embedded field values (such as target name from an experiment):
 
         ENCODE_get_fields.py --field target.title
+    
+    accession       target.title
+    ENCSR087PLZ     H3K9ac (Mus musculus)
 this can also get embedded values from lists
 
         ENCODE_get_fields.py --field files.status
+*more about this feature is listed below*
 
 To use a custom query for your object list:
 
         ENCODE_get_fields.py --query www.my/custom/url
 this can be used with either useage of the '--field' option
+
 
 Output prints in format of fieldname:object_type for non-strings
 
@@ -47,7 +52,7 @@ Output prints in format of fieldname:object_type for non-strings
     integers  ':int'
     lists     ':list'
     string are the default and do not have an identifier
-***please note that list type fields will show only unique items***
+*please note that list type fields will show only unique items*
 
         ENCODE_get_fields.py --field files.status --object ENCSR000AAA
 
@@ -62,7 +67,9 @@ use the '--listfull' argument
     accession       file.status:list
     ENCSR000AAA     ['released', 'released', 'released']
 
-**ENCODE_collection useage and functionality**
+
+**ENCODE_collection useage and functionality:**
+
 ENCODE_get_fields.py has ported over some functions of ENCODE_collection
 and now supports the '--collection' and '--allfields' options
 
