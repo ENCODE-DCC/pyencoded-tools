@@ -35,9 +35,13 @@ To get a single field use the field argument:
 To get embedded field values (such as target name from an experiment):
 
         %(prog)s --field target.title
+
+    accession       target.title
+    ENCSR087PLZ     H3K9ac (Mus musculus)
     this can also get embedded values from lists
 
         %(prog)s --field files.status
+        *more about this feature is listed below*
 
 To use a custom query for your object list:
 
