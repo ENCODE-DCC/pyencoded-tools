@@ -5,112 +5,112 @@ import argparse
 import encodedcc
 
 EPILOG = '''
-To get multiple objects use the '--object' argument
-and provide a file with the list of object identifiers
+    To get multiple objects use the '--object' argument
+    and provide a file with the list of object identifiers
 
-        %(prog)s --object filenames.txt
+            %(prog)s --object filenames.txt
 
-    this can take accessions, uuids, @ids, or aliases
+        this can take accessions, uuids, @ids, or aliases
 
-To get a single object use the '--object' argument
-and use the object's identifier
+    To get a single object use the '--object' argument
+    and use the object's identifier
 
-        %(prog)s --object ENCSR000AAA
-        %(prog)s --object 3e6-some-uuid-here-e45
-        %(prog)s --object this-is:an-alias
+            %(prog)s --object ENCSR000AAA
+            %(prog)s --object 3e6-some-uuid-here-e45
+            %(prog)s --object this-is:an-alias
 
-To get multiple fields use the '--field' argument
-and feed it a file with the list of fieldnames
+    To get multiple fields use the '--field' argument
+    and feed it a file with the list of fieldnames
 
-        %(prog)s --field fieldnames.txt
+            %(prog)s --field fieldnames.txt
 
-    this should be a single column file
+        this should be a single column file
 
-To get a single field use the field argument:
+    To get a single field use the field argument:
 
-        %(prog)s --field status
+            %(prog)s --field status
 
-    where field is a string containing the field name
+        where field is a string containing the field name
 
-To get embedded field values (such as target name from an experiment):
+    To get embedded field values (such as target name from an experiment):
 
-        %(prog)s --field target.title
+            %(prog)s --field target.title
 
-    accession       target.title
-    ENCSR087PLZ     H3K9ac (Mus musculus)
-    this can also get embedded values from lists
+        accession       target.title
+        ENCSR087PLZ     H3K9ac (Mus musculus)
+        this can also get embedded values from lists
 
-        %(prog)s --field files.status
-        *more about this feature is listed below*
+            %(prog)s --field files.status
+            *more about this feature is listed below*
 
-To use a custom query for your object list:
+    To use a custom query for your object list:
 
-        %(prog)s --query www.my/custom/url
+            %(prog)s --query www.my/custom/url
 
-    this can be used with either useage of the '--field' option
+        this can be used with either useage of the '--field' option
 
-Output prints in format of fieldname:object_type for non-strings
+    Output prints in format of fieldname:object_type for non-strings
 
-    Ex: accession    read_length:int    documents:list
-        ENCSR000AAA  31                 [document1,document2]
+        Ex: accession    read_length:int    documents:list
+            ENCSR000AAA  31                 [document1,document2]
 
-    integers  ':int'
-    lists     ':list'
-    string are the default and do not have an identifier
-***please note that list type fields will show only unique items***
+        integers  ':int'
+        lists     ':list'
+        string are the default and do not have an identifier
+    ***please note that list type fields will show only unique items***
 
-        %(prog)s --field files.status --object ENCSR000AAA
+            %(prog)s --field files.status --object ENCSR000AAA
 
-    accession       file.status:list
-    ENCSR000AAA     ['released']
+        accession       file.status:list
+        ENCSR000AAA     ['released']
 
-possible output even if multiple files exist in experiment
+    possible output even if multiple files exist in experiment
 
-To show all possible outputs from a list type field
-use the '--listfull' argument
+    To show all possible outputs from a list type field
+    use the '--listfull' argument
 
-        %(prog)s --field files.status --listfull
+            %(prog)s --field files.status --listfull
 
-    accession       file.status:list
-    ENCSR000AAA     ['released', 'released', 'released']
-
-
-    *** ENCODE_collection useage and functionality  ***
-%(prog)s has ported over some functions of ENCODE_collection
-and now supports the '--collection' and '--allfields' options
-
-Useage for '--allfields':
-
-        %(prog)s --object ENCSR000AAA --allfields
-
-    accession    status    files        award ...
-    ENCSR000AAA  released  [/files/...] /awards/...
-
-The '--allfields' option can be used with any of the commands,
-it returns all fields at the frame=object level,
-it also overrides any other --field option
+        accession       file.status:list
+        ENCSR000AAA     ['released', 'released', 'released']
 
 
-Useage for '--collection':
+        *** ENCODE_collection useage and functionality  ***
+    %(prog)s has ported over some functions of ENCODE_collection
+    and now supports the '--collection' and '--allfields' options
 
-        %(prog)s --collection Experiment --status
+    Useage for '--allfields':
 
-    accession    status
-    ENCSR000AAA  released
+            %(prog)s --object ENCSR000AAA --allfields
 
-The  '--collection' option can be used with or without the '--es' option
-the '--es' option allows the script to search using elastic search,
-which is slightly faster than the normal table view used
-However, it may not posses the latest updates to the data and may not be
-preferable to your application
-'--collection' also overrides any other '--object' option and so but it
-can be combined with any of the '--field' or '--allfields' options
+        accession    status    files        award ...
+        ENCSR000AAA  released  [/files/...] /awards/...
 
-NOTE: while '--collection' should work with the '--field' field.embeddedfield
-functionality I cannot guarantee speed when running due to embedded
-objects being extracted
+    The '--allfields' option can be used with any of the commands,
+    it returns all fields at the frame=object level,
+    it also overrides any other --field option
 
-'''
+
+    Useage for '--collection':
+
+            %(prog)s --collection Experiment --status
+
+        accession    status
+        ENCSR000AAA  released
+
+    The  '--collection' option can be used with or without the '--es' option
+    the '--es' option allows the script to search using elastic search,
+    which is slightly faster than the normal table view used
+    However, it may not posses the latest updates to the data and may not be
+    preferable to your application
+    '--collection' also overrides any other '--object' option and so but it
+    can be combined with any of the '--field' or '--allfields' options
+
+    NOTE: while '--collection' should work with the '--field' field.embeddedfield
+    functionality I cannot guarantee speed when running due to embedded
+    objects being extracted
+
+    '''
 
 
 def getArgs():
