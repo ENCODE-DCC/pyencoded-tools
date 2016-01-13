@@ -380,34 +380,22 @@ class GetFields():
                 if "search" in self.args.query:
                     temp = get_ENCODE(self.args.query, self.connection).get("@graph", [])
                 else:
-                    temp = get_ENCODE(self.args.query, self.connection)
+                    temp = [get_ENCODE(self.args.query, self.connection)]
             elif self.args.object:
                 if os.path.isfile(self.args.object):
                     self.accessions = [line.strip() for line in open(self.args.object)]
                 else:
                     self.accessions = [self.args.object]
             if any(temp):
-                if type(temp) == list:
-                    for obj in temp:
-                        if obj.get("accession"):
-                            self.accessions.append(obj["accession"])
-                        elif obj.get("uuid"):
-                            self.accessions.append(obj["uuid"])
-                        elif obj.get("@id"):
-                            self.accessions.append(obj["@id"])
-                        elif obj.get("aliases"):
-                            self.accessions.append(obj["aliases"][0])
-                        else:
-                            print("ERROR: object has no identifier", file=sys.stderr)
-                else:
-                    if temp.get("accession"):
-                        self.accessions.append(temp["accession"])
-                    elif temp.get("uuid"):
-                        self.accessions.append(temp["uuid"])
-                    elif temp.get("@id"):
-                        self.accessions.append(temp["@id"])
-                    elif temp.get("aliases"):
-                        self.accessions.append(temp["aliases"][0])
+                for obj in temp:
+                    if obj.get("accession"):
+                        self.accessions.append(obj["accession"])
+                    elif obj.get("uuid"):
+                        self.accessions.append(obj["uuid"])
+                    elif obj.get("@id"):
+                        self.accessions.append(obj["@id"])
+                    elif obj.get("aliases"):
+                        self.accessions.append(obj["aliases"][0])
                     else:
                         print("ERROR: object has no identifier", file=sys.stderr)
             if self.args.allfields:
