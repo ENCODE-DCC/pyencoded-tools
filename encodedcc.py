@@ -387,13 +387,27 @@ class GetFields():
                 else:
                     self.accessions = [self.args.object]
             if any(temp):
-                for obj in temp:
-                    if obj.get("accession"):
-                        self.accessions.append(obj["accession"])
-                    elif obj.get("uuid"):
-                        self.accessions.append(obj["uuid"])
-                    elif obj.get("aliases"):
-                        self.accessions.append(obj["aliases"][0])
+                if type(temp) == list:
+                    for obj in temp:
+                        if obj.get("accession"):
+                            self.accessions.append(obj["accession"])
+                        elif obj.get("uuid"):
+                            self.accessions.append(obj["uuid"])
+                        elif obj.get("@id"):
+                            self.accessions.append(obj["@id"])
+                        elif obj.get("aliases"):
+                            self.accessions.append(obj["aliases"][0])
+                        else:
+                            print("ERROR: object has no identifier", file=sys.stderr)
+                else:
+                    if temp.get("accession"):
+                        self.accessions.append(temp["accession"])
+                    elif temp.get("uuid"):
+                        self.accessions.append(temp["uuid"])
+                    elif temp.get("@id"):
+                        self.accessions.append(temp["@id"])
+                    elif temp.get("aliases"):
+                        self.accessions.append(temp["aliases"][0])
                     else:
                         print("ERROR: object has no identifier", file=sys.stderr)
             if self.args.allfields:
