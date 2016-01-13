@@ -36,7 +36,12 @@ def getArgs():
     parser.add_argument('--update',
                         default=False,
                         action='store_true',
-                        help="Let the script PATCH the data.  Default is False")
+                        help="Let the script PATCH the data.  Default is False"),
+    parser.add_argument('--patchall',
+                        default=False,
+                        action='store_true',
+                        help="PATCH existing objects.  Default is False \
+                        and will only PATCH with user override")
     args = parser.parse_args()
     return args
 
@@ -86,18 +91,51 @@ def cell_value(cell, datemode):
     raise ValueError(repr(cell), 'unknown cell type')
 
 
-def excel_reader(datafile, sheet, update, connection):
+def excel_reader(datafile, sheet, update, connection, patchall):
     row = reader(datafile, sheetname=sheet)
     keys = next(row)  # grab the first row of headers
+    total = 0
+    error = 0
+    success = 0
+    patch = 0
     for values in row:
+        total += 1
         post_json = dict(zip(keys, values))
+#        print("before", post_json)
         post_json = dict_patcher(post_json)
-        if update:
-            print("POSTing data!")
-            e = encodedcc.new_ENCODE(connection, sheet, post_json)
-            print(e)
+#        print("after", post_json)
+        temp = {}
+        if post_json.get("uuid"):
+            temp = encodedcc.get_ENCODE(post_json["uuid"], connection)
+        elif post_json.get("alias"):
+            temp = encodedcc.get_ENCODE(post_json["alias"], connection)
+        if temp.get("uuid"):
+            if patchall:
+                e = encodedcc.patch_ENCODE(temp["uuid"], connection, post_json)
+                if e["status"] == "error":
+                    error += 1
+                elif e["status"] == "success":
+                    success += 1
+                    patch += 1
+            else:
+                print("Object {} already exists.  Would you like to patch it instead?".format(temp["uuid"]))
+                i = input("PATCH? y/n ")
+                if i.lower() == "y":
+                    e = encodedcc.patch_ENCODE(temp["uuid"], connection, post_json)
+                    if e["status"] == "error":
+                        error += 1
+                    elif e["status"] == "success":
+                        success += 1
+                        patch += 1
         else:
-            print(post_json)
+            if update:
+                print("POSTing data!")
+                e = encodedcc.new_ENCODE(connection, sheet, post_json)
+                if e["status"] == "error":
+                    error += 1
+                elif e["status"] == "success":
+                    success += 1
+    print("{}: {} out of {} posted, {} errors, {} patched".format(sheet.upper(), success, total, error, patch))
 
 
 def dict_patcher(old_dict):
@@ -118,14 +156,10 @@ def dict_patcher(old_dict):
 
 
 def main():
+
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-    print("Running on {}".format(connection.server))
-    if args.update:
-        print("This is an update run.  Data will be POSTed.")
-    else:
-        print("This is a test run.  No data will be loaded.")
     if args.type:
         names = [args.type]
     else:
@@ -136,7 +170,7 @@ def main():
     supported_collections = [s.lower() for s in list(profiles.keys())]
     for n in names:
         if n.lower() in supported_collections:
-            excel_reader(args.infile, n, args.update, connection)
+            excel_reader(args.infile, n, args.update, connection, args.patchall)
         else:
             print("Sheet name '{}' not part of supported object types!".format(n), file=sys.stderr)
 
