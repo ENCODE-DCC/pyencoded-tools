@@ -353,20 +353,34 @@ def get_fields(args, connection):
             for obj in temp:
                 if obj.get("accession"):
                     accessions.append(obj["accession"])
+                elif obj.get("uuid"):
+                    accessions.append(obj["uuid"])
+                elif obj.get("@id"):
+                    accessions.append(obj["@id"])
+                elif obj.get("aliases"):
+                    accessions.append(obj["aliases"][0])
         else:
-            accessions = [get_ENCODE(args.query, connection).get("accession")]
+            temp = get_ENCODE(args.query, connection)
+            if temp.get("accession"):
+                accessions.append(temp["accession"])
+            elif temp.get("uuid"):
+                accessions.append(temp["uuid"])
+            elif temp.get("@id"):
+                accessions.append(obj["@id"])
+            elif temp.get("aliases"):
+                accessions.append(temp["aliases"][0])
     elif args.infile:
         accessions = [line.strip() for line in open(args.infile)]
     elif args.accession:
         accessions = [args.accession]
     else:
-        assert args.query or args.infile or args.accession, "ERROR: Need to provide accessions"
+        print("ERROR: Need to provide accessions")
     if args.multifield:
         fields = [line.strip() for line in open(args.multifield)]
     elif args.onefield:
         fields = [args.onefield]
     else:
-        assert args.multifield or args.onefield, "ERROR: Need to provide fields!"
+        print("ERROR: Need to provide fields!")
     data = {}
     header = []
     if "accession" not in fields:
