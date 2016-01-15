@@ -61,11 +61,11 @@ def main():
     col = 0
     row += 1
 
-    for y in y_buckets[:3]:
+    for y in y_buckets:
         inner_buckets = y["biosample_term_name"].get("buckets")
         worksheet.write(row, 0, y["key"], boldline)
         row += 1
-        for item in inner_buckets[:3]:
+        for item in inner_buckets:
             bio_name = item["key"]
             assay_list = item["assay_term_name"]
             col = 0
