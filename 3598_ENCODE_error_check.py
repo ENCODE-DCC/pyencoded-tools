@@ -67,11 +67,11 @@ def main():
                         if "ERROR" in f["title"]:
                             for t in f["terms"]:
                                 if t["doc_count"] > 0:
-                                    error += 1
+                                    error += t["doc_count"]
                         elif "NOT COMPLIANT" in f["title"]:
                             for t in f["terms"]:
                                 if t["doc_count"] > 0:
-                                    not_compliant += 1
+                                    not_compliant += t["doc_count"]
                     print("biosample {}, assay {}, {} Total, {} ERROR, {} NOT COMPLIANT".format(bio_name, assay_name, assay_list[x], error, not_compliant))
                     temp = {"Total": assay_list[x], "Error": error, "NotCompliant": not_compliant, "URL": url}
                     assay_name_errors = {assay_name: temp}
