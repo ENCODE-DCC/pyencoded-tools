@@ -48,26 +48,30 @@ def main():
     row = 0
     col = 0
 
-    for x in x_buckets:
-        worksheet.write(row, col + 1, x["key"])
-        col += 1
-    col = 0
-    row += 1
-
     url_format = workbook.add_format({
         'font_color': 'blue',
         'underline': 1
         })
+    bold = workbook.add_format({"bold": True})
+    boldline = workbook.add_format({"bold": True, "underline": 1})
 
-    for y in y_buckets[:1]:
+    for x in x_buckets:
+        worksheet.write(row, col + 1, x["key"], bold)
+        col += 1
+    col = 0
+    row += 1
+
+    for y in y_buckets[:3]:
         inner_buckets = y["biosample_term_name"].get("buckets")
-        for item in inner_buckets[:1]:
+        worksheet.write(row, 0, y["key"], boldline)
+        row += 1
+        for item in inner_buckets[:3]:
             bio_name = item["key"]
             assay_list = item["assay_term_name"]
             col = 0
+            worksheet.write(row, 0, bio_name, bold)
             for x in range(len(assay_list)):
                 assay_name = x_buckets[x]["key"]
-                worksheet.write(row, 0, bio_name)
                 if assay_list[x] > 0:
                     search = "/search/?type=Experiment&biosample_term_name=" + bio_name + "&assay_term_name=" + assay_name
                     url = connection.server + search
@@ -87,13 +91,14 @@ def main():
                     temp = {"Total": assay_list[x], "Error": error, "NotCompliant": not_compliant, "URL": url}
                     string = "{}, {}E, {}NC".format(assay_list[x], error, not_compliant)
                     worksheet.write_url(row, col + 1, url, url_format, string)
+                    #worksheet.write(row, col + 1, x)
                     col += 1
                     assay_name_errors = {assay_name: temp}
                 else:
                     assay_name_errors = {assay_name: 0}
                     worksheet.write(row, col + 1, 0)
                     col += 1
-                row += 1
+            row += 1
 
     workbook.close()
     print("done")
