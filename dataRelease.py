@@ -243,19 +243,24 @@ class Data_Release():
                     if name not in named:
                         log = name.upper()
                         logger.info('%s' % log)
-                    if status in good:
-                        if self.LOGALL:
-                            log = name + " " + uuid + " has status " + status
-                            logger.info('%s' % log)
-                    elif status in bad:
-                        log = "WARNING: " + name + " " + uuid + " has status " + status
-                        logger.warning('%s' % log)
-                    else:
-                        log = name + " " + uuid + " has status " + status
-                        logger.info('%s' % log)
-                        if self.UPDATE:
-                            if passAudit:
-                                self.releasinator(name, uuid, status, passAudit, connection)
+                        if name.lower() == "file":
+                            restrict = encodedcc.get_ENCODE(uuid, connection).get("restricted")
+                            if restrict:
+                                log = name + " " + uuid + " is restricted"
+                            else:
+                                if status in good:
+                                    if self.LOGALL:
+                                        log = name + " " + uuid + " has status " + status
+                                        logger.info('%s' % log)
+                                elif status in bad:
+                                    log = "WARNING: " + name + " " + uuid + " has status " + status
+                                    logger.warning('%s' % log)
+                                else:
+                                    log = name + " " + uuid + " has status " + status
+                                    logger.info('%s' % log)
+                                    if self.UPDATE:
+                                        if passAudit:
+                                            self.releasinator(name, uuid, status, passAudit, connection)
                     named.append(name)
         print("Data written to file", filename)
 
