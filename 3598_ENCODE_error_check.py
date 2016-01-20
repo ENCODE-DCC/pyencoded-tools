@@ -3,6 +3,7 @@ import os.path
 import encodedcc
 import sys
 import xlsxwriter
+from urllib.parse import quote
 
 EPILOG = '''
 For more details:
@@ -80,7 +81,6 @@ def main():
             r = r.replace(" ", "+")
             ministring += "&lab.title=" + r
         search_string += ministring  # Bing+Ren%2C+UCSD
-    print(search_string)
 
     matrix = encodedcc.get_ENCODE(search_string, connection).get("matrix")
     x_values = matrix.get("x")
@@ -102,8 +102,9 @@ def main():
     boldline = workbook.add_format({"bold": True, "underline": 1})
 
     for x in x_buckets:
-        worksheet.write(row, col + 1, x["key"], bold)
-        col += 1
+        if x["key"] != "ChIP-seq":
+            worksheet.write(row, col + 1, x["key"], bold)
+            col += 1
     col = 0
     row += 1
 
@@ -118,32 +119,32 @@ def main():
             worksheet.write(row, 0, bio_name, bold)
             for x in range(len(assay_list)):
                 assay_name = x_buckets[x]["key"]
-                if assay_list[x] > 0:
-                    search = "/search/?type=Experiment&biosample_term_name=" + bio_name + "&assay_term_name=" + assay_name
-                    url = connection.server + search
-                    facets = encodedcc.get_ENCODE(search, connection).get("facets")
-                    error = 0
-                    not_compliant = 0
-                    for f in facets:
-                        if "ERROR" in f["title"]:
-                            for t in f["terms"]:
-                                if t["doc_count"] > 0:
-                                    error += t["doc_count"]
-                        elif "NOT COMPLIANT" in f["title"]:
-                            for t in f["terms"]:
-                                if t["doc_count"] > 0:
-                                    not_compliant += t["doc_count"]
-                    #print("biosample {}, assay {}, {} Total, {} ERROR, {} NOT COMPLIANT".format(bio_name, assay_name, assay_list[x], error, not_compliant))
-                    temp = {"Total": assay_list[x], "Error": error, "NotCompliant": not_compliant, "URL": url}
-                    string = "{}, {}E, {}NC".format(assay_list[x], error, not_compliant)
-                    worksheet.write_url(row, col + 1, url, url_format, string)
-                    #worksheet.write(row, col + 1, x)
-                    col += 1
-                    assay_name_errors = {assay_name: temp}
-                else:
-                    assay_name_errors = {assay_name: 0}
-                    worksheet.write(row, col + 1, 0)
-                    col += 1
+                if assay_name != "ChIP-seq":
+                    if assay_list[x] > 0:
+                        search = "/search/?type=Experiment&biosample_term_name=" + quote(bio_name) + "&assay_term_name=" + assay_name
+                        url = connection.server + search
+                        facets = encodedcc.get_ENCODE(search, connection).get("facets", [])
+                        error = 0
+                        not_compliant = 0
+                        if any(facets):
+                            for f in facets:
+                                if "ERROR" in f["title"]:
+                                    for t in f["terms"]:
+                                        if t["doc_count"] > 0:
+                                            error += t["doc_count"]
+                                elif "NOT COMPLIANT" in f["title"]:
+                                    for t in f["terms"]:
+                                        if t["doc_count"] > 0:
+                                            not_compliant += t["doc_count"]
+                        temp = {"Total": assay_list[x], "Error": error, "NotCompliant": not_compliant, "URL": url}
+                        string = "{}, {}E, {}NC".format(assay_list[x], error, not_compliant)
+                        worksheet.write_url(row, col + 1, url, url_format, string)
+                        col += 1
+                        assay_name_errors = {assay_name: temp}
+                    else:
+                        assay_name_errors = {assay_name: 0}
+                        worksheet.write(row, col + 1, 0)
+                        col += 1
             row += 1
 
     workbook.close()
