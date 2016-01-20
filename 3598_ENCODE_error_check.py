@@ -28,13 +28,23 @@ def getArgs():
                         action='store_true',
                         help="Print debug messages.  Default is False.")
     parser.add_argument('--rfa',
-                        help="refine search with award.rfa")
+                        help="refine search with award.rfa\
+                        write as semicolon separated list\
+                        ex: 'ENCODE;Roadmap'")
     parser.add_argument('--species',
-                        help="refine search with species")
+                        help="refine search with species using the organism.name property\
+                        ex: celegans, human, mouse\
+                        write as semicolon separated list\
+                        ex: 'celegans;human;mouse'")
     parser.add_argument('--status',
-                        help="refine search with status")
+                        help="refine search with status\
+                        write as semicolon separated list\
+                        ex: 'released;submitted'")
     parser.add_argument('--lab',
-                        help="refine search with lab title")
+                        help="refine search with lab title\
+                        write as quote enclosed semicolon separated list\
+                        ex: \"Bing Ren, UCSD;J. Micheal Cherry, Stanford\"\
+                        lab name format should be Firstname Lastname, Location")
     args = parser.parse_args()
     return args
 
@@ -46,29 +56,32 @@ def main():
     connection = encodedcc.ENC_Connection(key)
     search_string = "/matrix/?type=Experiment"
     if args.rfa:
-        rfa_list = args.rfa.split()
+        rfa_list = args.rfa.split(";")
         ministring = ""
         for r in rfa_list:
             ministring += "&award.project=" + r
-        search_string += ministring #ENCODE
+        search_string += ministring  # ENCODE
     if args.species:
-        species_list = args.species.split()
+        species_list = args.species.split(";")
         ministring = ""
         for r in species_list:
             ministring += "&replicates.library.biosample.donor.organism.name=" + r
-        search_string += ministring #celegans
+        search_string += ministring  # celegans
     if args.status:
-        status_list = args.status.split()
+        status_list = args.status.split(";")
         ministring = ""
         for r in status_list:
             ministring += "&status=" + r
         search_string += ministring
     if args.lab:
-        lab_list = args.lab.split()
+        lab_list = args.lab.split(";")
         ministring = ""
         for r in lab_list:
+            r = r.replace(" ", "+")
             ministring += "&lab.title=" + r
-        search_string += ministring #Bing+Ren%2C+UCSD
+        search_string += ministring  # Bing+Ren%2C+UCSD
+    print(search_string)
+
     matrix = encodedcc.get_ENCODE(search_string, connection).get("matrix")
     x_values = matrix.get("x")
     y_values = matrix.get("y")
