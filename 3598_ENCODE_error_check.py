@@ -27,6 +27,14 @@ def getArgs():
                         default=False,
                         action='store_true',
                         help="Print debug messages.  Default is False.")
+    parser.add_argument('--rfa',
+                        help="refine search with award.rfa")
+    parser.add_argument('--species',
+                        help="refine search with species")
+    parser.add_argument('--status',
+                        help="refine search with status")
+    parser.add_argument('--lab',
+                        help="refine search with lab title")
     args = parser.parse_args()
     return args
 
@@ -36,7 +44,32 @@ def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-    matrix = encodedcc.get_ENCODE("/matrix/?type=Experiment", connection).get("matrix")
+    search_string = "/matrix/?type=Experiment"
+    if args.rfa:
+        rfa_list = args.rfa.split()
+        ministring = ""
+        for r in rfa_list:
+            ministring += "&award.project=" + r
+        search_string += ministring #ENCODE
+    if args.species:
+        species_list = args.species.split()
+        ministring = ""
+        for r in species_list:
+            ministring += "&replicates.library.biosample.donor.organism.name=" + r
+        search_string += ministring #celegans
+    if args.status:
+        status_list = args.status.split()
+        ministring = ""
+        for r in status_list:
+            ministring += "&status=" + r
+        search_string += ministring
+    if args.lab:
+        lab_list = args.lab.split()
+        ministring = ""
+        for r in lab_list:
+            ministring += "&lab.title=" + r
+        search_string += ministring #Bing+Ren%2C+UCSD
+    matrix = encodedcc.get_ENCODE(search_string, connection).get("matrix")
     x_values = matrix.get("x")
     y_values = matrix.get("y")
 
