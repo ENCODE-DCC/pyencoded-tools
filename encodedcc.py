@@ -399,7 +399,12 @@ class GetFields():
                     else:
                         print("ERROR: object has no identifier", file=sys.stderr)
             if self.args.allfields:
-                obj = get_ENCODE(self.accessions[0], self.connection)
+                if self.args.collection:
+                    obj = get_ENCODE("/profiles/" + self.args.collection + ".json", self.connection).get("properties")
+                else:
+                    obj_type = get_ENCODE(self.accessions[0], self.connection).get("@type")
+                    if any(obj_type):
+                        obj = get_ENCODE("/profiles/" + obj_type[0] + ".json", self.connection)
                 self.fields = list(obj.keys())
             elif self.args.field:
                 if os.path.isfile(self.args.field):
