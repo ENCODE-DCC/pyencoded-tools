@@ -93,7 +93,7 @@ def main():
     worksheet = workbook.add_worksheet()
     row = 0
     col = 0
-
+    cricket_list = ["RNA-seq", "microRNA profiling by array assay", "microRNA-seq", "DNase-seq", "WGBS", "RAMPAGE", "CAGE"]
     url_format = workbook.add_format({
         'font_color': 'blue',
         'underline': 1
@@ -102,7 +102,7 @@ def main():
     boldline = workbook.add_format({"bold": True, "underline": 1})
 
     for x in x_buckets:
-        if x["key"] != "ChIP-seq":
+        if x["key"] in cricket_list:
             worksheet.write(row, col + 1, x["key"], bold)
             col += 1
     col = 0
@@ -119,7 +119,7 @@ def main():
             worksheet.write(row, 0, bio_name, bold)
             for x in range(len(assay_list)):
                 assay_name = x_buckets[x]["key"]
-                if assay_name != "ChIP-seq":
+                if assay_name in cricket_list:
                     if assay_list[x] > 0:
                         search = "/search/?type=Experiment&biosample_term_name=" + quote(bio_name) + "&assay_term_name=" + assay_name
                         url = connection.server + search
