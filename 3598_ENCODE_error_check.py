@@ -93,7 +93,7 @@ def main():
     worksheet = workbook.add_worksheet()
     row = 0
     col = 0
-    cricket_list = ["RNA-seq", "microRNA profiling by array assay", "microRNA-seq", "DNase-seq", "WGBS", "RAMPAGE", "CAGE"]
+    cricket_list = ["RNA-seq", "microRNA profiling by array assay", "microRNA-seq", "DNase-seq", "whole-genome shotgun bisulfite sequencing", "RAMPAGE", "CAGE"]
     url_format = workbook.add_format({
         'font_color': 'blue',
         'underline': 1
