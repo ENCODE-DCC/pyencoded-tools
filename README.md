@@ -29,6 +29,9 @@ where field is a string containing the field name
 
 To get embedded field values (such as target name from an experiment):
 
+**Note: ENCODE_get_fields will only expand the data untill it hits an array**
+**currently it cannot get subarrays of arrays**
+
         ENCODE_get_fields.py --field target.title
     
     accession       target.title
@@ -59,6 +62,7 @@ Output prints in format of fieldname:object_type for non-strings
     accession       file.status:list
     ENCSR000AAA     ['released']
 this is a possible output even if multiple files exist in experiment
+
 To show all possible outputs from a list type field
 use the '--listfull' argument
 
@@ -94,6 +98,7 @@ Useage for '--collection':
 The  '--collection' option can be used with or without the '--es' option
 the '--es' option allows the script to search using elastic search,
 which is slightly faster than the normal table view used
+
 However, it may not posses the latest updates to the data and may not be
 preferable to your application
 '--collection' also overrides any other '--object' option and so but it
