@@ -357,7 +357,7 @@ class GetFields():
         self.header = []
         self.accessions = []
         self.fields = []
-        self.field = ""
+#        self.field = ""
         self.subobj = ""
         self.facet = facet
         self.args = args
@@ -404,8 +404,14 @@ class GetFields():
                 else:
                     obj_type = get_ENCODE(self.accessions[0], self.connection).get("@type")
                     if any(obj_type):
-                        obj = get_ENCODE("/profiles/" + obj_type[0] + ".json", self.connection)
+                        obj = get_ENCODE("/profiles/" + obj_type[0] + ".json", self.connection).get("properties")
                 self.fields = list(obj.keys())
+                for key in obj.keys():
+                    if obj[key]["type"] == "string":
+                        self.header.append(key)
+                    else:
+                        self.header.append(key + ":" + obj[key]["type"])
+                self.header.sort()
             elif self.args.field:
                 if os.path.isfile(self.args.field):
                     self.fields = [line.strip() for line in open(self.args.field)]
@@ -423,7 +429,7 @@ class GetFields():
         from collections import deque
         self.setup()
         if "accession" not in self.fields:
-            self.header = ["accession"]
+            self.header = ["accession"] + self.fields
         for acc in self.accessions:
             acc = quote(acc)
             obj = get_ENCODE(acc, self.connection)
@@ -437,8 +443,9 @@ class GetFields():
                     if not self.facet:
                         name = name + self.get_type(field)
                     newObj[name] = field
-                    if name not in self.header:
-                        self.header.append(name)
+                    if not self.args.allfields:
+                        if name not in self.header:
+                            self.header.append(name)
             self.data.append(newObj)
         if not self.facet:
             writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=self.header)
@@ -450,11 +457,9 @@ class GetFields():
         ''' given an object return its type as a string to append
         '''
         if type(attr) == int:
-            return ":int"
+            return ":integer"
         elif type(attr) == list:
-            return ":list"
-        elif type(attr) == dict:
-            return ":dict"
+            return ":array"
         else:
             # this must be a string
             return ""
@@ -575,9 +580,9 @@ def patch_set(args, connection):
             for key in temp_data.keys():
                 k = key.split(":")
                 if len(k) > 1:
-                    if k[1] == "int":
+                    if k[1] == "int" or k[1] == "integer":
                         patch_data[k[0]] = int(temp_data[key])
-                    elif k[1] == "list":
+                    elif k[1] == "array" or k[1] == "list":
                         if type(temp_data[key]) == dict:
                             l = [temp_data[key]]
                         else:
