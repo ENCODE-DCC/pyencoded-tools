@@ -41,6 +41,8 @@ the usual list of assay this script shows is
 use the '--all' command to select all the available assays for display
 
 the output file can be renamed using the '--outfile' option
+
+the '--allaudits' command will also list the "WARNING" and "DCC ACTION" audits
 '''
 
 
@@ -85,6 +87,10 @@ def getArgs():
     parser.add_argument('--outfile',
                         default="Error_Count.xlsx",
                         help="name the outfile")
+    parser.add_argument('--allaudits',
+                        help="show all the audit counts, default is false",
+                        default=False,
+                        action="store_true")
     args = parser.parse_args()
     return args
 
@@ -141,17 +147,31 @@ def main():
     def audit_count(facets, total, url):
         error = 0
         not_compliant = 0
+        if args.allaudits:
+            warning = 0
+            dcc_action = 0
         if any(facets):
             for f in facets:
                 if "ERROR" in f["title"]:
                     for t in f["terms"]:
                         if t["doc_count"] > 0:
                             error += t["doc_count"]
-                elif "NOT COMPLIANT" in f["title"]:
+                if "NOT COMPLIANT" in f["title"]:
                     for t in f["terms"]:
                         if t["doc_count"] > 0:
                             not_compliant += t["doc_count"]
+                if args.allaudits:
+                    if "WARNING" in f["title"]:
+                        for t in f["terms"]:
+                            if t["doc_count"] > 0:
+                                warning += t["doc_count"]
+                    if "DCC ACTION" in f["title"]:
+                        for t in f["terms"]:
+                            if t["doc_count"] > 0:
+                                dcc_action += t["doc_count"]
         string = '=HYPERLINK("{}","{}, {}E, {}NC")'.format(url, total, error, not_compliant)
+        if args.allaudits:
+            string = '=HYPERLINK("{}","{}, {}E, {}NC, {}W, {}DCC")'.format(url, total, error, not_compliant, warning, dcc_action)
         return string
 
     with open(args.outfile, "w") as tsvfile:
@@ -167,17 +187,14 @@ def main():
                 assay_list = item["assay_term_name"]
                 row_dict = dict.fromkeys(headers)
                 row_dict[matrix_url] = bio_name
-
                 for x in range(len(assay_list)):
                     assay_name = x_buckets[x]["key"]
                     if assay_name in full_list:
                         if assay_list[x] > 0:
                             search = "/search/?type=Experiment&biosample_term_name=" + quote(bio_name) + "&assay_term_name=" + assay_name + full_string
                             if assay_name == "RNA-seq":
-                                rshort = "&replicates.library.size_range=<200"
-                                rlong = "&replicates.library.size_range!=<200"
-                                short_search = search + rshort
-                                long_search = search + rlong
+                                short_search = search + "&replicates.library.size_range=<200"
+                                long_search = search + "&replicates.library.size_range!=<200"
 
                                 short_url = connection.server + short_search
                                 long_url = connection.server + long_search
