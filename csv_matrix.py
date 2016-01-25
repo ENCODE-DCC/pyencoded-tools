@@ -1,7 +1,6 @@
 import argparse
 import os.path
 import encodedcc
-import sys
 import csv
 from urllib.parse import quote
 
@@ -153,7 +152,6 @@ def main():
                         if t["doc_count"] > 0:
                             not_compliant += t["doc_count"]
         string = '=HYPERLINK("{}","{}, {}E, {}NC")'.format(url, total, error, not_compliant)
-        #temp = {"Total": assay_list[x], "Error": error, "NotCompliant": not_compliant, "URL": url}
         return string
 
     with open(args.outfile, "w") as tsvfile:
@@ -167,8 +165,6 @@ def main():
             for item in inner_buckets:
                 bio_name = item["key"]
                 assay_list = item["assay_term_name"]
-                #here bio_name got written
-                #initialize dictionary row here as this is the fresh row
                 row_dict = dict.fromkeys(headers)
                 row_dict[matrix_url] = bio_name
 
@@ -186,14 +182,20 @@ def main():
                                 short_url = connection.server + short_search
                                 long_url = connection.server + long_search
 
-                                short_facets = encodedcc.get_ENCODE(short_search, connection).get("facets", [])
-                                long_facets = encodedcc.get_ENCODE(long_search, connection).get("facets", [])
+                                short_facets = encodedcc.get_ENCODE(short_search, connection)
+                                long_facets = encodedcc.get_ENCODE(long_search, connection)
 
-                                s = audit_count(short_facets, assay_list[x], short_url)
-                                l = audit_count(long_facets, assay_list[x], long_url)
+                                if short_facets.get("total") == 0:
+                                    row_dict["Short RNA-seq"] = 0
+                                else:
+                                    s = audit_count(short_facets.get("facets", []), short_facets.get("total"), short_url)
+                                    row_dict["Short RNA-seq"] = s
 
-                                row_dict["Short RNA-seq"] = s
-                                row_dict["Long RNA-seq"] = l
+                                if long_facets.get("total") == 0:
+                                    row_dict["Long RNA-seq"] = 0
+                                else:
+                                    l = audit_count(long_facets.get("facets", []), long_facets.get("total"), long_url)
+                                    row_dict["Long RNA-seq"] = l
                             else:
                                 url = connection.server + search
                                 facets = encodedcc.get_ENCODE(search, connection).get("facets", [])
