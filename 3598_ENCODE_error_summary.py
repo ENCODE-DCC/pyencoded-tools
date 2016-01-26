@@ -95,6 +95,33 @@ def getArgs():
     return args
 
 
+def audit_count(facets, total, allaudits):
+    error = 0
+    not_compliant = 0
+    warning = 0
+    dcc_action = 0
+    if any(facets):
+        for f in facets:
+            if "ERROR" in f["title"]:
+                for t in f["terms"]:
+                    if t["doc_count"] > 0:
+                        error += t["doc_count"]
+            if "NOT COMPLIANT" in f["title"]:
+                for t in f["terms"]:
+                    if t["doc_count"] > 0:
+                        not_compliant += t["doc_count"]
+            if allaudits:
+                if "WARNING" in f["title"]:
+                    for t in f["terms"]:
+                        if t["doc_count"] > 0:
+                            warning += t["doc_count"]
+                if "DCC ACTION" in f["title"]:
+                    for t in f["terms"]:
+                        if t["doc_count"] > 0:
+                            dcc_action += t["doc_count"]
+    return total, error, not_compliant, warning, dcc_action
+
+
 def main():
     print("This script outputs a 'No Results Found' error.")
     print("This is due to the Long/Short RNA-seq, it does not affect the final results")
@@ -144,32 +171,9 @@ def main():
         temp_list.remove("RNA-seq")
     headers = [matrix_url] + ["Long RNA-seq", "Short RNA-seq"] + temp_list + ["TOTAL"]
 
-    def audit_count(facets, total, url):
-        error = 0
-        not_compliant = 0
-        warning = 0
-        dcc_action = 0
-        if any(facets):
-            for f in facets:
-                if "ERROR" in f["title"]:
-                    for t in f["terms"]:
-                        if t["doc_count"] > 0:
-                            error += t["doc_count"]
-                if "NOT COMPLIANT" in f["title"]:
-                    for t in f["terms"]:
-                        if t["doc_count"] > 0:
-                            not_compliant += t["doc_count"]
-                if args.allaudits:
-                    if "WARNING" in f["title"]:
-                        for t in f["terms"]:
-                            if t["doc_count"] > 0:
-                                warning += t["doc_count"]
-                    if "DCC ACTION" in f["title"]:
-                        for t in f["terms"]:
-                            if t["doc_count"] > 0:
-                                dcc_action += t["doc_count"]
-        return total, error, not_compliant, warning, dcc_action
-
+    col_dict = dict.fromkeys(headers)
+    for k in col_dict.keys():
+        col_dict[k] = []
     with open(args.outfile, "w") as tsvfile:
         dictwriter = csv.DictWriter(tsvfile, delimiter="\t", fieldnames=headers)
         dictwriter.writeheader()
@@ -183,7 +187,7 @@ def main():
                 assay_list = item["assay_term_name"]
                 row_dict = dict.fromkeys(headers)
                 row_dict[matrix_url] = bio_name
-                row_total = []
+                row_count = []
                 for x in range(len(assay_list)):
                     assay_name = x_buckets[x]["key"]
                     if assay_name in full_list:
@@ -201,60 +205,103 @@ def main():
 
                                 if short_facets.get("total") == 0:
                                     row_dict["Short RNA-seq"] = 0
-                                    row_total.append([0, 0, 0, 0, 0])
+                                    row_count.append([0, 0, 0, 0, 0])
+                                    col_dict["Short RNA-seq"].append([0, 0, 0, 0, 0])
                                 else:
-                                    total, error, not_compliant, warning, dcc_action = audit_count(short_facets.get("facets", []), short_facets.get("total"), short_url)
+                                    total, error, not_compliant, warning, dcc_action = audit_count(short_facets.get("facets", []), short_facets.get("total"), args.allaudits)
                                     if args.allaudits:
                                         string = '=HYPERLINK("{}","{}, {}E, {}NC, {}W, {}DCC")'.format(short_url, total, error, not_compliant, warning, dcc_action)
                                     else:
                                         string = '=HYPERLINK("{}","{}, {}E, {}NC")'.format(short_url, total, error, not_compliant)
                                     row_dict["Short RNA-seq"] = string
-                                    row_total.append([total, error, not_compliant, warning, dcc_action])
+                                    row_count.append([total, error, not_compliant, warning, dcc_action])
+                                    col_dict["Short RNA-seq"].append([total, error, not_compliant, warning, dcc_action])
 
                                 if long_facets.get("total") == 0:
                                     row_dict["Long RNA-seq"] = 0
-                                    row_total.append([0, 0, 0, 0, 0])
+                                    row_count.append([0, 0, 0, 0, 0])
+                                    col_dict["Long RNA-seq"].append([0, 0, 0, 0, 0])
                                 else:
-                                    total, error, not_compliant, warning, dcc_action = audit_count(long_facets.get("facets", []), long_facets.get("total"), long_url)
+                                    total, error, not_compliant, warning, dcc_action = audit_count(long_facets.get("facets", []), long_facets.get("total"), args.allaudits)
                                     if args.allaudits:
                                         string = '=HYPERLINK("{}","{}, {}E, {}NC, {}W, {}DCC")'.format(long_url, total, error, not_compliant, warning, dcc_action)
                                     else:
                                         string = '=HYPERLINK("{}","{}, {}E, {}NC")'.format(long_url, total, error, not_compliant)
                                     row_dict["Long RNA-seq"] = string
-                                    row_total.append([total, error, not_compliant, warning, dcc_action])
+                                    row_count.append([total, error, not_compliant, warning, dcc_action])
+                                    col_dict["Long RNA-seq"].append([total, error, not_compliant, warning, dcc_action])
                             else:
                                 url = connection.server + search
                                 facets = encodedcc.get_ENCODE(search, connection).get("facets", [])
-                                total, error, not_compliant, warning, dcc_action = audit_count(facets, assay_list[x], url)
+                                total, error, not_compliant, warning, dcc_action = audit_count(facets, assay_list[x], args.allaudits)
                                 if args.allaudits:
-                                    string = '=HYPERLINK("{}","{}, {}E, {}NC, {}W, {}DCC")'.format(long_url, total, error, not_compliant, warning, dcc_action)
+                                    string = '=HYPERLINK("{}","{}, {}E, {}NC, {}W, {}DCC")'.format(url, total, error, not_compliant, warning, dcc_action)
                                 else:
-                                    string = '=HYPERLINK("{}","{}, {}E, {}NC")'.format(long_url, total, error, not_compliant)
-                                row_total.append([total, error, not_compliant, warning, dcc_action])
+                                    string = '=HYPERLINK("{}","{}, {}E, {}NC")'.format(url, total, error, not_compliant)
+                                row_count.append([total, error, not_compliant, warning, dcc_action])
                                 row_dict[assay_name] = string
+                                col_dict[assay_name].append([total, error, not_compliant, warning, dcc_action])
                         else:
                             if assay_name == "RNA-seq":
                                 row_dict["Short RNA-seq"] = 0
                                 row_dict["Long RNA-seq"] = 0
+                                col_dict["Short RNA-seq"].append([0, 0, 0, 0, 0])
+                                col_dict["Long RNA-seq"].append([0, 0, 0, 0, 0])
                             else:
                                 row_dict[assay_name] = 0
-                            row_total.append([0, 0, 0, 0, 0])
-                total = 0
-                error = 0
-                not_compliant = 0
-                warning = 0
-                dcc_action = 0
-                for col in row_total:
-                        total += col[0]
-                        error += col[1]
-                        not_compliant += col[2]
-                        warning += col[3]
-                        dcc_action += col[4]
+                                col_dict[assay_name].append([0, 0, 0, 0, 0])
+                            row_count.append([0, 0, 0, 0, 0])
+
+                row_total = 0
+                row_error = 0
+                row_not_compliant = 0
+                row_warning = 0
+                row_dcc_action = 0
+                for col in row_count:
+                        row_total += col[0]
+                        row_error += col[1]
+                        row_not_compliant += col[2]
+                        row_warning += col[3]
+                        row_dcc_action += col[4]
                 if args.allaudits:
-                    row_dict["TOTAL"] = "{}, {}E, {}NC, {}W, {}DCC".format(total, error, not_compliant, warning, dcc_action)
+                    row_dict["TOTAL"] = "{}, {}E, {}NC, {}W, {}DCC".format(row_total, row_error, row_not_compliant, row_warning, row_dcc_action)
                 else:
-                    row_dict["TOTAL"] = "{}, {}E, {}NC".format(total, error, not_compliant)
+                    row_dict["TOTAL"] = "{}, {}E, {}NC".format(row_total, row_error, row_not_compliant)
                 dictwriter.writerow(row_dict)
+        total = 0
+        error = 0
+        not_compliant = 0
+        warning = 0
+        dcc_action = 0
+        total_dict = dict.fromkeys(headers)
+        total_dict[matrix_url] = "TOTALS"
+        for key in col_dict.keys():
+            if key in headers and key != matrix_url:
+                col_total = 0
+                col_error = 0
+                col_not_compliant = 0
+                col_warning = 0
+                col_dcc_action = 0
+                for cell in col_dict[key]:
+                    col_total += cell[0]
+                    col_error += cell[1]
+                    col_not_compliant += cell[2]
+                    col_warning += cell[3]
+                    col_dcc_action += cell[4]
+                total += col_total
+                error += col_error
+                not_compliant += col_not_compliant
+                warning += col_warning
+                dcc_action += col_dcc_action
+                if args.allaudits:
+                    total_dict[key] = "{}, {}E, {}NC, {}W, {}DCC".format(col_total, col_error, col_not_compliant, col_warning, col_dcc_action)
+                else:
+                    total_dict[key] = "{}, {}E, {}NC".format(col_total, col_error, col_not_compliant)
+        if args.allaudits:
+            total_dict["TOTAL"] = "{}, {}E, {}NC, {}W, {}DCC".format(total, error, not_compliant, warning, dcc_action)
+        else:
+            total_dict["TOTAL"] = "{}, {}E, {}NC".format(total, error, not_compliant)
+        dictwriter.writerow(total_dict)
 
     print("Output saved to {}, open this file with Google Docs Sheets, don't use Excel because it sucks".format(args.outfile))
 
