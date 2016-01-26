@@ -142,14 +142,13 @@ def main():
     temp_list = list(full_list)
     if "RNA-seq" in temp_list:
         temp_list.remove("RNA-seq")
-    headers = [matrix_url] + ["Long RNA-seq", "Short RNA-seq"] + temp_list
+    headers = [matrix_url] + ["Long RNA-seq", "Short RNA-seq"] + temp_list + ["TOTAL"]
 
     def audit_count(facets, total, url):
         error = 0
         not_compliant = 0
-        if args.allaudits:
-            warning = 0
-            dcc_action = 0
+        warning = 0
+        dcc_action = 0
         if any(facets):
             for f in facets:
                 if "ERROR" in f["title"]:
@@ -169,10 +168,7 @@ def main():
                         for t in f["terms"]:
                             if t["doc_count"] > 0:
                                 dcc_action += t["doc_count"]
-        string = '=HYPERLINK("{}","{}, {}E, {}NC")'.format(url, total, error, not_compliant)
-        if args.allaudits:
-            string = '=HYPERLINK("{}","{}, {}E, {}NC, {}W, {}DCC")'.format(url, total, error, not_compliant, warning, dcc_action)
-        return string
+        return total, error, not_compliant, warning, dcc_action
 
     with open(args.outfile, "w") as tsvfile:
         dictwriter = csv.DictWriter(tsvfile, delimiter="\t", fieldnames=headers)
@@ -187,6 +183,7 @@ def main():
                 assay_list = item["assay_term_name"]
                 row_dict = dict.fromkeys(headers)
                 row_dict[matrix_url] = bio_name
+                row_total = []
                 for x in range(len(assay_list)):
                     assay_name = x_buckets[x]["key"]
                     if assay_name in full_list:
@@ -204,26 +201,59 @@ def main():
 
                                 if short_facets.get("total") == 0:
                                     row_dict["Short RNA-seq"] = 0
+                                    row_total.append([0, 0, 0, 0, 0])
                                 else:
-                                    s = audit_count(short_facets.get("facets", []), short_facets.get("total"), short_url)
-                                    row_dict["Short RNA-seq"] = s
+                                    total, error, not_compliant, warning, dcc_action = audit_count(short_facets.get("facets", []), short_facets.get("total"), short_url)
+                                    if args.allaudits:
+                                        string = '=HYPERLINK("{}","{}, {}E, {}NC, {}W, {}DCC")'.format(short_url, total, error, not_compliant, warning, dcc_action)
+                                    else:
+                                        string = '=HYPERLINK("{}","{}, {}E, {}NC")'.format(short_url, total, error, not_compliant)
+                                    row_dict["Short RNA-seq"] = string
+                                    row_total.append([total, error, not_compliant, warning, dcc_action])
 
                                 if long_facets.get("total") == 0:
                                     row_dict["Long RNA-seq"] = 0
+                                    row_total.append([0, 0, 0, 0, 0])
                                 else:
-                                    l = audit_count(long_facets.get("facets", []), long_facets.get("total"), long_url)
-                                    row_dict["Long RNA-seq"] = l
+                                    total, error, not_compliant, warning, dcc_action = audit_count(long_facets.get("facets", []), long_facets.get("total"), long_url)
+                                    if args.allaudits:
+                                        string = '=HYPERLINK("{}","{}, {}E, {}NC, {}W, {}DCC")'.format(long_url, total, error, not_compliant, warning, dcc_action)
+                                    else:
+                                        string = '=HYPERLINK("{}","{}, {}E, {}NC")'.format(long_url, total, error, not_compliant)
+                                    row_dict["Long RNA-seq"] = string
+                                    row_total.append([total, error, not_compliant, warning, dcc_action])
                             else:
                                 url = connection.server + search
                                 facets = encodedcc.get_ENCODE(search, connection).get("facets", [])
-                                temp = audit_count(facets, assay_list[x], url)
-                                row_dict[assay_name] = temp
+                                total, error, not_compliant, warning, dcc_action = audit_count(facets, assay_list[x], url)
+                                if args.allaudits:
+                                    string = '=HYPERLINK("{}","{}, {}E, {}NC, {}W, {}DCC")'.format(long_url, total, error, not_compliant, warning, dcc_action)
+                                else:
+                                    string = '=HYPERLINK("{}","{}, {}E, {}NC")'.format(long_url, total, error, not_compliant)
+                                row_total.append([total, error, not_compliant, warning, dcc_action])
+                                row_dict[assay_name] = string
                         else:
                             if assay_name == "RNA-seq":
                                 row_dict["Short RNA-seq"] = 0
                                 row_dict["Long RNA-seq"] = 0
                             else:
                                 row_dict[assay_name] = 0
+                            row_total.append([0, 0, 0, 0, 0])
+                total = 0
+                error = 0
+                not_compliant = 0
+                warning = 0
+                dcc_action = 0
+                for col in row_total:
+                        total += col[0]
+                        error += col[1]
+                        not_compliant += col[2]
+                        warning += col[3]
+                        dcc_action += col[4]
+                if args.allaudits:
+                    row_dict["TOTAL"] = "{}, {}E, {}NC, {}W, {}DCC".format(total, error, not_compliant, warning, dcc_action)
+                else:
+                    row_dict["TOTAL"] = "{}, {}E, {}NC".format(total, error, not_compliant)
                 dictwriter.writerow(row_dict)
 
     print("Output saved to {}, open this file with Google Docs Sheets, don't use Excel because it sucks".format(args.outfile))
