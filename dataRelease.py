@@ -75,7 +75,7 @@ class Data_Release():
             self.keysLink = []  # if a key is in this list, it points to a link and will be embedded in the final product
             self.make_profile(profile)
             self.PROFILES[item] = self.keysLink
-
+        print(self.PROFILES)
         self.current = []
         self.finished = []
         for item in temp.keys():
@@ -105,7 +105,7 @@ class Data_Release():
             self.searched.append(d.get("@id"))
         for key in d.keys():
             name = d.get("@type")[0]
-            if key in self.PROFILES.get(name, []):
+            if key in self.PROFILES.get(name):
                 newLinkValues = []
                 if type(d.get(key)) is list:
                     for link in d.get(key):  # loop through keys
@@ -119,6 +119,23 @@ class Data_Release():
                         temp = encodedcc.get_ENCODE(d.get(key), self.connection)
                         d[key] = temp
                         self.expand_links(temp)
+
+    def get_status(self, obj):
+        '''take object get status, @type, @id, uuid
+        {@id : [@type, uuid, status]}'''
+        name = obj["@type"][0]
+        self.statusDict[obj["@id"]] = [name, obj["uuid"], obj["status"]]
+        for key in obj.keys():
+            # loop through object properties
+            if key in self.PROFILES[name]:
+                # if the key is in profiles it's a link
+                subobj = encodedcc.get_ENCODE(obj[key], self.connection)
+                if key in ["Lab", "User", "Award"]:
+                    # don't expand, just get subobj data
+                    self.statusDict[subobj["@id"]] = [subobj["@type"][0], subobj["uuid"], subobj["status"]]
+                else:
+                    # expand subobject
+                    self.get_status(subobj)
 
     def find_status(self, dictionary):
         '''takes the object created by expand_links and makes a new dict,
@@ -168,10 +185,10 @@ class Data_Release():
             else:
                 self.ACCESSIONS = [self.infile]
         elif self.QUERY:
-            if "search" in self.args.query:
-                temp = encodedcc.get_ENCODE(self.args.query, self.connection).get("@graph", [])
+            if "search" in self.QUERY:
+                temp = encodedcc.get_ENCODE(self.QUERY, self.connection).get("@graph", [])
             else:
-                temp = [encodedcc.get_ENCODE(self.args.query, self.connection)]
+                temp = [encodedcc.get_ENCODE(self.QUERY, self.connection)]
             if any(temp):
                 for obj in temp:
                     if obj.get("accession"):
@@ -189,7 +206,7 @@ class Data_Release():
         good = ["released", "current", "disabled", "published", "finished", "virtual"]
         bad = ["replaced", "revoked", "deleted", "upload failed",
                "format check failed", "uploading", "error"]
-        ignore = ["User", "AntibodyCharacterizations", "Publication"]
+        ignore = ["User", "AntibodyCharacterization", "Publication"]
         for accession in self.ACCESSIONS:
             self.searched = []
             expandedDict = encodedcc.get_ENCODE(accession, self.connection)
@@ -207,6 +224,7 @@ class Data_Release():
                 passAudit = False
             self.statusDict = {}
             self.find_status(expandedDict)
+            #print(expandedDict)
             if self.FORCE:
                 passAudit = True
             named = []
@@ -238,6 +256,7 @@ def main():
     print("Running on", key.server)
     # build the PROFILES reference dictionary
     release = Data_Release(args, connection)
+    sys.exit(1)
     release.run_script()
 
 if __name__ == "__main__":
