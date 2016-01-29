@@ -67,15 +67,27 @@ class Data_Release():
         self.statusDict = {}
         self.connection = connection
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
-        remove = ["AnalysisStepRun", "AnalysisStepVersion", "AnalysisStep", "Lab", "User", "Award"]
-        self.profilesJSON = list(set(temp.keys()) - set(remove))
+        ignore = ["AnalysisStepRun", "AnalysisStepVersion", "AnalysisStep",
+                  "Lab", "Document", "Award", "AntibodyCharacterization",
+                  "Publication", "Organism", "Reference", "AccessKey", "User"]
+        self.profilesJSON = list(set(temp.keys()) - set(ignore))
+        self.profiles_ref = []
+        for profile in self.profilesJSON:
+            if profile.endswith("y"):
+                # this is a hack to find words like "Library"
+                profile = profile.rstrip("y") + "ies"
+                self.profiles_ref.append(profile.lower())
+            elif profile.endswith("s"):
+                # check for things with "Series" type endings
+                self.profiles_ref.append(profile.lower())
+            else:
+                self.profiles_ref.append(profile.lower() + "s")
 
         for item in self.profilesJSON:
             profile = temp[item]
             self.keysLink = []  # if a key is in this list, it points to a link and will be embedded in the final product
             self.make_profile(profile)
             self.PROFILES[item] = self.keysLink
-        #print(self.PROFILES)
 
         self.current = []
         self.finished = []
@@ -99,107 +111,51 @@ class Data_Release():
                     if i.get("linkTo") or i.get("linkFrom"):
                         self.keysLink.append(prop)
 
-    def expand_links(self, obj):
-        '''uses PROFILES to build the expanded instance of the object fed in'''
-        self.searched.append(obj["@id"])
-        name = obj["@type"][0]
-        for key in obj.keys():
-            if key in self.PROFILES[name]:
-                newLinkValues = []
-                if type(obj[key]) is list:
-                    for link in obj[key]:  # loop through keys
-                        if link not in self.searched:  # if we have not checked this link yet we continue
-                            temp = encodedcc.get_ENCODE(link, self.connection)
-                            newLinkValues.append(temp)
-                            #print(link)
-                            self.expand_links(temp)
-                    obj[key] = newLinkValues
-                elif type(obj[key]) is str:
-                    if obj[key] not in self.searched:
-                        #print(key)
-                        temp = encodedcc.get_ENCODE(obj[key], self.connection)
-                        obj[key] = temp
-                        self.expand_links(temp)
-
     def get_status(self, obj):
         '''take object get status, @type, @id, uuid
-        {@id : [@type, uuid, status]}'''
-        print(obj["@type"][0])
+        {@id : [@type, status]}'''
         name = obj["@type"][0]
         self.searched.append(obj["@id"])
         if self.PROFILES.get(name):
-            self.statusDict[obj["@id"]] = [name, obj["uuid"], obj["status"]]
+            self.statusDict[obj["@id"]] = [name, obj["status"]]
             for key in obj.keys():
                 # loop through object properties
                 if key in self.PROFILES[name]:
                     # if the key is in profiles it's a link
                     if type(obj[key]) is list:
                         for link in obj[key]:
-                            subobj = encodedcc.get_ENCODE(link, self.connection)
-                            if subobj["@type"][0] in self.PROFILES:
-                                if subobj["@id"] not in self.searched:
-                                    print("list", subobj["@id"])
-                                    self.get_status(subobj)
-                    else:
-                        subobj = encodedcc.get_ENCODE(obj[key], self.connection)
-                        if subobj["@type"][0] in self.PROFILES:
-                            if subobj["@id"] not in self.searched:
-                                print("string", subobj["@id"])
+                            item = link.split("/")[1].replace("-", "")
+                            #print(item)
+                            if item in self.profiles_ref and link not in self.searched:
                                 # expand subobject
+                                subobj = encodedcc.get_ENCODE(link, self.connection)
                                 self.get_status(subobj)
+                    else:
+                        item = obj[key].split("/")[1].replace("-", "")
+                        #print(item)
+                        if item in self.profiles_ref and obj[key] not in self.searched:
+                            # expand subobject
+                            subobj = encodedcc.get_ENCODE(obj[key], self.connection)
+                            self.get_status(subobj)
 
-    def get_status_old(self, obj):
-        '''take object get status, @type, @id, uuid
-        {@id : [@type, uuid, status]}'''
-        name = obj["@type"][0]
-        self.searched.append(obj["@id"])
-        print(name)
-        self.statusDict[obj["@id"]] = [name, obj["uuid"], obj["status"]]
-        for key in obj.keys():
-            # loop through object properties
-            if key in self.PROFILES[name]:
-                # if the key is in profiles it's a link
-                print(obj[key])
-                subobj = encodedcc.get_ENCODE(obj[key], self.connection)
-                if key in self.noExpand:
-                    # don't expand, just get subobj data
-                    self.statusDict[subobj["@id"]] = [subobj["@type"][0], subobj["uuid"], subobj["status"]]
-                else:
-                    # expand subobject
-                    self.get_status(subobj)
-
-    def find_status(self, dictionary):
-        '''takes the object created by expand_links and makes a new dict,
-        with each subobject and its status {@id : [@type, uuid, status]}'''
-        d = dictionary
-        name = d["@type"][0]
-        self.statusDict[d["@id"]] = [name, d["uuid"], d["status"]]
-        for key in d.keys():
-            if key in self.PROFILES.get(name, []):
-                if type(d[key]) is list:
-                    for item in d[key]:
-                        self.find_status(item)
-                elif type(d[key]) is dict:
-                    self.find_status(d[key])
-
-    def releasinator(self, name, uuid, status, audit):
+    def releasinator(self, name, identifier, status, audit):
         '''releases objects into their equivalent released states'''
-        stats = {}
+        patch_dict = {}
         if name in self.current:
-            logger.info('%s' % "UPDATING: {} {} with status {} is now current".format(name, uuid, status))
-            stats = {"status": "current"}
+            logger.info('%s' % "UPDATING: {} {} with status {} is now current".format(name, identifier, status))
+            patch_dict = {"status": "current"}
         elif name in self.finished:
-            logger.info('%s' % "UPDATING: {} {} with status {} is now finished".format(name, uuid, status))
-            stats = {"status": "finished"}
+            logger.info('%s' % "UPDATING: {} {} with status {} is now finished".format(name, identifier, status))
+            patch_dict = {"status": "finished"}
         else:
-            log = "UPDATING: {} {} with status {} is now released".format(name, uuid, status)
-            stats = {"status": "released"}
+            log = "UPDATING: {} {} with status {} is now released".format(name, identifier, status)
+            patch_dict = {"status": "released"}
             if audit:
                 now = datetime.datetime.now().date()
-                stats = {"date_released": str(now), "status": "released"}
-                log = "UPDATING: {} {} with status {} is now released with date {}".format(name, uuid, status, now)
+                patch_dict = {"date_released": str(now), "status": "released"}
+                log = "UPDATING: {} {} with status {} is now released with date {}".format(name, identifier, status, now)
             logger.info('%s' % log)
-        encodedcc.patch_ENCODE(uuid, self.connection, stats)
+        encodedcc.patch_ENCODE(identifier, self.connection, patch_dict)
 
     def run_script(self):
         if self.UPDATE:
@@ -241,9 +197,9 @@ class Data_Release():
         for accession in self.ACCESSIONS:
             self.searched = []
             expandedDict = encodedcc.get_ENCODE(accession, self.connection)
-            #self.expand_links(expandedDict)
             objectStatus = expandedDict.get("status")
             obj = expandedDict["@type"][0]
+
             audit = encodedcc.get_ENCODE(accession, self.connection, "page").get("audit", {})
             passAudit = True
             logger.info('%s' % "{}: {} Status: {}".format(obj, accession, objectStatus))
@@ -255,29 +211,26 @@ class Data_Release():
                 passAudit = False
             self.statusDict = {}
             self.get_status(expandedDict)
-            #print(expandedDict)
-            #sys.exit(1)
-            #self.find_status(expandedDict)
             if self.FORCE:
                 passAudit = True
+
             named = []
             for key in sorted(self.statusDict.keys()):
                 name = self.statusDict[key][0]
-                uuid = self.statusDict[key][1]
-                status = self.statusDict[key][2]
+                status = self.statusDict[key][1]
                 if name not in ignore:
                     if name not in named:
                         logger.info('%s' % name.upper())
                     if status in good:
                         if self.LOGALL:
-                            logger.info('%s' % "{} {} has status {}".format(name, uuid, status))
+                            logger.info('%s' % "{} has status {}".format(key, status))
                     elif status in bad:
-                        logger.warning('%s' % "WARNING: {} {} has status {}".format(name, uuid, status))
+                        logger.warning('%s' % "WARNING: {} has status {}".format(key, status))
                     else:
-                        logger.info('%s' % "{} {} has status {}".format(name, uuid, status))
+                        logger.info('%s' % "{} has status {}".format(key, status))
                         if self.UPDATE:
                             if passAudit:
-                                self.releasinator(name, uuid, status, passAudit)
+                                self.releasinator(name, key, status, passAudit)
                     named.append(name)
         print("Data written to file", self.outfile)
 
@@ -289,7 +242,6 @@ def main():
     print("Running on", key.server)
     # build the PROFILES reference dictionary
     release = Data_Release(args, connection)
-    #sys.exit(1)
     release.run_script()
 
 if __name__ == "__main__":
