@@ -67,10 +67,21 @@ class Data_Release():
         self.statusDict = {}
         self.connection = connection
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
-        ignore = ["AnalysisStepRun", "AnalysisStepVersion", "AnalysisStep",
-                  "Lab", "Document", "Award", "AntibodyCharacterization",
-                  "Publication", "Organism", "Reference", "AccessKey", "User"]
-        self.profilesJSON = list(set(temp.keys()) - set(ignore))
+        ignore = ["Lab", "Document", "Award", "AntibodyCharacterization", "Platform",
+                  "Publication", "Organism", "Reference", "AccessKey", "User", "Target"]
+        self.profilesJSON = []
+        for profile in temp.keys():
+            # this will allow for more customization later
+            if "AnalysisStep" in profile:
+                pass
+            elif "QualityMetric" in profile:
+                pass
+            elif "Donor" in profile:
+                pass
+            elif profile in ignore:
+                pass
+            else:
+                self.profilesJSON.append(profile)
         self.profiles_ref = []
         for profile in self.profilesJSON:
             if profile.endswith("y"):
@@ -125,14 +136,12 @@ class Data_Release():
                     if type(obj[key]) is list:
                         for link in obj[key]:
                             item = link.split("/")[1].replace("-", "")
-                            #print(item)
                             if item in self.profiles_ref and link not in self.searched:
                                 # expand subobject
                                 subobj = encodedcc.get_ENCODE(link, self.connection)
                                 self.get_status(subobj)
                     else:
                         item = obj[key].split("/")[1].replace("-", "")
-                        #print(item)
                         if item in self.profiles_ref and obj[key] not in self.searched:
                             # expand subobject
                             subobj = encodedcc.get_ENCODE(obj[key], self.connection)
