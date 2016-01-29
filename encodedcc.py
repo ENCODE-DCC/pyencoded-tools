@@ -560,10 +560,11 @@ def patch_set(args, connection):
         if args.remove:
             put_dict = full_data
             for key in temp_data.keys():
-                if key is not None:
-                    put_dict.pop(key, None)
+                name = key.split(":")[0]
+                if name is not None:
+                    put_dict.pop(name, None)
                     print("OBJECT:", accession)
-                    print("Removing value:", key)
+                    print("Removing value:", name)
             if args.update:
                 replace_ENCODE(accession, connection, put_dict)
         else:
