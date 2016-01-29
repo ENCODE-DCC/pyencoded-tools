@@ -130,10 +130,13 @@ To PATCH a single object, field with field type, and data:
         $ python3 ENCODE_patchSet.py --accession ENCSR000AAA --field read_length:int --data 31
         $ python3 ENCODE_patchSet.py --accession ENCSR000AAA --field documents:list --data document1,document2
 
-* For integers use ':int'
-* For lists use    ':list'
+* For integers use ':int' or ':integer'
+* For lists use    ':list' or ':array'
 * Lists are appended to unless the *--overwrite* option is used
 * *String are the default and do not require an identifier*
 
 **Removing data:**
 Data can be removed with the *--remove* option.  This must be run with the *--update* command to make the changes.
+
+Note that the remove option FULLY removes the ENTIRE item.  If you have a list and you want to remove only certian list items you will need to feed in the list with the object removed and use the *--overwrite* option
+
