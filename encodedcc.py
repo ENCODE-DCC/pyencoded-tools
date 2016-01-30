@@ -357,7 +357,6 @@ class GetFields():
         self.header = []
         self.accessions = []
         self.fields = []
-#        self.field = ""
         self.subobj = ""
         self.facet = facet
         self.args = args
@@ -556,17 +555,29 @@ def patch_set(args, connection):
             print("No identifier found in headers!  Cannot PATCH data")
             sys.exit(1)
         accession = quote(accession)
-        full_data = get_ENCODE(accession, connection, frame="edit")
+        full_data = get_ENCODE(accession, connection)
         if args.remove:
             put_dict = full_data
             for key in temp_data.keys():
-                name = key.split(":")[0]
+                k = key.split(":")
+                name = k[0]
+                val = k[1]
                 if name is not None:
-                    put_dict.pop(name, None)
                     print("OBJECT:", accession)
-                    print("Removing value:", name)
-            if args.update:
-                replace_ENCODE(accession, connection, put_dict)
+                    if val == "list" or val == "array":
+                        old_list = full_data[name]
+                        new_list = temp_data[key]
+                        patch_list = list(set(old_list) - set(new_list))
+                        put_dict[name] = patch_list
+                        print("OLD DATA:", name, old_list)
+                        print("NEW DATA:", name, patch_list)
+                        if args.update:
+                            patch_ENCODE(accession, connection, put_dict)
+                    else:
+                        put_dict.pop(name, None)
+                        print("Removing value:", name)
+                        if args.update:
+                            replace_ENCODE(accession, connection, put_dict)
         else:
             patch_data = {}
             if args.flowcell:
