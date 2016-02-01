@@ -528,12 +528,11 @@ def patch_set(args, connection):
     else:
         print("This is a test run, nothing will be changed")
     if args.accession:
-        assert args.field and args.data
         if args.field and args.data:
             data.append({"accession": args.accession, args.field: args.data})
         else:
             print("Missing field/data! Cannot PATCH object", args.accession)
-            return
+            sys.exit(1)
     elif args.infile:
         with open(args.infile, "r") as tsvfile:
             reader = csv.DictReader(tsvfile, delimiter='\t')
