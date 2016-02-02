@@ -568,7 +568,9 @@ def patch_set(args, connection):
                     print("OBJECT:", accession)
                     if val == "list" or val == "array":
                         old_list = full_data[name]
-                        new_list = temp_data[key]
+                        l = temp_data[key].strip("[]").split(",")
+                        l = [x.replace(" ", "") for x in l]
+                        new_list = l
                         patch_list = list(set(old_list) - set(new_list))
                         put_dict[name] = patch_list
                         print("OLD DATA:", name, old_list)
