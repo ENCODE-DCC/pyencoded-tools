@@ -554,12 +554,15 @@ def patch_set(args, connection):
             print("No identifier found in headers!  Cannot PATCH data")
             sys.exit(1)
         accession = quote(accession)
-        full_data = get_ENCODE(accession, connection)
+        full_data = get_ENCODE(accession, connection, frame="edit")
         if args.remove:
             put_dict = full_data
             for key in temp_data.keys():
                 k = key.split(":")
                 name = k[0]
+                if name not in full_data.keys():
+                    print("Cannot PATCH '{}' may be a calculated property".format(name))
+                    sys.exit(1)
                 val = k[1]
                 if name is not None:
                     print("OBJECT:", accession)
@@ -590,6 +593,9 @@ def patch_set(args, connection):
                 temp_data["flowcell_details:list"] = cell
             for key in temp_data.keys():
                 k = key.split(":")
+                if k[0] not in full_data.keys():
+                    print("Cannot PATCH '{}' may be a calculated property".format(k[0]))
+                    sys.exit(1)
                 if len(k) > 1:
                     if k[1] == "int" or k[1] == "integer":
                         patch_data[k[0]] = int(temp_data[key])
