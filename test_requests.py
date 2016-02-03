@@ -6,6 +6,7 @@ import requests
 import logging
 from urllib.parse import urljoin
 from urllib.parse import quote
+from lxml import html
 import json
 
 # http://stackoverflow.com/questions/27652543/how-to-use-python-requests-to-fake-a-browser-visit
@@ -77,9 +78,12 @@ def main():
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
     url = "https://www.encodeproject.org/search/?type=Experiment"
-    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+    headers = {'content-type': 'application/json', 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
     response = requests.get(url, headers=headers)
-    print(response.content)
+    tree = html.fromstring(response.content)
+    facets = tree.xpath('//div[@class="box facets vertical"]/text()')
+    # <div class="box facets vertical" data-reactid=".1cqd3e45q80.1.1.0.1.$/search/?type=0Experiment.0.0.0.0.0.0">
+    print(facets)
 
 if __name__ == '__main__':
         main()
