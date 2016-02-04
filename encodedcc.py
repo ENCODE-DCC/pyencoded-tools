@@ -7,6 +7,7 @@ import sys
 import logging
 from urllib.parse import urljoin
 from urllib.parse import quote
+import os.path
 
 
 class dict_diff(object):
@@ -223,7 +224,12 @@ class ENC_Item(object):
 
 def get_ENCODE(obj_id, connection, frame="object"):
     '''GET an ENCODE object as JSON and return as dict'''
-    if '?' in obj_id:
+    if frame is None:
+        if '?' in obj_id:
+            url = urljoin(connection.server, obj_id+'&limit=all')
+        else:
+            url = urljoin(connection.server, obj_id+'?limit=all')
+    elif '?' in obj_id:
         url = urljoin(connection.server, obj_id+'&limit=all&frame='+frame)
     else:
         url = urljoin(connection.server, obj_id+'?limit=all&frame='+frame)
@@ -344,60 +350,172 @@ def pprint_ENCODE(JSON_obj):
                          sort_keys=True, indent=4, separators=(',', ': ')))
 
 
-def get_fields(args, connection):
-    import csv
-    accessions = []
-    if args.query:
-        if "search" in args.query:
-            temp = get_ENCODE(args.query, connection).get("@graph", [])
-            for obj in temp:
-                if obj.get("accession"):
-                    accessions.append(obj["accession"])
+class GetFields():
+    def __init__(self, connection, args, facet=None):
+        self.connection = connection
+        self.data = []
+        self.header = []
+        self.accessions = []
+        self.fields = []
+#        self.field = ""
+        self.subobj = ""
+        self.facet = facet
+        self.args = args
+
+    def setup(self):
+        ''' facet contains a list with the first item being a list
+        of the accessions and the second a list of the fieldnames
+        essentially: facet = [ [accession1, accession2, ...], [field1, field2, ...] ]'''
+        if self.facet:
+            self.accessions = self.facet[0]
+            self.fields = self.facet[1]
         else:
-            accessions = [get_ENCODE(args.query, connection).get("accession")]
-    elif args.infile:
-        accessions = [line.strip() for line in open(args.infile)]
-    elif args.accession:
-        accessions = [args.accession]
-    else:
-        assert args.query or args.infile or args.accession, "ERROR: Need to provide accessions"
-    if args.multifield:
-        fields = [line.strip() for line in open(args.multifield)]
-    elif args.onefield:
-        fields = [args.onefield]
-    else:
-        assert args.multifield or args.onefield, "ERROR: Need to provide fields!"
-    data = {}
-    header = []
-    if "accession" not in fields:
-            header = ["accession"]
-    if any(accessions) and any(fields):
-        for a in accessions:
-            a = quote(a)
-            result = get_ENCODE(a, connection)
-            temp = {}
-            for f in fields:
-                if result.get(f):
-                    name = f
-                    if type(result[f]) == int:
-                        name = name + ":int"
-                    elif type(result[f]) == list:
-                        name = name + ":list"
-                    elif type(result[f]) == dict:
-                        name = name + ":dict"
+            temp = []
+            if self.args.collection:
+                if self.args.es:
+                    temp = get_ENCODE("/search/?type=" + self.args.collection, self.connection).get("@graph", [])
+                else:
+                    temp = get_ENCODE(self.args.collection, self.connection, frame=None).get("@graph", [])
+            elif self.args.query:
+                if "search" in self.args.query:
+                    temp = get_ENCODE(self.args.query, self.connection).get("@graph", [])
+                else:
+                    temp = [get_ENCODE(self.args.query, self.connection)]
+            elif self.args.object:
+                if os.path.isfile(self.args.object):
+                    self.accessions = [line.strip() for line in open(self.args.object)]
+                else:
+                    self.accessions = [self.args.object]
+            if any(temp):
+                for obj in temp:
+                    if obj.get("accession"):
+                        self.accessions.append(obj["accession"])
+                    elif obj.get("uuid"):
+                        self.accessions.append(obj["uuid"])
+                    elif obj.get("@id"):
+                        self.accessions.append(obj["@id"])
+                    elif obj.get("aliases"):
+                        self.accessions.append(obj["aliases"][0])
                     else:
-                        # this must be a string
-                        pass
-                    temp[name] = result[f]
-                    if name not in header:
-                        header.append(name)
-            if "accession" not in fields:
-                temp["accession"] = a
-            data[a] = temp
-    writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=header)
-    writer.writeheader()
-    for key in data.keys():
-        writer.writerow(data.get(key))
+                        print("ERROR: object has no identifier", file=sys.stderr)
+            if self.args.allfields:
+                if self.args.collection:
+                    obj = get_ENCODE("/profiles/" + self.args.collection + ".json", self.connection).get("properties")
+                else:
+                    obj_type = get_ENCODE(self.accessions[0], self.connection).get("@type")
+                    if any(obj_type):
+                        obj = get_ENCODE("/profiles/" + obj_type[0] + ".json", self.connection).get("properties")
+                self.fields = list(obj.keys())
+                for key in obj.keys():
+                    if obj[key]["type"] == "string":
+                        self.header.append(key)
+                    else:
+                        self.header.append(key + ":" + obj[key]["type"])
+                self.header.sort()
+            elif self.args.field:
+                if os.path.isfile(self.args.field):
+                    self.fields = [line.strip() for line in open(self.args.field)]
+                else:
+                    self.fields = [self.args.field]
+        if len(self.accessions) == 0:
+            print("ERROR: Need to provide accessions", file=sys.stderr)
+            sys.exit(1)
+        if len(self.fields) == 0:
+            print("ERROR: Need to provide fields!", file=sys.stderr)
+            sys.exit(1)
+
+    def get_fields(self):
+        import csv
+        from collections import deque
+        self.setup()
+        if "accession" not in self.fields:
+            self.header = ["accession"] + self.fields
+        for acc in self.accessions:
+            acc = quote(acc)
+            obj = get_ENCODE(acc, self.connection)
+            newObj = {}
+            newObj["accession"] = acc
+            for f in self.fields:
+                path = deque(f.split("."))  # check to see if someone wants embedded value
+                field = self.get_embedded(path, obj)  # get the last element in the split list
+                if field:  # after the above loop, should have final field value
+                    name = f
+                    if not self.facet:
+                        name = name + self.get_type(field)
+                    newObj[name] = field
+                    if not self.args.allfields:
+                        if name not in self.header:
+                            self.header.append(name)
+            self.data.append(newObj)
+        if not self.facet:
+            writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=self.header)
+            writer.writeheader()
+            for d in self.data:
+                writer.writerow(d)
+
+    def get_type(self, attr):
+        ''' given an object return its type as a string to append
+        '''
+        if type(attr) == int:
+            return ":integer"
+        elif type(attr) == list:
+            return ":array"
+        else:
+            # this must be a string
+            return ""
+
+    def get_embedded(self, path, obj):
+        ''' recursively move down the element path
+        until you are at the bottom of the object tree
+        then return the final value'''
+        if len(path) > 1:
+            field = path.popleft()  # first element
+            if obj.get(field):  # check to see if the element is in the current object
+                if field == "files":
+                    files_list = []  # empty list for later
+                    for f in obj[field]:
+                        temp = get_ENCODE(f, self.connection)
+                        if temp.get(path[0]):
+                            if len(path) == 1:  # if last element in path then get from each item in list
+                                files_list.append(temp[path[0]])  # add items to list
+                            else:
+                                return self.get_embedded(path, temp)
+                    if self.args.listfull:
+                        return files_list
+                    else:
+                        return list(set(files_list))  # return unique list of last element items
+                else:
+                    if type(obj[field]) == int:
+                        return obj[field]
+                    elif type(obj[field]) == list:
+                        if len(path) == 1:  # if last element in path then get from each item in list
+                            files_list = []
+                            for f in obj[field]:
+                                if type(f) == dict:
+                                    return f
+                                temp = get_ENCODE(f, self.connection)
+                                if temp.get(path[0]):
+                                    if type(temp[path[0]]) == list:
+                                        files_list.append(temp[path[0]][0])
+                                    else:
+                                        files_list.append(temp[path[0]])
+                            if self.args.listfull:
+                                return files_list
+                            else:
+                                return list(set(files_list))  # return unique list of last element items
+                        elif self.facet:
+                            temp = get_ENCODE(obj[field][0], self.connection)
+                            return self.get_embedded(path, temp)
+                        else:
+                            return obj[field]
+                    elif type(obj[field]) == dict:
+                        return obj[field]
+                    else:
+                        temp = get_ENCODE(obj[field], self.connection)  # if found get_ENCODE the embedded object
+                        return self.get_embedded(path, temp)
+        else:
+            field = path.popleft()
+            return obj.get(field)
 
 
 def patch_set(args, connection):
@@ -442,10 +560,11 @@ def patch_set(args, connection):
         if args.remove:
             put_dict = full_data
             for key in temp_data.keys():
-                if key is not None:
-                    put_dict.pop(key, None)
+                name = key.split(":")[0]
+                if name is not None:
+                    put_dict.pop(name, None)
                     print("OBJECT:", accession)
-                    print("Removing value:", key)
+                    print("Removing value:", name)
             if args.update:
                 replace_ENCODE(accession, connection, put_dict)
         else:
@@ -462,9 +581,9 @@ def patch_set(args, connection):
             for key in temp_data.keys():
                 k = key.split(":")
                 if len(k) > 1:
-                    if k[1] == "int":
+                    if k[1] == "int" or k[1] == "integer":
                         patch_data[k[0]] = int(temp_data[key])
-                    elif k[1] == "list":
+                    elif k[1] == "array" or k[1] == "list":
                         if type(temp_data[key]) == dict:
                             l = [temp_data[key]]
                         else:
