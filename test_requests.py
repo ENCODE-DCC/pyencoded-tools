@@ -8,6 +8,7 @@ from urllib.parse import urljoin
 from urllib.parse import quote
 from lxml import html
 import json
+import bs4
 
 # http://stackoverflow.com/questions/27652543/how-to-use-python-requests-to-fake-a-browser-visit
 
@@ -23,7 +24,6 @@ def getArgs():
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-
     parser.add_argument('--infile',
                         help="single column list of object accessions")
     parser.add_argument('--key',
@@ -33,14 +33,6 @@ def getArgs():
     parser.add_argument('--keyfile',
                         default=os.path.expanduser("~/keypairs.json"),
                         help="The keypair file.  Default is --keyfile=%s" % (os.path.expanduser("~/keypairs.json")))
-    parser.add_argument('--debug',
-                        default=False,
-                        action='store_true',
-                        help="Print debug messages.  Default is False.")
-    parser.add_argument('--update',
-                        default=False,
-                        action='store_true',
-                        help="Let the script PATCH the data.  Default is False")
     args = parser.parse_args()
     return args
 
@@ -72,18 +64,31 @@ def get_ENCODE(obj_id, connection, frame="object"):
     return response.json()
 
 
+def make_soup(response):
+    soup = bs4.BeautifulSoup(response.text, "lxml")
+    facet = soup.find_all("div", class_="facet")
+    print("total facets found {}".format(len(facet)))
+    for f in facet:
+        temp = f.find_all('h5')
+        for t in temp:
+            print(t.text)
+
+
 def main():
 
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
-    connection = encodedcc.ENC_Connection(key)
+    auth = (key.authid, key.authpw)
+    #connection = encodedcc.ENC_Connection(key)
     url = "https://www.encodeproject.org/search/?type=Experiment"
-    headers = {'content-type': 'application/json', 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
     response = requests.get(url, headers=headers)
-    tree = html.fromstring(response.content)
-    facets = tree.xpath('//div[@class="box facets vertical"]/text()')
-    # <div class="box facets vertical" data-reactid=".1cqd3e45q80.1.1.0.1.$/search/?type=0Experiment.0.0.0.0.0.0">
-    print(facets)
+    make_soup(response)
+    print("LOGGING IN NOW")
+    login = requests.get(url, auth=auth, headers=headers)
+    print(login)
+    make_soup(login)
+
 
 if __name__ == '__main__':
-        main()
+    main()
