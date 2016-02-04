@@ -80,13 +80,13 @@ def main():
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     auth = (key.authid, key.authpw)
     #connection = encodedcc.ENC_Connection(key)
-    url = "https://www.encodeproject.org/search/?type=Experiment"
+    url = "https://www.encodeproject.org/search/?type=Experiment&format=html"
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
     response = requests.get(url, headers=headers)
     make_soup(response)
     print("LOGGING IN NOW")
     login = requests.get(url, auth=auth, headers=headers)
-    print(login)
+    #print(login.text)
     make_soup(login)
 
 
