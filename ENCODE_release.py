@@ -70,19 +70,21 @@ class Data_Release():
         ignore = ["Lab", "Document", "Award", "AntibodyCharacterization", "Platform",
                   "Publication", "Organism", "Reference", "AccessKey", "User", "Target"]
         self.profilesJSON = []
+        self.dontExpand = []
         for profile in temp.keys():
             # this will allow for more customization later
             if "AnalysisStep" in profile:
-                pass
+                self.dontExpand.append(profile.lower() + "s")
             elif "QualityMetric" in profile:
-                pass
+                self.dontExpand.append(profile.lower() + "s")
             elif "Donor" in profile:
-                pass
+                self.dontExpand.append(profile.lower() + "s")
             elif profile in ignore:
                 pass
             else:
                 self.profilesJSON.append(profile)
         self.profiles_ref = []
+        #print(self.dontExpand)
         for profile in self.profilesJSON:
             if profile.endswith("y"):
                 # this is a hack to find words like "Library"
@@ -140,12 +142,28 @@ class Data_Release():
                                 # expand subobject
                                 subobj = encodedcc.get_ENCODE(link, self.connection)
                                 self.get_status(subobj)
+                            else:
+                                if item in self.dontExpand and link not in self.searched:
+                                    # this is not one of the links we expand
+                                    # is it a link we just get status of?
+                                    tempobj = encodedcc.get_ENCODE(link, self.connection)
+                                    tempname = tempobj["@type"][0]
+                                    self.searched.append(tempobj["@id"])
+                                    self.statusDict[tempobj["@id"]] = [tempname, tempobj["status"]]
                     else:
                         item = obj[key].split("/")[1].replace("-", "")
                         if item in self.profiles_ref and obj[key] not in self.searched:
                             # expand subobject
                             subobj = encodedcc.get_ENCODE(obj[key], self.connection)
                             self.get_status(subobj)
+                        else:
+                            if item in self.dontExpand and obj[key] not in self.searched:
+                                # this is not one of the links we expand
+                                # is it a link we just get status of?
+                                tempobj = encodedcc.get_ENCODE(obj[key], self.connection)
+                                tempname = tempobj["@type"][0]
+                                self.searched.append(tempobj["@id"])
+                                self.statusDict[tempobj["@id"]] = [tempname, tempobj["status"]]
 
     def releasinator(self, name, identifier, status, audit):
         '''releases objects into their equivalent released states'''
