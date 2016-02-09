@@ -142,7 +142,7 @@ To remove items from a list you must also tag the column header as such, otherwi
 
        accession    subobject:list
        ENCSR000AAA  item1,item2
-This removes "item1" and "item2" from the list
+This removes "item1" and "item2" from the list, you need to include the FULL NAME of the object you want to remove (i.e. “/files/ENCFF000ABD/“)
 
        accession     subobject
        ENCSR000AAA   item1,item2
