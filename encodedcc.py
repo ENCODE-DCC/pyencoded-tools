@@ -357,7 +357,6 @@ class GetFields():
         self.header = []
         self.accessions = []
         self.fields = []
-#        self.field = ""
         self.subobj = ""
         self.facet = facet
         self.args = args
@@ -529,12 +528,11 @@ def patch_set(args, connection):
     else:
         print("This is a test run, nothing will be changed")
     if args.accession:
-        assert args.field and args.data
         if args.field and args.data:
             data.append({"accession": args.accession, args.field: args.data})
         else:
             print("Missing field/data! Cannot PATCH object", args.accession)
-            return
+            sys.exit(1)
     elif args.infile:
         with open(args.infile, "r") as tsvfile:
             reader = csv.DictReader(tsvfile, delimiter='\t')
@@ -560,13 +558,30 @@ def patch_set(args, connection):
         if args.remove:
             put_dict = full_data
             for key in temp_data.keys():
-                name = key.split(":")[0]
+                k = key.split(":")
+                name = k[0]
+                if name not in full_data.keys():
+                    print("Cannot PATCH '{}' may be a calculated property".format(name))
+                    sys.exit(1)
+                val = k[1]
                 if name is not None:
-                    put_dict.pop(name, None)
                     print("OBJECT:", accession)
-                    print("Removing value:", name)
-            if args.update:
-                replace_ENCODE(accession, connection, put_dict)
+                    if val == "list" or val == "array":
+                        old_list = full_data[name]
+                        l = temp_data[key].strip("[]").split(",")
+                        l = [x.replace(" ", "") for x in l]
+                        new_list = l
+                        patch_list = list(set(old_list) - set(new_list))
+                        put_dict[name] = patch_list
+                        print("OLD DATA:", name, old_list)
+                        print("NEW DATA:", name, patch_list)
+                        if args.update:
+                            patch_ENCODE(accession, connection, put_dict)
+                    else:
+                        put_dict.pop(name, None)
+                        print("Removing value:", name)
+                        if args.update:
+                            replace_ENCODE(accession, connection, put_dict)
         else:
             patch_data = {}
             if args.flowcell:
@@ -580,6 +595,9 @@ def patch_set(args, connection):
                 temp_data["flowcell_details:list"] = cell
             for key in temp_data.keys():
                 k = key.split(":")
+                if k[0] not in full_data.keys():
+                    print("Cannot PATCH '{}' may be a calculated property".format(k[0]))
+                    sys.exit(1)
                 if len(k) > 1:
                     if k[1] == "int" or k[1] == "integer":
                         patch_data[k[0]] = int(temp_data[key])
