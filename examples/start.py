@@ -17,9 +17,11 @@ def getArgs():
     )
 
     parser.add_argument('--infile',
-                        help="list of FASTQ file accessions")
+                        help="single column list of object accessions")
+    parser.add_argument('--query',
+                        help="query of objects you want to process")
     parser.add_argument('--accession',
-                        help="single accession")
+                        help="single accession to process")
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  \
@@ -31,12 +33,10 @@ def getArgs():
                         default=False,
                         action='store_true',
                         help="Print debug messages.  Default is False.")
-    parser.add_argument('--query',
-                        help="ENCODE query to get EXPERIMENT accessions from")
-    parser.add_argument('--header',
-                        help="Prints 'header' line from fastq.  Default is false",
+    parser.add_argument('--update',
+                        default=False,
                         action='store_true',
-                        default=False)
+                        help="Let the script PATCH the data.  Default is False")
     args = parser.parse_args()
     return args
 
@@ -47,31 +47,19 @@ def main():
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
     accessions = []
-    if args.infile:
-        accessions = [line.rstrip("\n") for line in open(args.infile)]
-    elif args.query:
-        data = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
-        for exp in data:
-            files = exp.get("files", [])
-            for f in files:
-                res = encodedcc.get_ENCODE(f, connection)
-                f_type = res.get("file_format", "")
-                if f_type == "fastq":
-                    accessions.append(res["accession"])
+    if args.query:
+        temp = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
+        for obj in temp:
+            accessions.append(obj.get("@id"))
+    elif args.infile:
+        accessions = [line.strip() for line in open(args.infile)]
     elif args.accession:
         accessions = [args.accession]
     else:
-        print("No accessions to check")
+        print("No accessions to check!", file=sys.stderr)
         sys.exit(1)
     for acc in accessions:
-        link = "/files/" + acc + "/@@download/" + acc + ".fastq.gz"
-        for header, sequence, qual_header, quality in encodedcc.fastq_read(connection, uri=link):
-            if args.header:
-                header = header.decode("UTF-8")
-                print(header)
-            else:
-                sequence = sequence.decode("UTF-8")
-                print(acc + "\t" + str(len(sequence)))
+        encodedcc.get_ENCODE(acc, connection)
 
 if __name__ == '__main__':
         main()

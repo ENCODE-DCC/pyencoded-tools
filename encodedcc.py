@@ -7,6 +7,7 @@ import sys
 import logging
 from urllib.parse import urljoin
 from urllib.parse import quote
+import os.path
 
 
 class dict_diff(object):
@@ -223,7 +224,12 @@ class ENC_Item(object):
 
 def get_ENCODE(obj_id, connection, frame="object"):
     '''GET an ENCODE object as JSON and return as dict'''
-    if '?' in obj_id:
+    if frame is None:
+        if '?' in obj_id:
+            url = urljoin(connection.server, obj_id+'&limit=all')
+        else:
+            url = urljoin(connection.server, obj_id+'?limit=all')
+    elif '?' in obj_id:
         url = urljoin(connection.server, obj_id+'&limit=all&frame='+frame)
     else:
         url = urljoin(connection.server, obj_id+'?limit=all&frame='+frame)
@@ -236,7 +242,10 @@ def get_ENCODE(obj_id, connection, frame="object"):
     except:
         logging.debug('GET RESPONSE text %s' % (response.text))
     if not response.status_code == 200:
-        logging.warning('GET failure.  Response code = %s' % (response.text))
+        if response.json().get("notification"):
+            logging.warning('%s' % (response.json().get("notification")))
+        else:
+            logging.warning('GET failure.  Response code = %s' % (response.text))
     return response.json()
 
 
@@ -341,52 +350,177 @@ def pprint_ENCODE(JSON_obj):
                          sort_keys=True, indent=4, separators=(',', ': ')))
 
 
-def get_fields(args, connection):
-    import csv
-    accessions = []
-    if args.query:
-        if "search" not in args.query:
-            args.query = "/search/?type=" + args.query
-        temp = get_ENCODE(args.query, connection).get("@graph", [])
-        for obj in temp:
-            if obj.get("accession"):
-                accessions.append(obj["accession"])
-    else:
-        accessions = [line.strip() for line in open(args.infile)]
-    if args.multifield:
-        fields = [line.strip() for line in open(args.multifield)]
-    elif args.onefield:
-        fields = [args.onefield]
-    else:
-        fields = []
-    data = {}
-    if any(accessions) and any(fields):
-        for a in accessions:
-            a = quote(a)
-            result = get_ENCODE(a, connection)
-            temp = {}
-            for f in fields:
-                temp[f] = result.get(f, "")
-            if "accession" not in fields:
-                temp["accession"] = a
-            data[a] = temp
-    else:
-        print("Could not complete request one or more arugments were not supplied")
-        return
-    header = []
-    if "accession" not in fields:
-            header = ["accession"]
-    for x in fields:
-        header.append(x)
-    writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=header)
-    writer.writeheader()
-    for key in data.keys():
-        writer.writerow(data.get(key))
+class GetFields():
+    def __init__(self, connection, args, facet=None):
+        self.connection = connection
+        self.data = []
+        self.header = []
+        self.accessions = []
+        self.fields = []
+        self.subobj = ""
+        self.facet = facet
+        self.args = args
+
+    def setup(self):
+        ''' facet contains a list with the first item being a list
+        of the accessions and the second a list of the fieldnames
+        essentially: facet = [ [accession1, accession2, ...], [field1, field2, ...] ]'''
+        if self.facet:
+            self.accessions = self.facet[0]
+            self.fields = self.facet[1]
+        else:
+            temp = []
+            if self.args.collection:
+                if self.args.es:
+                    temp = get_ENCODE("/search/?type=" + self.args.collection, self.connection).get("@graph", [])
+                else:
+                    temp = get_ENCODE(self.args.collection, self.connection, frame=None).get("@graph", [])
+            elif self.args.query:
+                if "search" in self.args.query:
+                    temp = get_ENCODE(self.args.query, self.connection).get("@graph", [])
+                else:
+                    temp = [get_ENCODE(self.args.query, self.connection)]
+            elif self.args.object:
+                if os.path.isfile(self.args.object):
+                    self.accessions = [line.strip() for line in open(self.args.object)]
+                else:
+                    self.accessions = [self.args.object]
+            if any(temp):
+                for obj in temp:
+                    if obj.get("accession"):
+                        self.accessions.append(obj["accession"])
+                    elif obj.get("uuid"):
+                        self.accessions.append(obj["uuid"])
+                    elif obj.get("@id"):
+                        self.accessions.append(obj["@id"])
+                    elif obj.get("aliases"):
+                        self.accessions.append(obj["aliases"][0])
+                    else:
+                        print("ERROR: object has no identifier", file=sys.stderr)
+            if self.args.allfields:
+                if self.args.collection:
+                    obj = get_ENCODE("/profiles/" + self.args.collection + ".json", self.connection).get("properties")
+                else:
+                    obj_type = get_ENCODE(self.accessions[0], self.connection).get("@type")
+                    if any(obj_type):
+                        obj = get_ENCODE("/profiles/" + obj_type[0] + ".json", self.connection).get("properties")
+                self.fields = list(obj.keys())
+                for key in obj.keys():
+                    if obj[key]["type"] == "string":
+                        self.header.append(key)
+                    else:
+                        self.header.append(key + ":" + obj[key]["type"])
+                self.header.sort()
+            elif self.args.field:
+                if os.path.isfile(self.args.field):
+                    self.fields = [line.strip() for line in open(self.args.field)]
+                else:
+                    self.fields = [self.args.field]
+        if len(self.accessions) == 0:
+            print("ERROR: Need to provide accessions", file=sys.stderr)
+            sys.exit(1)
+        if len(self.fields) == 0:
+            print("ERROR: Need to provide fields!", file=sys.stderr)
+            sys.exit(1)
+
+    def get_fields(self):
+        import csv
+        from collections import deque
+        self.setup()
+        if "accession" not in self.fields:
+            self.header = ["accession"] + self.fields
+        for acc in self.accessions:
+            acc = quote(acc)
+            obj = get_ENCODE(acc, self.connection)
+            newObj = {}
+            newObj["accession"] = acc
+            for f in self.fields:
+                path = deque(f.split("."))  # check to see if someone wants embedded value
+                field = self.get_embedded(path, obj)  # get the last element in the split list
+                if field:  # after the above loop, should have final field value
+                    name = f
+                    if not self.facet:
+                        name = name + self.get_type(field)
+                    newObj[name] = field
+                    if not self.args.allfields:
+                        if name not in self.header:
+                            self.header.append(name)
+            self.data.append(newObj)
+        if not self.facet:
+            writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=self.header)
+            writer.writeheader()
+            for d in self.data:
+                writer.writerow(d)
+
+    def get_type(self, attr):
+        ''' given an object return its type as a string to append
+        '''
+        if type(attr) == int:
+            return ":integer"
+        elif type(attr) == list:
+            return ":array"
+        else:
+            # this must be a string
+            return ""
+
+    def get_embedded(self, path, obj):
+        ''' recursively move down the element path
+        until you are at the bottom of the object tree
+        then return the final value'''
+        if len(path) > 1:
+            field = path.popleft()  # first element
+            if obj.get(field):  # check to see if the element is in the current object
+                if field == "files":
+                    files_list = []  # empty list for later
+                    for f in obj[field]:
+                        temp = get_ENCODE(f, self.connection)
+                        if temp.get(path[0]):
+                            if len(path) == 1:  # if last element in path then get from each item in list
+                                files_list.append(temp[path[0]])  # add items to list
+                            else:
+                                return self.get_embedded(path, temp)
+                    if self.args.listfull:
+                        return files_list
+                    else:
+                        return list(set(files_list))  # return unique list of last element items
+                else:
+                    if type(obj[field]) == int:
+                        return obj[field]
+                    elif type(obj[field]) == list:
+                        if len(path) == 1:  # if last element in path then get from each item in list
+                            files_list = []
+                            for f in obj[field]:
+                                if type(f) == dict:
+                                    return f
+                                temp = get_ENCODE(f, self.connection)
+                                if temp.get(path[0]):
+                                    if type(temp[path[0]]) == list:
+                                        files_list.append(temp[path[0]][0])
+                                    else:
+                                        files_list.append(temp[path[0]])
+                            if self.args.listfull:
+                                return files_list
+                            else:
+                                return list(set(files_list))  # return unique list of last element items
+                        elif self.facet:
+                            temp = get_ENCODE(obj[field][0], self.connection)
+                            return self.get_embedded(path, temp)
+                        else:
+                            return obj[field]
+                    elif type(obj[field]) == dict:
+                        return obj[field]
+                    else:
+                        temp = get_ENCODE(obj[field], self.connection)  # if found get_ENCODE the embedded object
+                        return self.get_embedded(path, temp)
+        else:
+            field = path.popleft()
+            return obj.get(field)
 
 
 def patch_set(args, connection):
     import csv
     data = []
+    print("Running on", connection.server)
     if args.update:
         print("This is an UPDATE run, data will be patched")
         if args.remove:
@@ -395,12 +529,10 @@ def patch_set(args, connection):
         print("This is a test run, nothing will be changed")
     if args.accession:
         if args.field and args.data:
-            if args.array:
-                args.data = [args.data]
             data.append({"accession": args.accession, args.field: args.data})
         else:
-            print("Missing information! Cannot PATCH object", args.accession)
-            return
+            print("Missing field/data! Cannot PATCH object", args.accession)
+            sys.exit(1)
     elif args.infile:
         with open(args.infile, "r") as tsvfile:
             reader = csv.DictReader(tsvfile, delimiter='\t')
@@ -410,38 +542,87 @@ def patch_set(args, connection):
         reader = csv.DictReader(sys.stdin, delimiter='\t')
         for row in reader:
             data.append(row)
+    identifiers = ["accession", "uuid", "@id", "alias"]
     for d in data:
-        accession = d.get("accession")
+        temp_data = d
+        accession = ''
+        for i in identifiers:
+            if d.get(i):
+                accession = d[i]
+                temp_data.pop(i)
         if not accession:
-            print("Missing accession!  Cannot PATCH data")
-            return
-        new_data = d
-        new_data.pop("accession")
-        for key in new_data.keys():
-            for c in ["[", "]"]:
-                if c in new_data[key]:
-                    l = new_data[key].strip("[]").split(", ")
-                    l = [x.replace("'", "") for x in l]
-                    new_data[key] = l
-            if "number" in key:
-                new_data[key] = int(new_data[key])
+            print("No identifier found in headers!  Cannot PATCH data")
+            sys.exit(1)
         accession = quote(accession)
         full_data = get_ENCODE(accession, connection, frame="edit")
         if args.remove:
-            if args.update:
-                put_dict = full_data
-                for key in new_data.keys():
-                    put_dict.pop(key, None)
-                replace_ENCODE(accession, connection, put_dict)
-            print("OBJECT:", accession)
-            print("Removing values", str(new_data.keys()))
+            put_dict = full_data
+            for key in temp_data.keys():
+                k = key.split(":")
+                name = k[0]
+                if name not in full_data.keys():
+                    print("Cannot PATCH '{}' may be a calculated property".format(name))
+                    sys.exit(1)
+                val = k[1]
+                if name is not None:
+                    print("OBJECT:", accession)
+                    if val == "list" or val == "array":
+                        old_list = full_data[name]
+                        l = temp_data[key].strip("[]").split(",")
+                        l = [x.replace(" ", "") for x in l]
+                        new_list = l
+                        patch_list = list(set(old_list) - set(new_list))
+                        put_dict[name] = patch_list
+                        print("OLD DATA:", name, old_list)
+                        print("NEW DATA:", name, patch_list)
+                        if args.update:
+                            patch_ENCODE(accession, connection, put_dict)
+                    else:
+                        put_dict.pop(name, None)
+                        print("Removing value:", name)
+                        if args.update:
+                            replace_ENCODE(accession, connection, put_dict)
         else:
-            if args.update:
-                patch_ENCODE(accession, connection, new_data)
-            print("OBJECT:", accession)
-            for key in new_data.keys():
-                print("OLD DATA:", key, full_data[key])
-                print("NEW DATA:", key, new_data[key])
+            patch_data = {}
+            if args.flowcell:
+                # if flowcell is picked search for flowcell details
+                flow = ["flowcell", "lane", "machine", "barcode"]
+                cell = {}
+                for f in flow:
+                    if temp_data.get(f):
+                        cell[f] = temp_data[f]
+                        temp_data.pop(f)
+                temp_data["flowcell_details:list"] = cell
+            for key in temp_data.keys():
+                k = key.split(":")
+                if k[0] not in full_data.keys():
+                    print("Cannot PATCH '{}' may be a calculated property".format(k[0]))
+                    sys.exit(1)
+                if len(k) > 1:
+                    if k[1] == "int" or k[1] == "integer":
+                        patch_data[k[0]] = int(temp_data[key])
+                    elif k[1] == "array" or k[1] == "list":
+                        if type(temp_data[key]) == dict:
+                            l = [temp_data[key]]
+                        else:
+                            l = temp_data[key].strip("[]").split(",")
+                            l = [x.replace(" ", "") for x in l]
+                        if args.overwrite:
+                            patch_data[k[0]] = l
+                        else:
+                            append_list = get_ENCODE(accession, connection).get(k[0], [])
+                            patch_data[k[0]] = l + append_list
+                else:
+                    patch_data[k[0]] = temp_data[key]
+                old_data = {}
+                for key in patch_data.keys():
+                    old_data[key] = full_data.get(key)
+                print("OBJECT:", accession)
+                for key in patch_data.keys():
+                    print("OLD DATA:", key, old_data[key])
+                    print("NEW DATA:", key, patch_data[key])
+                if args.update:
+                    patch_ENCODE(accession, connection, patch_data)
 
 
 def fastq_read(connection, uri=None, filename=None, reads=1):

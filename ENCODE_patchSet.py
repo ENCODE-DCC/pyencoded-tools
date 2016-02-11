@@ -8,9 +8,10 @@ import encodedcc
 
 EPILOG = '''
 Input file should be a TSV (tab separated value) file with headers
+if the field value is a non-string value, list its type separated by a colon
 
-accession   header1  header2     header3 ...
-ENCSR000AAA value1   [list1,list2] value3  ...
+accession   header1  header2:list  header3:int ...
+ENCSR000AAA value1   list1,list2   value3  ...
 
 Whatever data is used to identify the object (accession, uuid, alias)
 goes in the accession column to be used for identification of object
@@ -21,9 +22,29 @@ To PATCH data run with update comamnd:
 
         %(prog)s --update
 
-To PATCH a single object, field, and data:
+To PATCH a single object, field with field type, and data:
 
         %(prog)s --accession ENCSR000AAA --field assay_term_name --data ChIP-seq
+        %(prog)s --accession ENCSR000AAA --field read_length:int --data 31
+        %(prog)s --accession ENCSR000AAA --field documents:list --data document1,document2
+
+    for integers use ':int'
+    for lists use    ':list'
+    string are the default and do not require an identifier
+
+    lists are appended to unless the --overwite command is used
+
+To PATCH flowcells:
+
+        %(prog)s --flowcell
+
+    the "flowcell" option is a flag used to have the script search for\
+    flowcell data in the infile
+
+accession   flowcell   lane    barcode   machine
+ENCSR000AAA value1     value2  value3    value4
+
+    not all the columns are needed for the flowcell to be built
 
 For more details:
 
@@ -63,11 +84,21 @@ def getArgs():
     parser.add_argument('--accession',
                         help="Single accession/identifier to patch")
     parser.add_argument('--field',
-                        help='Field for single accession')
+                        help="Field for single accession, input needs to have the field type listed\
+                                Ex: --field read_length:int    --field documents:list\
+                                strings don't need to have their type listed")
     parser.add_argument('--data',
                         help='Data for single accession')
-    parser.add_argument('--array',
-                        help='Use if the single accession is an array')
+    parser.add_argument('--overwrite',
+                        help="If field is an list then overwrite it with new data. Default is False, and data is appended",
+                        action='store_true',
+                        default=False)
+    parser.add_argument('--flowcell',
+                        default=False,
+                        action='store_true',
+                        help="used when file contains flowcell information\
+                        script will seek out the flowcell data and build flowcells\
+                        unless --overwrite is used flowcells will append data")
     args = parser.parse_args()
     return args
 
