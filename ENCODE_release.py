@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: latin-1 -*-
 import argparse
 import os
@@ -7,16 +7,85 @@ import encodedcc
 import logging
 import sys
 
-EPILOG = '''takes a file with a list of experiment accessions, a query,
-or a single accession and checks all associated objects
-and sets them to their released status'''
+EPILOG = '''
+%(prog)s is a script that will release objects fed to it
+Default settings only report the status of releaseable objects
+and will NOT release unless instructed
+In addition if an object fails to pass the Error or Not Compliant
+audits it will not be released
+
+Basic Useage:
+
+    %(prog)s --infile file.txt
+    %(prog)s --infile ENCSR000AAA
+    %(prog)s --infile ENCSR000AAA,ENCSR000AAB,ENCSR000AAC
+
+    A single column file listing the  identifiers of the objects desired
+    A single identifier or comma separated list of identifiers is also useable
+
+
+    %(prog)s --query "/search/?type=Experiment&status=release+ready"
+
+    A query may be fed to the script to use for the object list
+
+
+    %(prog)s --infile file.txt --update
+
+    '--update' should be used whenever you want to PATCH the changes
+    to the database, otherwise the script will stop before PATCHing
+
+
+    %(prog)s --infile file.txt --force --update
+
+    if an object does not pass the 'Error' or 'Not Compliant' audit
+    it can still be released with the '--force' option
+    MUST BE RUN WITH '--update' TO WORK
+
+
+    %(prog)s --infile file.txt --logall
+
+    Default script will not log status of 'released' objects,
+    using '--logall' will make it include the statuses of released items
+    in the report file
+
+
+Misc. Useage:
+
+    The output file default is 'Release_report.txt'
+    This can be changed with '--output'
+
+    Default keyfile location is '~/keyfile.json'
+    Change with '--keyfile'
+
+    Default key is 'default'
+    Change with '--key'
+
+    Default debug is off
+    Change with '--debug'
+
+'''
 logger = logging.getLogger(__name__)
 
 
 def getArgs():
-    parser = argparse.ArgumentParser(epilog=EPILOG)
+    parser = argparse.ArgumentParser(
+        description=__doc__, epilog=EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        )
     parser.add_argument('--infile',
-                        help="File containing accessions or single accession")
+                        help="File containing single column of accessions\
+                        or a single accession or comma separated list of accessions")
+    parser.add_argument('--query',
+                        help="Custom query for accessions")
+    parser.add_argument('--update',
+                        help="Run script and update the objects. Default is off",
+                        action='store_true', default=False)
+    parser.add_argument('--force',
+                        help="Forces release of experiments that did not pass audit. Default is off",
+                        action='store_true', default=False)
+    parser.add_argument('--logall',
+                        help="Adds status of 'released' objects to output file. Default is off",
+                        action='store_true', default=False)
     parser.add_argument('--outfile',
                         help="Output file name", default='Release_report.txt')
     parser.add_argument('--key',
@@ -25,19 +94,8 @@ def getArgs():
     parser.add_argument('--keyfile',
                         help="The keyfile",
                         default=os.path.expanduser('~/keypairs.json'))
-    parser.add_argument('--update',
-                        help="Run script and update the objects. Default is off",
-                        action='store_true', default=False)
-    parser.add_argument('--query',
-                        help="Custom query for accessions")
-    parser.add_argument('--force',
-                        help="Forces release of experiments that did not pass audit. Default is off",
-                        action='store_true', default=False)
     parser.add_argument('--debug',
                         help="Run script in debug mode.  Default is off",
-                        action='store_true', default=False)
-    parser.add_argument('--logall',
-                        help="Adds status of 'released' objects to output file. Default is off",
                         action='store_true', default=False)
     args = parser.parse_args()
     if args.debug:
@@ -55,6 +113,7 @@ def getArgs():
 
 class Data_Release():
     def __init__(self, args, connection):
+        # renaming some things so I can be lazy and not pass them around
         self.infile = args.infile
         self.outfile = args.outfile
         self.QUERY = args.query
@@ -71,14 +130,16 @@ class Data_Release():
                   "Publication", "Organism", "Reference", "AccessKey", "User", "Target"]
         self.profilesJSON = []
         self.dontExpand = []
+        self.date_released = []
         for profile in temp.keys():
-            # this will allow for more customization later
+            # get the names of things we DON'T expand
+            # these things usually link to other experiments/objects
             if "AnalysisStep" in profile:
-                self.dontExpand.append(profile.lower() + "s")
+                self.dontExpand.append(self.helper(profile))
             elif "QualityMetric" in profile:
-                self.dontExpand.append(profile.lower() + "s")
+                self.dontExpand.append(self.helper(profile))
             elif "Donor" in profile:
-                self.dontExpand.append(profile.lower() + "s")
+                self.dontExpand.append(self.helper(profile))
             elif profile in ignore:
                 pass
             else:
@@ -86,21 +147,18 @@ class Data_Release():
         self.profiles_ref = []
         #print(self.dontExpand)
         for profile in self.profilesJSON:
-            if profile.endswith("y"):
-                # this is a hack to find words like "Library"
-                profile = profile.rstrip("y") + "ies"
-                self.profiles_ref.append(profile.lower())
-            elif profile.endswith("s"):
-                # check for things with "Series" type endings
-                self.profiles_ref.append(profile.lower())
-            else:
-                self.profiles_ref.append(profile.lower() + "s")
+            self.profiles_ref.append(self.helper(profile))
 
         for item in self.profilesJSON:
             profile = temp[item]
             self.keysLink = []  # if a key is in this list, it points to a link and will be embedded in the final product
             self.make_profile(profile)
             self.PROFILES[item] = self.keysLink
+            # lets get the list of things that actually get a date released
+            for value in profile["properties"].keys():
+                if value == "date_released":
+                    self.date_released.append(item)
+        #print(self.date_released)
 
         self.current = []
         self.finished = []
@@ -110,6 +168,55 @@ class Data_Release():
                 self.current.append(item)
             if "finished" in status:
                 self.finished.append(item)
+
+    def set_up(self):
+        '''do some setup for script'''
+        if self.UPDATE:
+            print("WARNING: This run is an UPDATE run objects will be released.")
+        else:
+            print("Object status will be checked but not changed")
+        if self.FORCE:
+            print("WARNING: Objects that do not pass audit will be FORCE-released")
+        if self.LOGALL:
+            print("Logging all statuses")
+        if self.infile:
+            if os.path.isfile(self.infile):
+                self.ACCESSIONS = [line.rstrip('\n') for line in open(self.infile)]
+            else:
+                self.ACCESSIONS = self.infile.split(",")
+        elif self.QUERY:
+            if "search" in self.QUERY:
+                temp = encodedcc.get_ENCODE(self.QUERY, self.connection).get("@graph", [])
+            else:
+                temp = [encodedcc.get_ENCODE(self.QUERY, self.connection)]
+            if any(temp):
+                for obj in temp:
+                    if obj.get("accession"):
+                        self.ACCESSIONS.append(obj["accession"])
+                    elif obj.get("uuid"):
+                        self.ACCESSIONS.append(obj["uuid"])
+                    elif obj.get("@id"):
+                        self.ACCESSIONS.append(obj["@id"])
+                    elif obj.get("aliases"):
+                        self.ACCESSIONS.append(obj["aliases"][0])
+        if len(self.ACCESSIONS) == 0:
+            # if something happens and we end up with no accessions stop
+            print("ERROR: object has no identifier", file=sys.stderr)
+            sys.exit(1)
+
+    def helper(self, item):
+        '''feed this back to making references between official object name \
+        and the name used in things like the @id
+        such as Library and libraries'''
+        if item.endswith("y"):
+            # this is a hack to find words like "Library"
+            item = item.rstrip("y") + "ies"
+        elif item.endswith("s"):
+            # check for things with "Series" type endings
+            pass
+        else:
+            item = item + "s"
+        return item.lower()
 
     def make_profile(self, dictionary):
         '''builds the PROFILES reference dictionary
@@ -145,7 +252,7 @@ class Data_Release():
                             else:
                                 if item in self.dontExpand and link not in self.searched:
                                     # this is not one of the links we expand
-                                    # is it a link we just get status of?
+                                    # is it a link we just get status of
                                     tempobj = encodedcc.get_ENCODE(link, self.connection)
                                     tempname = tempobj["@type"][0]
                                     self.searched.append(tempobj["@id"])
@@ -159,63 +266,36 @@ class Data_Release():
                         else:
                             if item in self.dontExpand and obj[key] not in self.searched:
                                 # this is not one of the links we expand
-                                # is it a link we just get status of?
+                                # is it a link we just get status of
                                 tempobj = encodedcc.get_ENCODE(obj[key], self.connection)
                                 tempname = tempobj["@type"][0]
                                 self.searched.append(tempobj["@id"])
                                 self.statusDict[tempobj["@id"]] = [tempname, tempobj["status"]]
 
-    def releasinator(self, name, identifier, status, audit):
+    def releasinator(self, name, identifier, status):
         '''releases objects into their equivalent released states'''
         patch_dict = {}
         if name in self.current:
-            logger.info('%s' % "UPDATING: {} {} with status {} is now current".format(name, identifier, status))
+            log = '%s' % "UPDATING: {} {} with status {} is now current".format(name, identifier, status)
             patch_dict = {"status": "current"}
         elif name in self.finished:
-            logger.info('%s' % "UPDATING: {} {} with status {} is now finished".format(name, identifier, status))
+            log = '%s' % "UPDATING: {} {} with status {} is now finished".format(name, identifier, status)
             patch_dict = {"status": "finished"}
         else:
             log = "UPDATING: {} {} with status {} is now released".format(name, identifier, status)
             patch_dict = {"status": "released"}
-            if audit:
-                now = datetime.datetime.now().date()
-                patch_dict = {"date_released": str(now), "status": "released"}
-                log = "UPDATING: {} {} with status {} is now released with date {}".format(name, identifier, status, now)
-            logger.info('%s' % log)
+        if name in self.date_released:
+            # if the object would have a date_released give it one
+            now = datetime.datetime.now().date()
+            patch_dict = {"date_released": str(now)}
+            log += " with date {}".format(now)
+        logger.info('%s' % log)
         encodedcc.patch_ENCODE(identifier, self.connection, patch_dict)
 
     def run_script(self):
-        if self.UPDATE:
-            print("WARNING: This run is an UPDATE run objects will be released.")
-        else:
-            print("Object status will be checked but not changed")
-        if self.FORCE:
-            print("WARNING: Objects that do not pass audit will be FORCE-released")
-        if self.LOGALL:
-            print("Logging all statuses")
-        if self.infile:
-            if os.path.isfile(self.infile):
-                self.ACCESSIONS = [line.rstrip('\n') for line in open(self.infile)]
-            else:
-                self.ACCESSIONS = [self.infile]
-        elif self.QUERY:
-            if "search" in self.QUERY:
-                temp = encodedcc.get_ENCODE(self.QUERY, self.connection).get("@graph", [])
-            else:
-                temp = [encodedcc.get_ENCODE(self.QUERY, self.connection)]
-            if any(temp):
-                for obj in temp:
-                    if obj.get("accession"):
-                        self.ACCESSIONS.append(obj["accession"])
-                    elif obj.get("uuid"):
-                        self.ACCESSIONS.append(obj["uuid"])
-                    elif obj.get("@id"):
-                        self.ACCESSIONS.append(obj["@id"])
-                    elif obj.get("aliases"):
-                        self.ACCESSIONS.append(obj["aliases"][0])
-        if len(self.ACCESSIONS) == 0:
-            print("ERROR: object has no identifier", file=sys.stderr)
-            sys.exit(1)
+        # set_up() gets all the command line arguments and validates them
+        # also makes the list of accessions to run from
+        self.set_up()
 
         good = ["released", "current", "disabled", "published", "finished", "virtual"]
         bad = ["replaced", "revoked", "deleted", "upload failed",
@@ -257,7 +337,7 @@ class Data_Release():
                         logger.info('%s' % "{} has status {}".format(key, status))
                         if self.UPDATE:
                             if passAudit:
-                                self.releasinator(name, key, status, passAudit)
+                                self.releasinator(name, key, status)
                     named.append(name)
         print("Data written to file", self.outfile)
 
