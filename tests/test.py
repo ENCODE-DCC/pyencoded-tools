@@ -5,6 +5,7 @@ import os.path
 # py.test test.py
 # py.test with -v for verbose, or -m key/connection/etc to use the marked tests
 
+
 def test_nothing():
     assert(1)
 
@@ -22,7 +23,7 @@ def test_key_server():
 
 
 @pytest.mark.key
-def test_key_aithid():
+def test_key_authid():
     key = encodedcc.ENC_Key(os.path.expanduser("~/keypairs.json"), "default")
     assert(key.authid)
 
