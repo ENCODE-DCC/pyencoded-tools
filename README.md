@@ -202,13 +202,13 @@ Default debug is off
 
 ### ENCODE_error_summary.py
 
-This script uses the matrix view available at
-"https://www.encodeproject.org/matrix/?type=Experiment"
-to find and total the Error and Not Compliant audits
+This script uses the matrix view available at "https://www.encodeproject.org/matrix/?type=Experiment" to find and total the Error and Not Compliant audits
 
-This script outputs a TSV file that has been formatted so that when it is
-opened in Excel each cell with results will also be a link to the search
-page used to generate that cell data
+This script outputs a TSV file that has been formatted so that when it is opened in Google Sheets each cell with results will also be a link to the search page used to generate that cell data
+
+**You must use Google Sheets to open the resulting file**
+
+Excel is unable to handle the formulas
 
 For more details:
         ENCODE_error_summary.py --help
