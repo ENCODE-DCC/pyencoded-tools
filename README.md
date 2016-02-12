@@ -153,10 +153,10 @@ This will remove the "subobject" from the object completely
 **_PLEASE NOTE:_** This script is a dryrun-default script, run it with the *--update* option to make any changes
 
 ENCODE_release.py is a script that will release objects fed to it
-Default settings only report the status of releaseable objects
-and will NOT release unless instructed
-In addition if an object fails to pass the Error or Not Compliant
-audits it will not be released
+
+Default settings only report the status of releaseable objects and will NOT release unless instructed
+
+In addition if an object fails to pass the Error or Not Compliant audits it will not be released
 
 **Basic Useage:**
 
@@ -178,26 +178,24 @@ to the database, otherwise the script will stop before PATCHing
 
     $ ./ENCODE_release.py --infile file.txt --force --update
 
-if an object does not pass the 'Error' or 'Not Compliant' audit
-it can still be released with the *'--force'* option
+if an object does not pass the 'Error' or 'Not Compliant' audit it can still be released with the *'--force'* option
+
 MUST BE RUN WITH *'--update'* TO WORK
 
     $ ./ENCODE_release.py --infile file.txt --logall
 
-Default script will not log status of 'released' objects,
-using *'--logall'* will make it include the statuses of released items
-in the report file
+Default script will not log status of 'released' objects, using *'--logall'* will make it include the statuses of released items in the report file
 
 **Misc. Useage:**
 
 The output file default is 'Release_report.txt'
-This can be changed with '--output'
+ * This can be changed with '--output'
 
 Default keyfile location is '~/keyfile.json'
-Change with '--keyfile'
+ * Change with '--keyfile'
 
 Default key is 'default'
-Change with '--key'
+ * Change with '--key'
 
 Default debug is off
-Change with '--debug'
+ * Change with '--debug'
