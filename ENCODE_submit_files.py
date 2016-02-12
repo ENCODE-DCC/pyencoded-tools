@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# -*- coding: latin-1 -*-
 '''Take a CSV with file metadata, POST new file objects to the ENCODE DCC,
  upload files to the ENCODE cloud bucket'''
 

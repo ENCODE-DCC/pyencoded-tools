@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: latin-1 -*-
 '''GET an ENCODE collection and output a tsv of all objects and
 their properties suitable for spreadsheet import'''

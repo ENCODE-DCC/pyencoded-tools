@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: latin-1 -*-
 '''Take a comma-delimited, double quote-quoted csv and update ENCODE objects appropriately'''
 

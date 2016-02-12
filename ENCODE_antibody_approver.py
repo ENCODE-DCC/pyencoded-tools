@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: latin-1 -*-
 import argparse
 import os.path
 import csv
