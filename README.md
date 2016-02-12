@@ -134,6 +134,19 @@ To PATCH a single object, field with field type, and data:
 * Lists are appended to unless the *--overwrite* option is used
 * *String are the default and do not require an identifier*
 
+
+To PATCH flowcells:
+
+        ./ENCODE_patchSet.py --flowcell
+
+the "flowcell" option is a flag used to have the script search for\
+flowcell data in the infile
+
+    accession   flowcell   lane    barcode   machine
+    ENCSR000AAA value1     value2  value3    value4
+
+not all the columns are needed for the flowcell to be built
+
 **Removing data:**
 Data can be removed with the *--remove* option.  This must be run with the *--update* command to make the changes.
 
