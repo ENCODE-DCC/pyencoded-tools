@@ -287,7 +287,7 @@ class Data_Release():
         if name in self.date_released:
             # if the object would have a date_released give it one
             now = datetime.datetime.now().date()
-            patch_dict = {"date_released": str(now)}
+            patch_dict = {"date_released": str(now), "status": "released"}
             log += " with date {}".format(now)
         logger.info('%s' % log)
         encodedcc.patch_ENCODE(identifier, self.connection, patch_dict)
