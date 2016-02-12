@@ -147,3 +147,58 @@ This removes "item1" and "item2" from the list, you need to include the FULL NAM
        accession     subobject
        ENCSR000AAA   item1,item2
 This will remove the "subobject" from the object completely
+
+
+### ENCODE_release.py
+
+**_PLEASE NOTE:_** This script is a dryrun-default script, run it with the *--update* option to make any changes
+
+ENCODE_release.py is a script that will release objects fed to it
+Default settings only report the status of releaseable objects
+and will NOT release unless instructed
+In addition if an object fails to pass the Error or Not Compliant
+audits it will not be released
+
+**Basic Useage:**
+
+    $ ./ENCODE_release.py --infile file.txt
+    $ ./ENCODE_release.py --infile ENCSR000AAA
+    $ ./ENCODE_release.py --infile ENCSR000AAA,ENCSR000AAB,ENCSR000AAC
+
+A single column file listing the  identifiers of the objects desired
+A single identifier or comma separated list of identifiers is also useable
+
+    $ ./ENCODE_release.py --query "/search/?type=Experiment&status=release+ready"
+
+A query may be fed to the script to use for the object list
+
+    $ ./ENCODE_release.py --infile file.txt --update
+
+*'--update'* should be used whenever you want to PATCH the changes
+to the database, otherwise the script will stop before PATCHing
+
+    $ ./ENCODE_release.py --infile file.txt --force --update
+
+if an object does not pass the 'Error' or 'Not Compliant' audit
+it can still be released with the *'--force'* option
+MUST BE RUN WITH *'--update'* TO WORK
+
+    $ ./ENCODE_release.py --infile file.txt --logall
+
+Default script will not log status of 'released' objects,
+using *'--logall'* will make it include the statuses of released items
+in the report file
+
+**Misc. Useage:**
+
+The output file default is 'Release_report.txt'
+This can be changed with '--output'
+
+Default keyfile location is '~/keyfile.json'
+Change with '--keyfile'
+
+Default key is 'default'
+Change with '--key'
+
+Default debug is off
+Change with '--debug'
