@@ -30,6 +30,8 @@ There are three methods to pick from
 "multi" assumes one control with number of replicates equal to number of replicates in experiment
 "biosample" assumes multiple controls that should be matched on biosample
 
+By not selecting the '--method' option the script will try to guess at what the type is
+
 
     %(prog)s --ignore_runtype
 
@@ -39,9 +41,6 @@ This makes the script ignore the value of the paired ends, default is off
     %(prog)s --missing
 
 Script will print out only the names of files missing controlled_by
-
-
-
 
 
 For more details:
