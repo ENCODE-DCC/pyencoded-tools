@@ -9,7 +9,11 @@ import requests
 from urllib.parse import urljoin
 import logging
 
-EPILOG = '''Limitations:
+EPILOG = '''
+This script MIGHT be depricated with the new use of ENCODE_get_fields
+however this seems to run faster due to how it treats embedded objects
+
+Limitations:
 
 Gets all objects, no searching implemented yet.
 Arrays of strings come back with the items quoted, SO NOT SUITABLE FOR DIRECT PATCH back
@@ -65,8 +69,6 @@ def main():
                         default=False,
                         action='store_true',
                         help="Show only properties you might want a submitter to submit.")
-    parser.add_argument('--server',
-                        help="Full URL of the server.")
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  \
@@ -75,10 +77,6 @@ def main():
                         default=os.path.expanduser("~/keypairs.json"),
                         help="The keypair file.  Default is --\
                         keyfile=%s" % (os.path.expanduser("~/keypairs.json")))
-    parser.add_argument('--authid',
-                        help="The HTTP auth ID.")
-    parser.add_argument('--authpw',
-                        help="The HTTP auth PW.")
     parser.add_argument('--debug',
                         default=False,
                         action='store_true',

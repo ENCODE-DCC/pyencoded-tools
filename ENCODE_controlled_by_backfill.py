@@ -6,6 +6,44 @@ import encodedcc
 import sys
 
 EPILOG = '''
+Script to fix the controlled_by backfill problems
+This is a dryrun default script, run with '--update' to PATCH data
+
+Useage:
+
+    %(prog)s --infile MyFile.txt
+    %(prog)s --infile ENCSR000AAA
+    %(prog)s --infile ENCSR000AAA,ENCSR000AAB,ENCSR000AAC
+    %(prog)s --query "/search/?type=Experiment"
+
+Script will take a file with single column list of accessions
+Can also take a single accession or comma separated list of accessions
+A query from which to gather accessions
+
+
+    %(prog)s --method single
+    %(prog)s --method multi
+    %(prog)s --method biosample
+
+There are three methods to pick from
+"single" assumes one replicate in the control
+"multi" assumes one control with number of replicates equal to number of replicates in experiment
+"biosample" assumes multiple controls that should be matched on biosample
+
+
+    %(prog)s --ignore_runtype
+
+This makes the script ignore the value of the paired ends, default is off
+
+
+    %(prog)s --missing
+
+Script will print out only the names of files missing controlled_by
+
+
+
+
+
 For more details:
 
         %(prog)s --help
@@ -27,11 +65,10 @@ def getArgs():
                         default=False,
                         action='store_true')
     parser.add_argument('--infile',
-                        help="single column list of object accessions")
+                        help="file containing single column list of object accessions,\
+                        single accession, or comma separated list of accessions")
     parser.add_argument('--query',
                         help="query of objects you want to process")
-    parser.add_argument('--accession',
-                        help="single accession to process")
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  \
@@ -197,16 +234,30 @@ def main():
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
     accessions = []
-    if args.query:
-        temp = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
-        for obj in temp:
-            accessions.append(obj.get("accession"))
-    elif args.infile:
-        accessions = [line.strip() for line in open(args.infile)]
-    elif args.accession:
-        accessions = [args.accession]
+    if args.infile:
+            if os.path.isfile(args.infile):
+                accessions = [line.rstrip('\n') for line in open(args.infile)]
+            else:
+                accessions = args.infile.split(",")
+    elif args.query:
+        if "search" in args.query:
+            temp = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
+        else:
+            temp = [encodedcc.get_ENCODE(args.query, connection)]
+        if any(temp):
+            for obj in temp:
+                if obj.get("accession"):
+                    accessions.append(obj["accession"])
+                elif obj.get("uuid"):
+                    accessions.append(obj["uuid"])
+                elif obj.get("@id"):
+                    accessions.append(obj["@id"])
+                elif obj.get("aliases"):
+                    accessions.append(obj["aliases"][0])
     if len(accessions) == 0:
-        print("No accessions to check!")
+        # if something happens and we end up with no accessions stop
+        print("ERROR: object has no identifier", file=sys.stderr)
+        sys.exit(1)
     else:
         dataList = []
         for acc in accessions:

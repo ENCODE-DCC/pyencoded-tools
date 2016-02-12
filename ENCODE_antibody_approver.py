@@ -7,11 +7,24 @@ import encodedcc
 from urllib.parse import quote
 
 EPILOG = '''
+Given a TSV file this script will attempt to add in the information
+to the antibodies, the file is provided by the user
+
 Example TSV file:
 @id    lanes    lane_status         notes    documents
 someID  2,3     compliant           get it?  important_document.pdf
 someID  1,4     not compliant       got it   important_document.pdf
 someID  5       pending dcc review  good     important_document.pdf
+
+
+Useage:
+
+    %(prog)s --infile MyFile.txt --user 4eg4-some-uuid-ks87
+    %(prog)s --infile MyFile.txt --user /users/some-user
+
+    Either a uuid or an @id can be used for user identification
+
+This is a dryrun default script, run with '--update' to make changes
 
 For more details:
 
@@ -57,7 +70,7 @@ def main():
     if args.update:
         assert args.user, "A user must be provided to run this script!"
         user = encodedcc.get_ENCODE(args.user, connection).get("@id")
-        assert user, " user was not found in the ENCODE database as a registered user. Please try again"
+        assert user, "{} was not found in the ENCODE database as a registered user. Please try again".format(args.user)
 
     data = []
     idList = []
