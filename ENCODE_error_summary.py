@@ -16,7 +16,6 @@ opened in Excel each cell with results will also be a link to the search
 page used to generate that cell data
 
 For more details:
-
         %(prog)s --help
 
 This script will print out the following during it's run:
@@ -25,25 +24,32 @@ This is due to how the long and short RNA-seq are searched
 and it does not affect the final results of the script
 
 all commands need to be quote enclosed
+
 '--rfa' command uses the award.rfa property to refine inital matrix
-Ex: %(prog)s --rfa "ENCODE;Roadmap"
+
+    Ex: %(prog)s --rfa "ENCODE,Roadmap"
+
 
 '--species' command uses the organism.name property to refine the inital matrix
-Ex: %(prog)s --species "celegans;human;mouse"
+
+    Ex: %(prog)s --species "celegans,human,mouse"
+
 
 '--lab' command uses the lab.title property to refine inital matrix
-Ex: %(prog)s --lab "Bing Ren, UCSD;J. Micheal Cherry, Stanford"
+
+    Ex: %(prog)s --lab "bing-ren,j-micheal-cherry"
+
 
 '--status' uses the status property to refine inital matrix
-Ex: %(prog)s --status "released;submitted"
+
+    Ex: %(prog)s --status "released,submitted"
 
 the usual list of assay this script shows is
     Short RNA-seq, Long RNA-seq, microRNA profiling by array assay, microRNA-seq
     DNase-seq, whole-genome shotgun bisulfite sequencing, RAMPAGE, CAGE
+
 use the '--all' command to select all the available assays for display
-
 the output file can be renamed using the '--outfile' option
-
 the '--allaudits' command will also list the "WARNING" and "DCC ACTION" audits
 '''
 
@@ -66,28 +72,28 @@ def getArgs():
                         help="Print debug messages.  Default is False.")
     parser.add_argument('--rfa',
                         help="refine search with award.rfa\
-                        write as quote enclosed semicolon separated list\
-                        ex: \"ENCODE;Roadmap\"")
+                        write as comma separated list\
+                        ex: ENCODE,Roadmap")
     parser.add_argument('--species',
                         help="refine search with species using the organism.name property\
                         ex: celegans, human, mouse\
-                        write as quote enclosed semicolon separated list\
-                        ex: \"celegans;human;mouse\"")
+                        write as comma separated list\
+                        ex: celegans,human,mouse")
     parser.add_argument('--status',
                         help="refine search with status\
-                        write as quote enclosed semicolon separated list\
-                        ex: \"released;submitted\"")
+                        write as comma separated list\
+                        ex: released,submitted")
     parser.add_argument('--lab',
-                        help="refine search with lab title\
-                        write as quote enclosed semicolon separated list\
-                        ex: \"Bing Ren, UCSD;J. Micheal Cherry, Stanford\"\
+                        help="refine search with lab.name\
+                        write as comma separated list\
+                        ex: bing-ren,j-micheal-cherry\
                         lab name format should be Firstname Lastname, Location")
     parser.add_argument('--all',
                         help="use the full list of assays, default is false",
                         default=False,
                         action="store_true")
     parser.add_argument('--outfile',
-                        default="Error_Count.xlsx",
+                        default="Error_Count.tsv",
                         help="name the outfile")
     parser.add_argument('--allaudits',
                         help="show all the audit counts, default is false",
@@ -136,25 +142,24 @@ def main():
     status_string = ""
     lab_string = ""
     if args.rfa:
-        rfa_list = args.rfa.split(";")
+        rfa_list = args.rfa.split(",")
         for r in rfa_list:
-            rfa_string += "&award.project=" + r
+            rfa_string += "&award.rfa=" + r
     if args.species:
-        species_list = args.species.split(";")
+        species_list = args.species.split(",")
         for r in species_list:
             species_string += "&replicates.library.biosample.donor.organism.name=" + r
     if args.status:
-        status_list = args.status.split(";")
+        status_list = args.status.split(",")
         for r in status_list:
             status_string += "&status=" + r
     if args.lab:
-        lab_list = args.lab.split(";")
+        lab_list = args.lab.split(",")
         for r in lab_list:
-            r = r.replace(" ", "+")
-            lab_string += "&lab.title=" + r
+            lab_string += "&lab.name=" + r
     full_string = rfa_string + species_string + status_string + lab_string
     search_string += full_string
-    matrix_url = '=HYPERLINK("{}","Matrix")'.format(connection.server + search_string)
+    matrix_url = '=HYPERLINK("{}","{}")'.format(connection.server + search_string, connection.server + search_string)
 
     matrix = encodedcc.get_ENCODE(search_string, connection).get("matrix")
     x_values = matrix.get("x")
@@ -173,6 +178,11 @@ def main():
         temp_list.remove("RNA-seq")
     headers = [matrix_url] + ["Long RNA-seq", "Short RNA-seq"] + temp_list + ["TOTAL"]
 
+    final_assay_search = ""  # this will be used to total rows
+    for name in full_list:
+        final_assay_search += "&assay_term_name=" + name
+    final_bio_search = ""  # this will be used to total columns
+
     col_dict = dict.fromkeys(headers)
     for k in col_dict.keys():
         col_dict[k] = []
@@ -186,8 +196,11 @@ def main():
             dictwriter.writerow(group_dict)
             for item in inner_buckets:
                 bio_name = item["key"]
+                final_bio_search += "&biosample_term_name=" + quote(bio_name)
                 assay_list = item["assay_term_name"]
                 row_dict = dict.fromkeys(headers)
+                for k in row_dict.keys():
+                    row_dict[k] = 0
                 row_dict[matrix_url] = bio_name
                 row_count = []
                 for x in range(len(assay_list)):
@@ -259,6 +272,8 @@ def main():
                 row_not_compliant = 0
                 row_warning = 0
                 row_dcc_action = 0
+                bio_total = "/search/?type=Experiment&biosample_term_name=" + quote(bio_name) + final_assay_search + full_string
+                bio_url = connection.server + bio_total
                 for col in row_count:
                         row_total += col[0]
                         row_error += col[1]
@@ -266,9 +281,9 @@ def main():
                         row_warning += col[3]
                         row_dcc_action += col[4]
                 if args.allaudits:
-                    row_dict["TOTAL"] = "{}, {}E, {}NC, {}W, {}DCC".format(row_total, row_error, row_not_compliant, row_warning, row_dcc_action)
+                    row_dict["TOTAL"] = '=HYPERLINK("{}", "{}, {}E, {}NC, {}W, {}DCC")'.format(bio_url, row_total, row_error, row_not_compliant, row_warning, row_dcc_action)
                 else:
-                    row_dict["TOTAL"] = "{}, {}E, {}NC".format(row_total, row_error, row_not_compliant)
+                    row_dict["TOTAL"] = '=HYPERLINK("{}", "{}, {}E, {}NC")'.format(bio_url, row_total, row_error, row_not_compliant)
                 dictwriter.writerow(row_dict)
         total = 0
         error = 0
@@ -295,14 +310,23 @@ def main():
                 not_compliant += col_not_compliant
                 warning += col_warning
                 dcc_action += col_dcc_action
-                if args.allaudits:
-                    total_dict[key] = "{}, {}E, {}NC, {}W, {}DCC".format(col_total, col_error, col_not_compliant, col_warning, col_dcc_action)
+                if key == "Long RNA-seq":
+                    assay_total = "/search/?type=Experiment&assay_term_name=RNA-seq&replicates.library.size_range!=<200" + final_bio_search + full_string
+                elif key == "Short RNA-seq":
+                    assay_total = "/search/?type=Experiment&assay_term_name=RNA-seq&replicates.library.size_range=<200" + final_bio_search + full_string
                 else:
-                    total_dict[key] = "{}, {}E, {}NC".format(col_total, col_error, col_not_compliant)
+                    assay_total = "/search/?type=Experiment&assay_term_name=" + key + final_bio_search + full_string
+                assay_url = connection.server + assay_total
+                if args.allaudits:
+                    total_dict[key] = '=HYPERLINK("{}", "{}, {}E, {}NC, {}W, {}DCC")'.format(assay_url, col_total, col_error, col_not_compliant, col_warning, col_dcc_action)
+                else:
+                    total_dict[key] = '=HYPERLINK("{}", "{}, {}E, {}NC")'.format(assay_url, col_total, col_error, col_not_compliant)
+        full_search = "/search/?type=Experiment" + final_assay_search + final_bio_search + full_string
+        full_url = connection.server + full_search
         if args.allaudits:
-            total_dict["TOTAL"] = "{}, {}E, {}NC, {}W, {}DCC".format(total, error, not_compliant, warning, dcc_action)
+            total_dict["TOTAL"] = '=HYPERLINK("{}", "{}, {}E, {}NC, {}W, {}DCC")'.format(full_url, total, error, not_compliant, warning, dcc_action)
         else:
-            total_dict["TOTAL"] = "{}, {}E, {}NC".format(total, error, not_compliant)
+            total_dict["TOTAL"] = '=HYPERLINK("{}", "{}, {}E, {}NC")'.format(full_url, total, error, not_compliant)
         dictwriter.writerow(total_dict)
 
     print("Output saved to {}, open this file with Google Docs Sheets, don't use Excel because it sucks".format(args.outfile))
