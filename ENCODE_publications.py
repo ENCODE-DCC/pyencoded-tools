@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: latin-1 -*-
 from Bio import Entrez
 from Bio import Medline
 import argparse
@@ -6,11 +8,20 @@ import csv
 import logging
 import encodedcc
 
+EPILOG = '''
+Takes in a VERY specific file format to use for updating the publications
+Also can update the existing publications using the pubmed database
+
+'''
+
 logger = logging.getLogger(__name__)
 
 
 def getArgs():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description=__doc__, epilog=EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument('--consortium',
                         help="File with consortium publication information")
     parser.add_argument('--community',
