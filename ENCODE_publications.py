@@ -12,6 +12,25 @@ EPILOG = '''
 Takes in a VERY specific file format to use for updating the publications
 Also can update the existing publications using the pubmed database
 
+An EMAIL is required to run this script
+This is for the Entrez database
+
+Options:
+
+    %(prog)s --consortium Consortium_file
+
+This takes the consortium file
+
+    %(prog)s --community Community_file
+
+This takes the community file
+
+
+%(prog)s --updateonly
+
+%(prog)s --createonly
+
+%(prog)s --create
 '''
 
 logger = logging.getLogger(__name__)
