@@ -13,11 +13,12 @@ EPILOG = '''
         this can take accessions, uuids, @ids, or aliases
 
     To get a single object use the '--object' argument
-    and use the object's identifier
+    and use the object's identifier, also will take a comma separated list
 
             %(prog)s --object ENCSR000AAA
             %(prog)s --object 3e6-some-uuid-here-e45
             %(prog)s --object this-is:an-alias
+            %(prog)s --object ENCSR000AAA,ENCSR000AAB
 
     To get multiple fields use the '--field' argument
     and feed it a file with the list of fieldnames
@@ -29,8 +30,11 @@ EPILOG = '''
     To get a single field use the field argument:
 
             %(prog)s --field status
+            %(prog)s --field status,target.title
 
-        where field is a string containing the field name
+    where field is a string containing the field name
+    or a comma separated list of fieldnames,
+    (this can be combined with the embedded values)
 
     To get embedded field values (such as target name from an experiment):
 

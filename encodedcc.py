@@ -384,7 +384,7 @@ class GetFields():
                 if os.path.isfile(self.args.object):
                     self.accessions = [line.strip() for line in open(self.args.object)]
                 else:
-                    self.accessions = [self.args.object]
+                    self.accessions = self.args.object.split(",")
             if any(temp):
                 for obj in temp:
                     if obj.get("accession"):
@@ -415,7 +415,7 @@ class GetFields():
                 if os.path.isfile(self.args.field):
                     self.fields = [line.strip() for line in open(self.args.field)]
                 else:
-                    self.fields = [self.args.field]
+                    self.fields = self.args.field.split(",")
         if len(self.accessions) == 0:
             print("ERROR: Need to provide accessions", file=sys.stderr)
             sys.exit(1)
