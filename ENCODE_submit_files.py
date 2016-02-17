@@ -27,7 +27,7 @@ Use to define a different location for the encValData directory
 
     %(prog)s --validatefiles ./validateFiles
 use to define a different location for the validateFiles script
-This script must be made executable for this to work
+validateFiles must be made executable for this to work
 '''
 
 CSV_ARGS = {'delimiter': ',',

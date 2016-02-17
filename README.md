@@ -303,3 +303,18 @@ Takes a query from which to get the list of files
     ./ENCODE_read_lengths.py --header
 
 Prints the header line from the fastq
+
+
+### ENCODE_submit_files.py
+
+Dryrun default script, run with '--update' to make changes
+Provide with a CSV file of metadata to post
+
+    ./ENCODE_submit_files.py --encvaldata ./encValData
+
+Use to define a different location for the encValData directory
+
+    ./ENCODE_submit_files.py --validatefiles ./validateFiles
+
+use to define a different location for the validateFiles script
+validateFiles must be made executable for this to work
