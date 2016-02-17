@@ -464,11 +464,52 @@ class GetFields():
             return ""
 
     def get_embedded(self, path, obj):
-        ''' recursively move down the element path
-        until you are at the bottom of the object tree
-        then return the final value'''
+        '''
+        The 'path' is built from a string such as "target.title"
+        that has been split on the "." to result in ["target", "title"]
+        and saved as a queue object
+
+        'obj' is the object currently being explored and expanded
+
+        The 'path' queue is checked for length, because it points to the final
+        location of the desired value, if the queue is 1 then we have reached
+        the bottom of the search and we return "obj[path]" value
+        Otherwise the leftmost item is popped from the list and treated as a
+        link to the new object to be expanded, then the new object and the
+        shortened queue are fed back into the method
+
+        EXAMPLE:
+        path = ["target", "title"]
+        obj = {Experiment}
+        Length is greather than 1, pop leftmost value
+        field = "target"
+        path = ["title"]
+
+        get obj[field] and save as new obj, in this case Experiment["target"]
+        call get_embedded() with new value for path and obj
+
+        path = ["title"]
+        obj = {target}
+        path is length 1, we have reached end of search queue
+        pop leftmost value
+        field = "title"
+        return obj[field] which is target["title"]
+
+        There are some special cases checked for, such as if the value
+        expended is a list-type setup, such as path = ["replicates", "status"]
+
+        Here path.popleft() gets us "replicates" which is a list
+        This list is stored temporarily and then iterated through
+        immediately to retrieve the next value (in this case "status")
+
+        This is why it can't retrieve lists the are doubly embedded
+            Ex: path = ["replicates", "library", "anyvalue"]
+                won't work because both replicates and library are lists
+
+        There is another special check for "files" to iterate through it
+        '''
         if len(path) > 1:
-            field = path.popleft()  # first element
+            field = path.popleft()  # first element in queue
             if obj.get(field):  # check to see if the element is in the current object
                 if field == "files":
                     files_list = []  # empty list for later
@@ -485,12 +526,12 @@ class GetFields():
                         return list(set(files_list))  # return unique list of last element items
                 else:
                     if type(obj[field]) == int:
-                        return obj[field]
+                        return obj[field]  # just return integers as is, we can't expand them
                     elif type(obj[field]) == list:
                         if len(path) == 1:  # if last element in path then get from each item in list
                             files_list = []
                             for f in obj[field]:
-                                if type(f) == dict:
+                                if type(f) == dict:  # if this is like a flowcell or something it should catch here
                                     return f
                                 temp = get_ENCODE(f, self.connection)
                                 if temp.get(path[0]):
@@ -502,13 +543,13 @@ class GetFields():
                                 return files_list
                             else:
                                 return list(set(files_list))  # return unique list of last element items
-                        elif self.facet:
+                        elif self.facet:  # facet is a special case for the search page flattener
                             temp = get_ENCODE(obj[field][0], self.connection)
                             return self.get_embedded(path, temp)
-                        else:
-                            return obj[field]
+                        else:  # if this is not the last item in the path, but we are in a list
+                            return obj[field]  # return the item since we can't dig deeper without getting lost
                     elif type(obj[field]) == dict:
-                        return obj[field]
+                        return obj[field]  # return dictionary objects, probably things like flowcells anyways
                     else:
                         temp = get_ENCODE(obj[field], self.connection)  # if found get_ENCODE the embedded object
                         return self.get_embedded(path, temp)
