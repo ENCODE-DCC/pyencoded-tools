@@ -108,7 +108,7 @@ functionality I cannot guarantee speed when running due to embedded
 objects being extracted
 
 
-### ENCODE_patchSet.py
+### ENCODE_patch_set.py
 
 **_PLEASE NOTE:_** This script is a dryrun-default script, run it with the *--update* option to make any changes
 
@@ -125,9 +125,9 @@ goes in the accession column to be used for identification of object
 **Input file format:**
 To PATCH a single object, field with field type, and data:
 
-        ./ENCODE_patchSet.py --accession ENCSR000AAA --field assay_term_name --data ChIP-seq
-        ./ENCODE_patchSet.py --accession ENCSR000AAA --field read_length:int --data 31
-        ./ENCODE_patchSet.py --accession ENCSR000AAA --field documents:list --data document1,document2
+        ./ENCODE_patch_set.py --accession ENCSR000AAA --field assay_term_name --data ChIP-seq
+        ./ENCODE_patch_set.py --accession ENCSR000AAA --field read_length:int --data 31
+        ./ENCODE_patch_set.py --accession ENCSR000AAA --field documents:list --data document1,document2
 
 * For integers use ':int' or ':integer'
 * For lists use    ':list' or ':array'
@@ -137,7 +137,7 @@ To PATCH a single object, field with field type, and data:
 
 To PATCH flowcells:
 
-        ./ENCODE_patchSet.py --flowcell
+        ./ENCODE_patch_set.py --flowcell
 
 the "flowcell" option is a flag used to have the script search for\
 flowcell data in the infile
@@ -258,7 +258,7 @@ the output file can be renamed using the '--outfile' option
 the '--allaudits' command will also list the "WARNING" and "DCC ACTION" audits
 
 
-### ENCODE_publication.py
+### ENCODE_publications.py
 
 Takes in a VERY specific file format to use for updating the publications
 Also can update the existing publications using the pubmed database
