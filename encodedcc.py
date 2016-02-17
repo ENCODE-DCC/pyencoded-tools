@@ -581,10 +581,14 @@ def patch_set(args, connection):
             print("Missing field/data! Cannot PATCH object", args.accession)
             sys.exit(1)
     elif args.infile:
-        with open(args.infile, "r") as tsvfile:
-            reader = csv.DictReader(tsvfile, delimiter='\t')
-            for row in reader:
-                data.append(row)
+        if os.path.isfile(args.infile):
+            with open(args.infile, "r") as tsvfile:
+                reader = csv.DictReader(tsvfile, delimiter='\t')
+                for row in reader:
+                    data.append(row)
+        else:
+            print("{} was not found".format(args.infile))
+            sys.exit(1)
     else:
         reader = csv.DictReader(sys.stdin, delimiter='\t')
         for row in reader:
