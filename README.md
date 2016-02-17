@@ -9,11 +9,12 @@ and provide a file with the list of object identifiers
 this can take accessions, uuids, @ids, or aliases
 
 To get a single object use the '--object' argument
-and use the object's identifier
+and use the object's identifier, also will take a comma separated list
 
         ./ENCODE_get_fields.py --object ENCSR000AAA
         ./ENCODE_get_fields.py --object 3e6-some-uuid-here-e45
         ./ENCODE_get_fields.py --object this-is:an-alias
+        ./ENCODE_get_fields.py --object ENCSR000AAA,ENCSR000AAB
 
 To get multiple fields use the '--field' argument
 and feed it a file with the list of fieldnames
@@ -24,7 +25,9 @@ this should be a single column file
 To get a single field use the field argument:
 
         ./ENCODE_get_fields.py --field status
+        ./ENCODE_get_fields.py --field status,target.title
 where field is a string containing the field name
+or a comma separated list of fieldnames, this can be combined with the embedded values
 
 To get embedded field values (such as target name from an experiment):
 
@@ -333,8 +336,8 @@ someID  5       pending dcc review  good     important_document.pdf
 
 Useage:
 
-    ENCODE_antibody_approver.py --infile MyFile.txt --user 4eg4-some-uuid-ks87
-    ENCODE_antibody_approver.py --infile MyFile.txt --user /users/some-user
+    ./ENCODE_antibody_approver.py --infile MyFile.txt --user 4eg4-some-uuid-ks87
+    ./ENCODE_antibody_approver.py --infile MyFile.txt --user /users/some-user
 
 Either a uuid or an @id can be used for user identification
 
