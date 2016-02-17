@@ -318,3 +318,24 @@ Use to define a different location for the encValData directory
 
 use to define a different location for the validateFiles script
 validateFiles must be made executable for this to work
+
+
+### ENCODE_antibody_approver.py
+
+Given a TSV file this script will attempt to add in the information
+to the antibodies, the file is provided by the user
+
+Example TSV file:
+@id    lanes    lane_status         notes    documents
+someID  2,3     compliant           get it?  important_document.pdf
+someID  1,4     not compliant       got it   important_document.pdf
+someID  5       pending dcc review  good     important_document.pdf
+
+Useage:
+
+    ENCODE_antibody_approver.py --infile MyFile.txt --user 4eg4-some-uuid-ks87
+    ENCODE_antibody_approver.py --infile MyFile.txt --user /users/some-user
+
+Either a uuid or an @id can be used for user identification
+
+This is a dryrun default script, run with '--update' to make changes
