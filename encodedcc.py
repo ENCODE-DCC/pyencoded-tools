@@ -427,8 +427,7 @@ class GetFields():
         import csv
         from collections import deque
         self.setup()
-        if "accession" not in self.fields:
-            self.header = ["accession"] + self.fields
+        self.header = ["accession"]
         for acc in self.accessions:
             acc = quote(acc)
             obj = get_ENCODE(acc, self.connection)
@@ -553,9 +552,16 @@ class GetFields():
                     else:
                         temp = get_ENCODE(obj[field], self.connection)  # if found get_ENCODE the embedded object
                         return self.get_embedded(path, temp)
+            else:  # if not obj.get(field) then we kick back an error
+                print("Field {} not found in object {}".format(field, obj.get("@id")))
+                sys.exit(1)
         else:
             field = path.popleft()
-            return obj.get(field)
+            if obj.get(field):
+                return obj[field]
+            else:
+                print("Field {} not found in object {}".format(field, obj.get("@id")))
+                sys.exit(1)
 
 
 def patch_set(args, connection):
