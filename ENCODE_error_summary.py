@@ -59,17 +59,6 @@ def getArgs():
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('--key',
-                        default='default',
-                        help="The keypair identifier from the keyfile.  \
-                        Default is --key=default")
-    parser.add_argument('--keyfile',
-                        default=os.path.expanduser("~/keypairs.json"),
-                        help="The keypair file.  Default is --keyfile=%s" % (os.path.expanduser("~/keypairs.json")))
-    parser.add_argument('--debug',
-                        default=False,
-                        action='store_true',
-                        help="Print debug messages.  Default is False.")
     parser.add_argument('--rfa',
                         help="refine search with award.rfa\
                         write as comma separated list\
@@ -79,15 +68,15 @@ def getArgs():
                         ex: celegans, human, mouse\
                         write as comma separated list\
                         ex: celegans,human,mouse")
-    parser.add_argument('--status',
-                        help="refine search with status\
-                        write as comma separated list\
-                        ex: released,submitted")
     parser.add_argument('--lab',
                         help="refine search with lab.name\
                         write as comma separated list\
                         ex: bing-ren,j-micheal-cherry\
                         lab name format should be Firstname Lastname, Location")
+    parser.add_argument('--status',
+                        help="refine search with status\
+                        write as comma separated list\
+                        ex: released,submitted")
     parser.add_argument('--all',
                         help="use the full list of assays, default is false",
                         default=False,
@@ -99,6 +88,17 @@ def getArgs():
                         help="show all the audit counts, default is false",
                         default=False,
                         action="store_true")
+    parser.add_argument('--key',
+                        default='default',
+                        help="The keypair identifier from the keyfile.  \
+                        Default is --key=default")
+    parser.add_argument('--keyfile',
+                        default=os.path.expanduser("~/keypairs.json"),
+                        help="The keypair file.  Default is --keyfile=%s" % (os.path.expanduser("~/keypairs.json")))
+    parser.add_argument('--debug',
+                        default=False,
+                        action='store_true',
+                        help="Print debug messages.  Default is False.")
     args = parser.parse_args()
     return args
 

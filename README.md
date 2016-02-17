@@ -256,3 +256,50 @@ the usual list of assay this script shows is
 use the '--all' command to select all the available assays for display
 the output file can be renamed using the '--outfile' option
 the '--allaudits' command will also list the "WARNING" and "DCC ACTION" audits
+
+
+### ENCODE_publication.py
+
+Takes in a VERY specific file format to use for updating the publications
+Also can update the existing publications using the pubmed database
+
+An EMAIL is required to run this script
+This is for the Entrez database
+
+This is a dryrun default script
+This script requires the BioPython module
+
+Options:
+
+    ./ENCODE_publications.py --consortium Consortium_file.txt
+
+This takes the consortium file
+
+    ./ENCODE_publications.py --community Community_file.txt
+
+This takes the community file
+
+    ./ENCODE_publications.py --updateonly list.txt
+
+Takes file with single column of publication UUIDs, checks against PubMed to ensure data is correct and will update if needed
+
+
+### ENCODE_read_lengths.py
+
+This script opens a fastq and calculates the read length,
+it can also print the header line of the fastq
+currently unable to parse header for information such as machine name
+
+    ./ENCODE_read_lengths.py --infile file.txt
+    ./ENCODE_read_lengths.py --infile ENCFF000AAA
+    ./ENCODE_read_lengths.py --infile ENCFF000AAA,ENCFF000AAB,ENCFF000AAC
+
+Takes either a list of the file accessions, a single accession,     or comma separated list of accessions
+
+    ./ENCODE_read_lengths.py --query "/search/?type=File"
+
+Takes a query from which to get the list of files
+
+    ./ENCODE_read_lengths.py --header
+
+Prints the header line from the fastq

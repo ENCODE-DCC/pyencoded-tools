@@ -15,22 +15,24 @@ Also can update the existing publications using the pubmed database
 An EMAIL is required to run this script
 This is for the Entrez database
 
+This is a dryrun default script
+This script requires the BioPython module
+
 Options:
 
-    %(prog)s --consortium Consortium_file
+    %(prog)s --consortium Consortium_file.txt
 
 This takes the consortium file
 
-    %(prog)s --community Community_file
+    %(prog)s --community Community_file.txt
 
 This takes the community file
 
+    %(prog)s --updateonly list.txt
 
-%(prog)s --updateonly
+Takes file with single column of publication UUIDs, checks against PubMed \
+to ensure data is correct and will update if needed
 
-%(prog)s --createonly
-
-%(prog)s --create
 '''
 
 logger = logging.getLogger(__name__)
@@ -46,7 +48,7 @@ def getArgs():
     parser.add_argument('--community',
                         help="File with community publication information")
     parser.add_argument('--outfile',
-                        help="Output file name", default='output.txt')
+                        help="Output file name", default='publication_results.txt')
     parser.add_argument('--key',
                         help="The keypair identifier from the keyfile.",
                         default='default')

@@ -6,9 +6,24 @@ import encodedcc
 import sys
 
 EPILOG = '''
-For more details:
+This script opens a fastq and calculates the read length,
+it can also print the header line of the fastq
+currently unable to parse header for information such as machine name
 
-        %(prog)s --help
+        %(prog)s --infile file.txt
+        %(prog)s --infile ENCFF000AAA
+        %(prog)s --infile ENCFF000AAA,ENCFF000AAB,ENCFF000AAC
+
+    Takes either a list of the file accessions, a single accession, \
+    or comma separated list of accessions
+
+        %(prog)s --query "/search/?type=File"
+
+    Takes a query from which to get the list of files
+
+        %(prog)s --header
+
+    Prints the header line from the fastq
 '''
 
 
@@ -19,9 +34,14 @@ def getArgs():
     )
 
     parser.add_argument('--infile',
-                        help="list of FASTQ file accessions")
-    parser.add_argument('--accession',
-                        help="single accession")
+                        help="list of FASTQ file accessions, single accession \
+                        or comma separated accession list")
+    parser.add_argument('--query',
+                        help="ENCODE query to get EXPERIMENT accessions from")
+    parser.add_argument('--header',
+                        help="Prints 'header' line from fastq.  Default is false",
+                        action='store_true',
+                        default=False)
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  \
@@ -33,12 +53,6 @@ def getArgs():
                         default=False,
                         action='store_true',
                         help="Print debug messages.  Default is False.")
-    parser.add_argument('--query',
-                        help="ENCODE query to get EXPERIMENT accessions from")
-    parser.add_argument('--header',
-                        help="Prints 'header' line from fastq.  Default is false",
-                        action='store_true',
-                        default=False)
     args = parser.parse_args()
     return args
 
@@ -50,9 +64,16 @@ def main():
     connection = encodedcc.ENC_Connection(key)
     accessions = []
     if args.infile:
-        accessions = [line.rstrip("\n") for line in open(args.infile)]
+        if os.path.isfile(args.infile):
+            accessions = [line.strip() for line in open(args.infile)]
+        else:
+            accessions = args.infile.split(",")
     elif args.query:
-        data = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
+        data = []
+        if "search" in args.query:
+            data = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
+        else:
+            data = [encodedcc.get_ENCODE(args.query, connection)]
         for exp in data:
             files = exp.get("files", [])
             for f in files:
@@ -60,8 +81,6 @@ def main():
                 f_type = res.get("file_format", "")
                 if f_type == "fastq":
                     accessions.append(res["accession"])
-    elif args.accession:
-        accessions = [args.accession]
     else:
         print("No accessions to check")
         sys.exit(1)

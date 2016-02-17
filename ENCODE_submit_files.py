@@ -14,14 +14,20 @@ import json
 import subprocess
 import hashlib
 import tempfile
+import encodedcc
 
 logger = logging.getLogger(__name__)
 
-EPILOG = '''Notes:
+EPILOG = '''
+Dryrun default script, run with '--update' to make changes
+Provide with a CSV file of metadata to post
 
-Examples:
+    %(prog)s --encvaldata ./encValData
+Use to define a different location for the encValData directory
 
-    %(prog)s
+    %(prog)s --validatefiles ./validateFiles
+use to define a different location for the validateFiles script
+This script must be made executable for this to work
 '''
 
 CSV_ARGS = {'delimiter': ',',
@@ -31,27 +37,6 @@ CSV_ARGS = {'delimiter': ',',
 
 GET_HEADERS = {'accept': 'application/json'}
 POST_HEADERS = {'accept': 'application/json', 'content-type': 'application/json'}
-
-
-class ENC_Key:
-    def __init__(self, keyfile, keyname):
-        keys_f = open(keyfile, 'r')
-        keys_json_string = keys_f.read()
-        keys_f.close()
-        keys = json.loads(keys_json_string)
-        key_dict = keys[keyname]
-        self.authid = key_dict['key']
-        self.authpw = key_dict['secret']
-        self.server = key_dict['server']
-        if not self.server.endswith("/"):
-            self.server += "/"
-
-
-class ENC_Connection(object):
-    def __init__(self, key):
-        self.headers = {'content-type': 'application/json'}
-        self.server = key.server
-        self.auth = (key.authid, key.authpw)
 
 
 def get_args():
@@ -360,7 +345,7 @@ def process_row(row, connection):
     json_payload = {}
     flowcell_dict = {}
     if row.get("file_format", "") == "fastq":
-        for header, sequence, qual_header, quality in fastq_read(connection, row["submitted_file_name"]):
+        for header, sequence, qual_header, quality in encodedcc.fastq_read(connection, filename=row["submitted_file_name"]):
                 sequence = sequence.decode("UTF-8")
                 read_length = len(sequence)
                 json_payload.update({"read_length": read_length})
@@ -389,26 +374,11 @@ def process_row(row, connection):
     return json_payload
 
 
-def fastq_read(connection, filename, reads=1):
-    '''Read a few fastq records
-    '''
-    # https://github.com/detrout/encode3-curation/blob/master/validate_encode3_aliases.py#L290
-    # originally written by Diane Trout
-    import gzip
-    compressed = gzip.GzipFile(filename, 'r')
-    for i in range(reads):
-        header = compressed.readline().rstrip()
-        sequence = compressed.readline().rstrip()
-        qual_header = compressed.readline().rstrip()
-        quality = compressed.readline().rstrip()
-        yield (header, sequence, qual_header, quality)
-
-
 def main():
 
     args = get_args()
-    key = ENC_Key(args.keyfile, args.key)
-    connection = ENC_Connection(key)
+    key = encodedcc.ENC_Key(args.keyfile, args.key)
+    connection = encodedcc.ENC_Connection(key)
 
     if not test_encode_keys(connection):
         logger.error("Invalid ENCODE server or keys: server=%s auth=%s" % (connection.server, connection.auth))
