@@ -2,20 +2,20 @@ import encodedcc
 
 
 def files(objList, fileCheckedItems, connection):
-    for i in objList:
-        print("files loop")
-        exp = encodedcc.get_ENCODE(i, connection, frame='embedded')
+    for i in range(0, len(objList)):
+        exp = encodedcc.get_ENCODE(objList[i], connection, frame='embedded')
         if any(exp.get("files")):
             expfiles = exp["files"]
         else:
-            expfiles = exp.get("original_files")
-            print(len(expfiles))
+            tempfiles = exp.get("original_files")
+            expfiles = []
+            for t in tempfiles:
+                temp = encodedcc.get_ENCODE(t, connection, frame='embedded')
+                expfiles.append(temp)
         for i in range(0, len(expfiles)):
-            print("inner loop", i)
             fileob = {}
             file = expfiles[i]
             for field in fileCheckedItems:
-                print(file)
                 fileob[field] = file.get(field)
             fileob['submitted_by'] = file['submitted_by']['title']
             fileob['experiment'] = exp['accession']
@@ -44,7 +44,10 @@ def files(objList, fileCheckedItems, connection):
                     rep = file['replicate']
                     if 'library' in rep and rep['library'] is not None:
                         library = file['replicate'].get('library')
-                        fileob['library_aliases'] = library['aliases']
+                        try:
+                            fileob['library_aliases'] = library['aliases']
+                        except:
+                            fileob['library_aliases'] = ""
                         if 'biosample' in library:
                             fileob['biosample_aliases'] = library['biosample']['aliases']
             if 'alias' in exp:
