@@ -1,6 +1,7 @@
 # pyencoded-tools
 
 ### ENCODE_get_fields.py
+This script takes object identifiers and fieldnames and returns a TSV of the data gathered
 
 To get multiple objects use the '--object' argument
 and provide a file with the list of object identifiers
