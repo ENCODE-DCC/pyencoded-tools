@@ -113,7 +113,7 @@ objects being extracted
 
 
 ### ENCODE_patch_set.py
-
+Given a TSV file this script will PATCH data to the ENCODE database
 **_PLEASE NOTE:_** This script is a dryrun-default script, run it with the *--update* option to make any changes
 
 **Input options:**
@@ -143,8 +143,7 @@ To PATCH flowcells:
 
         ./ENCODE_patch_set.py --flowcell
 
-the "flowcell" option is a flag used to have the script search for\
-flowcell data in the infile
+the "flowcell" option is a flag used to have the script search for flowcell data in the infile
 
     accession   flowcell   lane    barcode   machine
     ENCSR000AAA value1     value2  value3    value4
@@ -230,8 +229,8 @@ Excel is unable to handle the formulas
 For more details:
         ENCODE_error_summary.py --help
 
-This script will print out the following during it's run:
-WARNING:root:No results found
+This script will print out the following during it's run: "WARNING:root:No results found"
+
 This is due to how the long and short RNA-seq are searched
 and it does not affect the final results of the script
 
@@ -265,6 +264,7 @@ the '--allaudits' command will also list the "WARNING" and "DCC ACTION" audits
 ### ENCODE_publications.py
 
 Takes in a VERY specific file format to use for updating the publications
+
 Also can update the existing publications using the pubmed database
 
 An EMAIL is required to run this script
@@ -290,15 +290,13 @@ Takes file with single column of publication UUIDs, checks against PubMed to ens
 
 ### ENCODE_read_lengths.py
 
-This script opens a fastq and calculates the read length,
-it can also print the header line of the fastq
-currently unable to parse header for information such as machine name
+This script opens a fastq and calculates the read length, it can also print the header line of the fastq currently unable to parse header for information such as machine name
 
     ./ENCODE_read_lengths.py --infile file.txt
     ./ENCODE_read_lengths.py --infile ENCFF000AAA
     ./ENCODE_read_lengths.py --infile ENCFF000AAA,ENCFF000AAB,ENCFF000AAC
 
-Takes either a list of the file accessions, a single accession,     or comma separated list of accessions
+Takes either a list of the file accessions, a single accession, or comma separated list of accessions
 
     ./ENCODE_read_lengths.py --query "/search/?type=File"
 
@@ -312,6 +310,7 @@ Prints the header line from the fastq
 ### ENCODE_submit_files.py
 
 Dryrun default script, run with '--update' to make changes
+
 Provide with a CSV file of metadata to post
 
     ./ENCODE_submit_files.py --encvaldata ./encValData
@@ -321,13 +320,13 @@ Use to define a different location for the encValData directory
     ./ENCODE_submit_files.py --validatefiles ./validateFiles
 
 use to define a different location for the validateFiles script
+
 validateFiles must be made executable for this to work
 
 
 ### ENCODE_antibody_approver.py
 
-Given a TSV file this script will attempt to add in the information
-to the antibodies, the file is provided by the user
+Given a TSV file this script will attempt to add in the information to the antibodies, the file is provided by the user
 
 Example TSV file:
 @id    lanes    lane_status         notes    documents
