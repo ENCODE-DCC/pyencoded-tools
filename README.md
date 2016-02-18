@@ -330,13 +330,10 @@ Given a TSV file this script will attempt to add in the information to the antib
 
 Example TSV file:
 
-@id     lanes   lane_status     notes   documents
-
-someID  2,3     compliant       get it? important_document.pdf
-
-someID  1,4     not compliant   got it  important_document.pdf
-
-someID  5       pending dcc review      good    important_document.pdf
+        @id     lanes   lane_status     notes   documents
+        someID  2,3     compliant       get it? important_document.pdf
+        someID  1,4     not compliant   got it  important_document.pdf
+        someID  5       pending dcc review      good    important_document.pdf
 
 Useage:
 
