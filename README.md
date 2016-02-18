@@ -1,46 +1,34 @@
 # pyencoded-tools
 
 ### ENCODE_get_fields.py
-This script takes object identifiers and fieldnames and returns a TSV of the data gathered
-
-To get multiple objects use the '--object' argument
-and provide a file with the list of object identifiers
-
+This script takes object identifiers and fieldnames and returns a TSV of the data gathered  
+To get multiple objects use the '--object' argument and provide a file with the list of object identifiers  
         ./ENCODE_get_fields.py --object filenames.txt
 this can take accessions, uuids, @ids, or aliases
 
-To get a single object use the '--object' argument
-and use the object's identifier, also will take a comma separated list
-
+To get a single object use the '--object' argument and use the object's identifier, also will take a comma separated list  
         ./ENCODE_get_fields.py --object ENCSR000AAA
         ./ENCODE_get_fields.py --object 3e6-some-uuid-here-e45
         ./ENCODE_get_fields.py --object this-is:an-alias
         ./ENCODE_get_fields.py --object ENCSR000AAA,ENCSR000AAB
 
-To get multiple fields use the '--field' argument
-and feed it a file with the list of fieldnames
-
+To get multiple fields use the '--field' argument and feed it a file with the list of fieldnames  
         ./ENCODE_get_fields.py --field fieldnames.txt
 this should be a single column file
 
-To get a single field use the field argument:
-
+To get a single field use the field argument:  
         ./ENCODE_get_fields.py --field status
         ./ENCODE_get_fields.py --field status,target.title
-where field is a string containing the field name
-or a comma separated list of fieldnames, this can be combined with the embedded values
+where field is a string containing the field name or a comma separated list of fieldnames, this can be combined with the embedded values
 
-To get embedded field values (such as target name from an experiment):
-
+To get embedded field values (such as target name from an experiment):  
 **Note: ENCODE_get_fields will only expand the data untill it hits an array**
-**currently it cannot get subarrays of arrays**
-
+**currently it cannot get subarrays of arrays**  
         ./ENCODE_get_fields.py --field target.title
     
     accession       target.title
     ENCSR087PLZ     H3K9ac (Mus musculus)
-this can also get embedded values from lists
-
+this can also get embedded values from lists  
         ./ENCODE_get_fields.py --field files.status
 *more about this feature is listed below*
 
