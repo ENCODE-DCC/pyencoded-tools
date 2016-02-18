@@ -2,12 +2,20 @@ import encodedcc
 
 
 def files(objList, fileCheckedItems, connection):
-    for i in range(0, len(objList)):
-        exp = encodedcc.get_ENCODE(objList[i], connection, frame='embedded')
-        for i in range(0, len(exp['files'])):
+    for i in objList:
+        print("files loop")
+        exp = encodedcc.get_ENCODE(i, connection, frame='embedded')
+        if any(exp.get("files")):
+            expfiles = exp["files"]
+        else:
+            expfiles = exp.get("original_files")
+            print(len(expfiles))
+        for i in range(0, len(expfiles)):
+            print("inner loop", i)
             fileob = {}
-            file = exp['files'][i]
+            file = expfiles[i]
             for field in fileCheckedItems:
+                print(file)
                 fileob[field] = file.get(field)
             fileob['submitted_by'] = file['submitted_by']['title']
             fileob['experiment'] = exp['accession']
@@ -16,8 +24,8 @@ def files(objList, fileCheckedItems, connection):
             fileob['flowcell'] = []
             fileob['lane'] = []
             fileob["Uniquely mapped reads number"] = ""
-            if exp['files'][i].get("file_format", "") == "bam":
-                temp_file = exp['files'][i]
+            if expfiles[i].get("file_format", "") == "bam":
+                temp_file = expfiles[i]
                 for q in temp_file.get("quality_metrics", []):
                     if "star-quality-metrics" in q.get("@id", ""):
                         fileob["Uniquely mapped reads number"] = q.get("Uniquely mapped reads number")
