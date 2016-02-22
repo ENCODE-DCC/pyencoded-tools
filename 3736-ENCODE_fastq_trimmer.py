@@ -6,6 +6,7 @@ import requests
 from urllib.parse import urljoin
 from urllib.parse import quote
 import gzip
+import csv
 
 EPILOG = '''
 For more details:
@@ -68,6 +69,10 @@ def main():
                     print("ERROR: object has no identifier", file=sys.stderr)
     elif args.object:
         if os.path.isfile(args.object):
+            with open(args.object, "r") as tsvfile:
+                reader = csv.Reader(tsvfile, delimiter="\t")
+                for row in reader:
+                    data = row.split("\t")
             accessions = [line.strip() for line in open(args.object)]
         else:
             accessions = args.object.split(",")
@@ -81,9 +86,9 @@ def main():
         gzfile = gzip.GzipFile(fileobj=r.raw)
         while True:
             try:
-                header = next(gzfile)[:-1][:20] + b'\n'
+                header = next(gzfile)
                 sequence = next(gzfile)[:-1][:20] + b'\n'
-                qual_header = next(gzfile)[:-1][:20] + b'\n'
+                qual_header = next(gzfile)
                 quality = next(gzfile)[:-1][:20] + b'\n'  # snip off newline, trim to 20 characters, add back newline
                 #print("header", header)
                 #print("sequence", sequence)
