@@ -614,25 +614,24 @@ def patch_set(args, connection):
                 if name not in full_data.keys():
                     print("Cannot PATCH '{}' may be a calculated property".format(name))
                     sys.exit(1)
-                val = k[1]
-                if name is not None:
-                    print("OBJECT:", accession)
-                    if val == "list" or val == "array":
-                        old_list = full_data[name]
-                        l = temp_data[key].strip("[]").split(",")
-                        l = [x.replace(" ", "") for x in l]
-                        new_list = l
-                        patch_list = list(set(old_list) - set(new_list))
-                        put_dict[name] = patch_list
-                        print("OLD DATA:", name, old_list)
-                        print("NEW DATA:", name, patch_list)
-                        if args.update:
-                            patch_ENCODE(accession, connection, put_dict)
-                    else:
-                        put_dict.pop(name, None)
-                        print("Removing value:", name)
-                        if args.update:
-                            replace_ENCODE(accession, connection, put_dict)
+                print("OBJECT:", accession)
+                if len(k) > 1:
+                    if k[1] in ["list", "array"]:
+                    old_list = full_data[name]
+                    l = temp_data[key].strip("[]").split(",")
+                    l = [x.replace(" ", "") for x in l]
+                    new_list = l
+                    patch_list = list(set(old_list) - set(new_list))
+                    put_dict[name] = patch_list
+                    print("OLD DATA:", name, old_list)
+                    print("NEW DATA:", name, patch_list)
+                    if args.update:
+                        patch_ENCODE(accession, connection, put_dict)
+                else:
+                    put_dict.pop(name, None)
+                    print("Removing value:", name)
+                    if args.update:
+                        replace_ENCODE(accession, connection, put_dict)
         else:
             patch_data = {}
             if args.flowcell:
