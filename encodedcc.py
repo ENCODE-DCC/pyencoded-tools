@@ -617,7 +617,7 @@ def patch_set(args, connection):
                 print("OBJECT:", accession)
                 if len(k) > 1:
                     if k[1] in ["list", "array"]:
-                    old_list = full_data[name]
+                    	old_list = full_data[name]
                     l = temp_data[key].strip("[]").split(",")
                     l = [x.replace(" ", "") for x in l]
                     new_list = l
