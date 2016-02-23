@@ -6,7 +6,7 @@ import requests
 from urllib.parse import urljoin
 from urllib.parse import quote
 import gzip
-import csv
+import subprocess
 
 EPILOG = '''
 For more details:
@@ -68,34 +68,35 @@ def main():
                 else:
                     print("ERROR: object has no identifier", file=sys.stderr)
     elif args.object:
-        if os.path.isfile(args.object):
-            with open(args.object, "r") as tsvfile:
-                reader = csv.Reader(tsvfile, delimiter="\t")
-                for row in reader:
-                    data = row.split("\t")
-            accessions = [line.strip() for line in open(args.object)]
-        else:
-            accessions = args.object.split(",")
+        accessions = [line.strip() for line in open(args.object)]
+    else:
+        accessions = args.object.split(",")
     if len(accessions) == 0:
         print("No accessions to check!", file=sys.stderr)
         sys.exit(1)
-    for acc in accessions:
-        link = "/files/" + acc + "/@@download/" + acc + ".fastq.gz"
-        url = urljoin(connection.server, quote(link))
-        r = requests.get(url, stream=True)
-        gzfile = gzip.GzipFile(fileobj=r.raw)
-        while True:
-            try:
-                header = next(gzfile)
-                sequence = next(gzfile)[:-1][:20] + b'\n'
-                qual_header = next(gzfile)
-                quality = next(gzfile)[:-1][:20] + b'\n'  # snip off newline, trim to 20 characters, add back newline
-                #print("header", header)
-                #print("sequence", sequence)
-                #print("qual_header", qual_header)
-                #print("quality", quality)
-            except StopIteration:
-                break
+    for line in accessions:
+        acc, size = line.split()
+        with gzip.open("{}.fastq".format(acc), "wb") as outfile:
+            filename = acc + ".fastq.gz"
+            link = "/files/" + acc + "/@@download/" + filename
+            url = urljoin(connection.server, quote(link))
+            r = requests.get(url, stream=True)
+            gzfile = gzip.GzipFile(fileobj=r.raw)
+            while True:
+                try:
+                    header = next(gzfile)
+                    sequence = next(gzfile)[:-1][:size] + b'\n'
+                    qual_header = next(gzfile)
+                    quality = next(gzfile)[:-1][:size] + b'\n'  # snip off newline, trim to size, add back newline
+                    outfile.write(header)
+                    outfile.write(sequence)
+                    outfile.write(qual_header)
+                    outfile.write(quality)
+                except StopIteration:
+                    break
+        if args.update:
+            subprocess.call("./ENCODE_submit_files.py {} --update".format(filename))
+            subprocess.call("rm {}".format(filename))
 
 if __name__ == '__main__':
         main()
