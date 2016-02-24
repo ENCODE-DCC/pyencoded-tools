@@ -68,26 +68,28 @@ def main():
                 else:
                     print("ERROR: object has no identifier", file=sys.stderr)
     elif args.object:
-        accessions = [line.strip() for line in open(args.object)]
-    else:
-        accessions = args.object.split(",")
+        if os.path.isfile(args.object):
+            accessions = [line.strip() for line in open(args.object)]
+        else:
+            accessions = [args.object]
     if len(accessions) == 0:
         print("No accessions to check!", file=sys.stderr)
         sys.exit(1)
     for line in accessions:
-        acc, size = line.split()
-        with gzip.open("{}.fastq".format(acc), "wb") as outfile:
-            filename = acc + ".fastq.gz"
+        acc, size = line.split(",")
+        filename = acc + ".fastq.gz"
+        with gzip.open(filename, "wb") as outfile:
             link = "/files/" + acc + "/@@download/" + filename
-            url = urljoin(connection.server, quote(link))
+            url = urljoin(connection.server, link)
             r = requests.get(url, stream=True)
             gzfile = gzip.GzipFile(fileobj=r.raw)
             while True:
                 try:
+                    #import pdb; pdb.set_trace()
                     header = next(gzfile)
-                    sequence = next(gzfile)[:-1][:size] + b'\n'
+                    sequence = next(gzfile)[:-1][:int(size)] + b'\n'
                     qual_header = next(gzfile)
-                    quality = next(gzfile)[:-1][:size] + b'\n'  # snip off newline, trim to size, add back newline
+                    quality = next(gzfile)[:-1][:int(size)] + b'\n'  # snip off newline, trim to size, add back newline
                     outfile.write(header)
                     outfile.write(sequence)
                     outfile.write(qual_header)
