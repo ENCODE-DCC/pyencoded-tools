@@ -22,7 +22,11 @@ def getArgs():
     )
     parser.add_argument('--object',
                         help="Either the file containing a list of ENCs as a column,\
-                        a single accession by itself, or a comma separated list of identifiers")
+                        a single accession by itself, or a comma separated \
+                        list of identifiers")
+    parser.add_argument('--infile',
+                        help="infile for ENCODE_submit_files.py, needs to be CSV \
+                        with file metadata for submitting")
     parser.add_argument('--query',
                         help="query of objects you want to process")
     parser.add_argument('--key',
@@ -50,6 +54,9 @@ def main():
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
     accessions = []
+    if args.update and not os.path.isfile(args.infile):
+        print("Need metadata file for submitting!")
+        sys.exit(1)
     if args.query:
         if "search" in args.query:
             temp = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
@@ -78,11 +85,12 @@ def main():
     for line in accessions:
         acc, size = line.split(",")
         filename = acc + ".fastq.gz"
+        link = "/files/" + acc + "/@@download/" + filename
+        url = urljoin(connection.server, link)
+        r = requests.get(url, auth=connection.auth, stream=True)
+        gzfile = gzip.GzipFile(fileobj=r.raw)
         with gzip.open(filename, "wb") as outfile:
-            link = "/files/" + acc + "/@@download/" + filename
-            url = urljoin(connection.server, link)
-            r = requests.get(url, stream=True)
-            gzfile = gzip.GzipFile(fileobj=r.raw)
+            print("writing file {filename}".format(filename=filename))
             while True:
                 try:
                     #import pdb; pdb.set_trace()
@@ -97,8 +105,8 @@ def main():
                 except StopIteration:
                     break
         if args.update:
-            subprocess.call("./ENCODE_submit_files.py {} --update".format(filename))
-            subprocess.call("rm {}".format(filename))
+            subprocess.call("./ENCODE_submit_files.py {infile} --key {key} --update".format(infile=args.infile, key=args.key))
+            subprocess.call("rm {filename}".format(filename=filename))
 
 if __name__ == '__main__':
         main()
