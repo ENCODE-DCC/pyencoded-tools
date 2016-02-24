@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: latin-1 -*-
 import argparse
 import os.path
 import encodedcc
@@ -5,6 +7,10 @@ import sys
 import csv
 
 EPILOG = '''
+Biosample reporter made for Cricket Sloan
+Follows specific format as per her requests
+Writes data to stdout for capture by user
+
 For more details:
 
         %(prog)s --help

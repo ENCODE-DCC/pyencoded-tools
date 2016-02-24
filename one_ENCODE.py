@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: latin-1 -*-
 ''' Script to add one ENCODE object from a file or stdin or get one object from an ENCODE server
 '''

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: latin-1 -*-
 from Bio import Entrez
 from Bio import Medline
 import argparse
@@ -6,17 +8,47 @@ import csv
 import logging
 import encodedcc
 
+EPILOG = '''
+Takes in a VERY specific file format to use for updating the publications
+Also can update the existing publications using the pubmed database
+
+An EMAIL is required to run this script
+This is for the Entrez database
+
+This is a dryrun default script
+This script requires the BioPython module
+
+Options:
+
+    %(prog)s --consortium Consortium_file.txt
+
+This takes the consortium file
+
+    %(prog)s --community Community_file.txt
+
+This takes the community file
+
+    %(prog)s --updateonly list.txt
+
+Takes file with single column of publication UUIDs, checks against PubMed \
+to ensure data is correct and will update if needed
+
+'''
+
 logger = logging.getLogger(__name__)
 
 
 def getArgs():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description=__doc__, epilog=EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument('--consortium',
                         help="File with consortium publication information")
     parser.add_argument('--community',
                         help="File with community publication information")
     parser.add_argument('--outfile',
-                        help="Output file name", default='output.txt')
+                        help="Output file name", default='publication_results.txt')
     parser.add_argument('--key',
                         help="The keypair identifier from the keyfile.",
                         default='default')

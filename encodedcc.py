@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: latin-1 -*-
 
 import requests
@@ -357,7 +357,6 @@ class GetFields():
         self.header = []
         self.accessions = []
         self.fields = []
-#        self.field = ""
         self.subobj = ""
         self.facet = facet
         self.args = args
@@ -385,7 +384,7 @@ class GetFields():
                 if os.path.isfile(self.args.object):
                     self.accessions = [line.strip() for line in open(self.args.object)]
                 else:
-                    self.accessions = [self.args.object]
+                    self.accessions = self.args.object.split(",")
             if any(temp):
                 for obj in temp:
                     if obj.get("accession"):
@@ -416,7 +415,7 @@ class GetFields():
                 if os.path.isfile(self.args.field):
                     self.fields = [line.strip() for line in open(self.args.field)]
                 else:
-                    self.fields = [self.args.field]
+                    self.fields = self.args.field.split(",")
         if len(self.accessions) == 0:
             print("ERROR: Need to provide accessions", file=sys.stderr)
             sys.exit(1)
@@ -428,8 +427,7 @@ class GetFields():
         import csv
         from collections import deque
         self.setup()
-        if "accession" not in self.fields:
-            self.header = ["accession"] + self.fields
+        self.header = ["accession"]
         for acc in self.accessions:
             acc = quote(acc)
             obj = get_ENCODE(acc, self.connection)
@@ -465,11 +463,52 @@ class GetFields():
             return ""
 
     def get_embedded(self, path, obj):
-        ''' recursively move down the element path
-        until you are at the bottom of the object tree
-        then return the final value'''
+        '''
+        The 'path' is built from a string such as "target.title"
+        that has been split on the "." to result in ["target", "title"]
+        and saved as a queue object
+
+        'obj' is the object currently being explored and expanded
+
+        The 'path' queue is checked for length, because it points to the final
+        location of the desired value, if the queue is 1 then we have reached
+        the bottom of the search and we return "obj[path]" value
+        Otherwise the leftmost item is popped from the list and treated as a
+        link to the new object to be expanded, then the new object and the
+        shortened queue are fed back into the method
+
+        EXAMPLE:
+        path = ["target", "title"]
+        obj = {Experiment}
+        Length is greather than 1, pop leftmost value
+        field = "target"
+        path = ["title"]
+
+        get obj[field] and save as new obj, in this case Experiment["target"]
+        call get_embedded() with new value for path and obj
+
+        path = ["title"]
+        obj = {target}
+        path is length 1, we have reached end of search queue
+        pop leftmost value
+        field = "title"
+        return obj[field] which is target["title"]
+
+        There are some special cases checked for, such as if the value
+        expended is a list-type setup, such as path = ["replicates", "status"]
+
+        Here path.popleft() gets us "replicates" which is a list
+        This list is stored temporarily and then iterated through
+        immediately to retrieve the next value (in this case "status")
+
+        This is why it can't retrieve lists the are doubly embedded
+            Ex: path = ["replicates", "library", "anyvalue"]
+                won't work because both replicates and library are lists
+
+        There is another special check for "files" to iterate through it
+        '''
         if len(path) > 1:
-            field = path.popleft()  # first element
+            field = path.popleft()  # first element in queue
             if obj.get(field):  # check to see if the element is in the current object
                 if field == "files":
                     files_list = []  # empty list for later
@@ -486,12 +525,12 @@ class GetFields():
                         return list(set(files_list))  # return unique list of last element items
                 else:
                     if type(obj[field]) == int:
-                        return obj[field]
+                        return obj[field]  # just return integers as is, we can't expand them
                     elif type(obj[field]) == list:
                         if len(path) == 1:  # if last element in path then get from each item in list
                             files_list = []
                             for f in obj[field]:
-                                if type(f) == dict:
+                                if type(f) == dict:  # if this is like a flowcell or something it should catch here
                                     return f
                                 temp = get_ENCODE(f, self.connection)
                                 if temp.get(path[0]):
@@ -503,19 +542,26 @@ class GetFields():
                                 return files_list
                             else:
                                 return list(set(files_list))  # return unique list of last element items
-                        elif self.facet:
+                        elif self.facet:  # facet is a special case for the search page flattener
                             temp = get_ENCODE(obj[field][0], self.connection)
                             return self.get_embedded(path, temp)
-                        else:
-                            return obj[field]
+                        else:  # if this is not the last item in the path, but we are in a list
+                            return obj[field]  # return the item since we can't dig deeper without getting lost
                     elif type(obj[field]) == dict:
-                        return obj[field]
+                        return obj[field]  # return dictionary objects, probably things like flowcells anyways
                     else:
                         temp = get_ENCODE(obj[field], self.connection)  # if found get_ENCODE the embedded object
                         return self.get_embedded(path, temp)
+            else:  # if not obj.get(field) then we kick back an error
+                print("Field {} not found in object {}".format(field, obj.get("@id")))
+                sys.exit(1)
         else:
             field = path.popleft()
-            return obj.get(field)
+            if obj.get(field):
+                return obj[field]
+            else:
+                print("Field {} not found in object {}".format(field, obj.get("@id")))
+                sys.exit(1)
 
 
 def patch_set(args, connection):
@@ -529,17 +575,20 @@ def patch_set(args, connection):
     else:
         print("This is a test run, nothing will be changed")
     if args.accession:
-        assert args.field and args.data
         if args.field and args.data:
             data.append({"accession": args.accession, args.field: args.data})
         else:
             print("Missing field/data! Cannot PATCH object", args.accession)
-            return
+            sys.exit(1)
     elif args.infile:
-        with open(args.infile, "r") as tsvfile:
-            reader = csv.DictReader(tsvfile, delimiter='\t')
-            for row in reader:
-                data.append(row)
+        if os.path.isfile(args.infile):
+            with open(args.infile, "r") as tsvfile:
+                reader = csv.DictReader(tsvfile, delimiter='\t')
+                for row in reader:
+                    data.append(row)
+        else:
+            print("{} was not found".format(args.infile))
+            sys.exit(1)
     else:
         reader = csv.DictReader(sys.stdin, delimiter='\t')
         for row in reader:
@@ -560,13 +609,29 @@ def patch_set(args, connection):
         if args.remove:
             put_dict = full_data
             for key in temp_data.keys():
-                name = key.split(":")[0]
-                if name is not None:
+                k = key.split(":")
+                name = k[0]
+                if name not in full_data.keys():
+                    print("Cannot PATCH '{}' may be a calculated property".format(name))
+                    sys.exit(1)
+                print("OBJECT:", accession)
+                if len(k) > 1:
+                    if k[1] in ["list", "array"]:
+                    	old_list = full_data[name]
+                    l = temp_data[key].strip("[]").split(",")
+                    l = [x.replace(" ", "") for x in l]
+                    new_list = l
+                    patch_list = list(set(old_list) - set(new_list))
+                    put_dict[name] = patch_list
+                    print("OLD DATA:", name, old_list)
+                    print("NEW DATA:", name, patch_list)
+                    if args.update:
+                        patch_ENCODE(accession, connection, put_dict)
+                else:
                     put_dict.pop(name, None)
-                    print("OBJECT:", accession)
                     print("Removing value:", name)
-            if args.update:
-                replace_ENCODE(accession, connection, put_dict)
+                    if args.update:
+                        replace_ENCODE(accession, connection, put_dict)
         else:
             patch_data = {}
             if args.flowcell:
@@ -580,6 +645,9 @@ def patch_set(args, connection):
                 temp_data["flowcell_details:list"] = cell
             for key in temp_data.keys():
                 k = key.split(":")
+                if k[0] not in full_data.keys():
+                    print("Cannot PATCH '{}' may be a calculated property".format(k[0]))
+                    sys.exit(1)
                 if len(k) > 1:
                     if k[1] == "int" or k[1] == "integer":
                         patch_data[k[0]] = int(temp_data[key])

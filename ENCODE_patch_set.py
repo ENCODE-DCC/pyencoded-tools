@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: latin-1 -*-
 '''Read in a file of object, correction fields and patch each object'''
 
@@ -28,11 +28,10 @@ To PATCH a single object, field with field type, and data:
         %(prog)s --accession ENCSR000AAA --field read_length:int --data 31
         %(prog)s --accession ENCSR000AAA --field documents:list --data document1,document2
 
-    for integers use ':int'
-    for lists use    ':list'
-    string are the default and do not require an identifier
-
+    for integers use ':int' or ':integer'
+    for lists use    ':list' or ':array'
     lists are appended to unless the --overwite command is used
+    string are the default and do not require an identifier
 
 To PATCH flowcells:
 
@@ -41,14 +40,32 @@ To PATCH flowcells:
     the "flowcell" option is a flag used to have the script search for\
     flowcell data in the infile
 
-accession   flowcell   lane    barcode   machine
-ENCSR000AAA value1     value2  value3    value4
+    accession   flowcell   lane    barcode   machine
+    ENCSR000AAA value1     value2  value3    value4
 
     not all the columns are needed for the flowcell to be built
 
-For more details:
 
-        %(prog)s --help
+Removing Data:
+Data can be removed with the '--remove' option, but must be run with '--update'
+
+To remove individual items from a list you must also tag the column header as such,\
+otherwise it will remove the entire list
+
+    accession   listobject:list
+    ENCSR000AAA item1,item2
+
+This will remove "item1" and "item2" from the list\
+but you need to use the FULL NAME of the object
+Ex: "/files/ENCFF000ABD/"
+NOT: "file/ENCFF000ABD"
+
+To remove an entire list object, don't include the ":list"/":array" tag
+
+    accession   listobject
+    ENCSR000AAA
+
+This will completely remove listobject regardless of whatever else is in the column below it
 '''
 
 
