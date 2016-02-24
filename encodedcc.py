@@ -645,9 +645,6 @@ def patch_set(args, connection):
                 temp_data["flowcell_details:list"] = cell
             for key in temp_data.keys():
                 k = key.split(":")
-                if k[0] not in full_data.keys():
-                    print("Cannot PATCH '{}' may be a calculated property".format(k[0]))
-                    sys.exit(1)
                 if len(k) > 1:
                     if k[1] == "int" or k[1] == "integer":
                         patch_data[k[0]] = int(temp_data[key])
