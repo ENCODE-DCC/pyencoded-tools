@@ -617,16 +617,16 @@ def patch_set(args, connection):
                 print("OBJECT:", accession)
                 if len(k) > 1:
                     if k[1] in ["list", "array"]:
-                    	old_list = full_data[name]
-                    l = temp_data[key].strip("[]").split(",")
-                    l = [x.replace(" ", "") for x in l]
-                    new_list = l
-                    patch_list = list(set(old_list) - set(new_list))
-                    put_dict[name] = patch_list
-                    print("OLD DATA:", name, old_list)
-                    print("NEW DATA:", name, patch_list)
-                    if args.update:
-                        patch_ENCODE(accession, connection, put_dict)
+                        old_list = full_data[name]
+                        l = temp_data[key].strip("[]").split(",")
+                        #l = [x.replace(" ", "") for x in l]
+                        new_list = l
+                        patch_list = list(set(old_list) - set(new_list))
+                        put_dict[name] = patch_list
+                        print("OLD DATA:", name, old_list)
+                        print("NEW DATA:", name, patch_list)
+                        if args.update:
+                            patch_ENCODE(accession, connection, put_dict)
                 else:
                     put_dict.pop(name, None)
                     print("Removing value:", name)
@@ -656,7 +656,7 @@ def patch_set(args, connection):
                             l = [temp_data[key]]
                         else:
                             l = temp_data[key].strip("[]").split(",")
-                            l = [x.replace(" ", "") for x in l]
+                            #l = [x.replace(" ", "") for x in l]
                         if args.overwrite:
                             patch_data[k[0]] = l
                         else:
