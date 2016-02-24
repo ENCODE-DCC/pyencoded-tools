@@ -62,18 +62,18 @@ def get_args():
                         help="The keypair identifier from the keyfile.  \
                         Default is --key=default")
     parser.add_argument('--keyfile',
-                        default=os.path.expanduser("./keypairs.json"),
-                        help="The keypair file.  Default is --keyfile=%s" % (os.path.expanduser("./keypairs.json")))
+                        default=os.path.expanduser("~/keypairs.json"),
+                        help="The keypair file.  Default is --keyfile=%s" % (os.path.expanduser("~/keypairs.json")))
     parser.add_argument('--update',
                         help="POST data to server, default is False.",
                         default=False, action='store_true')
     parser.add_argument('--encvaldata',
                         help="Directory in which https://github.com/ENCODE-DCC/encValData.git is cloned.\
-                        Default is --encvaldata=%s" % (os.path.expanduser("./encValData/")),
-                        default=os.path.expanduser("./encValData/"))
+                        Default is --encvaldata=%s" % (os.path.expanduser("~/encValData/")),
+                        default=os.path.expanduser("~/encValData/"))
     parser.add_argument('--validatefiles',
-                        help="validateFiles program needed to run script.  Default is --validatefiles=%s" % (os.path.expanduser("./validateFiles")),
-                        default=os.path.expanduser("./validateFiles"))
+                        help="validateFiles program needed to run script.  Default is --validatefiles=%s" % (os.path.expanduser("~/validateFiles")),
+                        default=os.path.expanduser("~/validateFiles"))
 
     args = parser.parse_args()
 
