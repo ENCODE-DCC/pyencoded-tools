@@ -458,6 +458,8 @@ class GetFields():
             return ":integer"
         elif type(attr) == list:
             return ":array"
+        elif type(attr) == dict:
+            return ":dict"
         else:
             # this must be a string
             return ""
@@ -659,6 +661,9 @@ def patch_set(args, connection):
                         else:
                             append_list = get_ENCODE(accession, connection).get(k[0], [])
                             patch_data[k[0]] = l + append_list
+                    elif k[1] == "dict":
+                        # this is a dictionary that is being PATCHed
+                        patch_data[k[0]] = json.loads(temp_data[key])
                 else:
                     patch_data[k[0]] = temp_data[key]
                 old_data = {}
