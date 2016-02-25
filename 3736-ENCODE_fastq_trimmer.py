@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 from urllib.parse import quote
 import gzip
 import subprocess
+import csv
 
 EPILOG = '''
 For more details:
@@ -21,14 +22,8 @@ def getArgs():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument('--object',
-                        help="Either the file containing a list of ENCs as a column,\
-                        a single accession by itself, or a comma separated \
-                        list of identifiers")
-    parser.add_argument('--infile',
-                        help="infile for ENCODE_submit_files.py, needs to be CSV \
-                        with file metadata for submitting")
-    parser.add_argument('--query',
-                        help="query of objects you want to process")
+                        help="CSV file of accessions, desired read length and \
+                        other metadata needed for submitting")
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  \
@@ -53,37 +48,19 @@ def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-    accessions = []
-    if args.update and not os.path.isfile(args.infile):
-        print("Need metadata file for submitting!")
+    data = []
+    if os.path.isfile(args.object):
+        with open(args.object, "r") as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                data.append(row)
+    if len(data) == 0:
+        print("No data to check!", file=sys.stderr)
         sys.exit(1)
-    if args.query:
-        if "search" in args.query:
-            temp = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
-        else:
-            temp = [encodedcc.get_ENCODE(args.query, connection)]
-        if any(temp):
-            for obj in temp:
-                if obj.get("accession"):
-                    accessions.append(obj["accession"])
-                elif obj.get("uuid"):
-                    accessions.append(obj["uuid"])
-                elif obj.get("@id"):
-                    accessions.append(obj["@id"])
-                elif obj.get("aliases"):
-                    accessions.append(obj["aliases"][0])
-                else:
-                    print("ERROR: object has no identifier", file=sys.stderr)
-    elif args.object:
-        if os.path.isfile(args.object):
-            accessions = [line.strip() for line in open(args.object)]
-        else:
-            accessions = [args.object]
-    if len(accessions) == 0:
-        print("No accessions to check!", file=sys.stderr)
-        sys.exit(1)
-    for line in accessions:
-        acc, size = line.split(",")
+    for line in data:
+        acc = line.pop("accession")
+        size = line["read_length"]
+
         filename = acc + ".fastq.gz"
         link = "/files/" + acc + "/@@download/" + filename
         url = urljoin(connection.server, link)
@@ -105,8 +82,21 @@ def main():
                 except StopIteration:
                     break
         if args.update:
-            subprocess.call("./ENCODE_submit_files.py {infile} --key {key} --update".format(infile=args.infile, key=args.key))
+            # make tempfile?
+            file_data = encodedcc.get_ENCODE(acc, connection)
+            unsubmittable = ['accession', 'uuid', 'schema_version', 'alternate_accessions', 'submitted_by']
+            for item in unsubmittable:
+                file_data.pop(item)
+            #headers = []
+            #tempfile = ""
+            with open(tempfile, "w") as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=headers)
+
+            print("Uploading file {filename}".format(filename=filename))
+            subprocess.call("./ENCODE_submit_files.py {infile} --key {key} --update".format(infile=tempfile, key=args.key))
+            print("Removing file {filename}".format(filename=filename))
             subprocess.call("rm {filename}".format(filename=filename))
+
 
 if __name__ == '__main__':
         main()
