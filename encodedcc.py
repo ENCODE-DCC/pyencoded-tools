@@ -663,6 +663,7 @@ def patch_set(args, connection):
                             patch_data[k[0]] = l + append_list
                     elif k[1] == "dict":
                         # this is a dictionary that is being PATCHed
+                        temp_data[key] = temp_data[key].replace("'", '"')
                         patch_data[k[0]] = json.loads(temp_data[key])
                 else:
                     patch_data[k[0]] = temp_data[key]
