@@ -58,11 +58,11 @@ def main():
         print("No data to check!", file=sys.stderr)
         sys.exit(1)
     for line in data:
-        acc = line.pop("accession")
-        size = line["read_length"]
+        acc = line["accession"]
+        size = int(line["read_length"])
 
-        filename = acc + ".fastq.gz"
-        link = "/files/" + acc + "/@@download/" + filename
+        filename = acc + "_modified.fastq.gz"
+        link = "/files/" + acc + "/@@download/" + acc + ".fastq.gz"
         url = urljoin(connection.server, link)
         r = requests.get(url, auth=connection.auth, stream=True)
         gzfile = gzip.GzipFile(fileobj=r.raw)
@@ -72,9 +72,9 @@ def main():
                 try:
                     #import pdb; pdb.set_trace()
                     header = next(gzfile)
-                    sequence = next(gzfile)[:-1][:int(size)] + b'\n'
+                    sequence = next(gzfile)[:-1][:size] + b'\n'
                     qual_header = next(gzfile)
-                    quality = next(gzfile)[:-1][:int(size)] + b'\n'  # snip off newline, trim to size, add back newline
+                    quality = next(gzfile)[:-1][:size] + b'\n'  # snip off newline, trim to size, add back newline
                     outfile.write(header)
                     outfile.write(sequence)
                     outfile.write(qual_header)
@@ -83,14 +83,26 @@ def main():
                     break
         if args.update:
             # make tempfile?
-            file_data = encodedcc.get_ENCODE(acc, connection)
-            unsubmittable = ['accession', 'uuid', 'schema_version', 'alternate_accessions', 'submitted_by']
+            print("making metadata file")
+            file_data = encodedcc.get_ENCODE(acc, connection, frame="edit")
+            unsubmittable = ['md5sum', 'content_md5sum', 'accession']
             for item in unsubmittable:
-                file_data.pop(item)
-            #headers = []
-            #tempfile = ""
+                file_data.pop(item, None)
+            file_data["submitted_file_name"] = filename
+            file_data["read_length"] = size
+            if line.get("run_type"):
+                file_data["run_type"] = line["run_type"]
+                if line["run_type"] == "single-ended":
+                    file_data.pop("paired_end", None)
+            if line.get("derived_from"):
+                file_data["derived_from"] = line["derived_from"]
+
+            headers = list(file_data.keys())
+            tempfile = acc + "_meta.csv"
             with open(tempfile, "w") as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=headers)
+                writer.writeheader()
+                writer.writerow(file_data)
 
             print("Uploading file {filename}".format(filename=filename))
             subprocess.call("./ENCODE_submit_files.py {infile} --key {key} --update".format(infile=tempfile, key=args.key))
