@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: latin-1 -*-
-'''Read in a file of object, correction fields and patch each object'''
-
-import argparse
 import os.path
+import argparse
 import encodedcc
 
 EPILOG = '''
