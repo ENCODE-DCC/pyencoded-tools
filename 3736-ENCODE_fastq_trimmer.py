@@ -178,7 +178,8 @@ def main():
 
         print("making metadata")
         file_data = encodedcc.get_ENCODE(acc, connection, frame="edit")
-        file_data["derived_from"] = [file_data["@id"]]
+        derived_from = "/files/{}/".format(file_data["accession"])
+        file_data["derived_from"] = [derived_from]
 
         unsubmittable = ['md5sum', 'quality_metrics', 'file_size',
                          'schema_version', 'accession', 'date_created',
