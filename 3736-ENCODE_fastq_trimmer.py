@@ -178,6 +178,7 @@ def main():
 
         print("making metadata")
         file_data = encodedcc.get_ENCODE(acc, connection, frame="edit")
+        file_data["derived_from"] = [file_data["accession"]]
 
         unsubmittable = ['md5sum', 'quality_metrics', 'file_size',
                          'schema_version', 'accession', 'date_created',
@@ -197,8 +198,6 @@ def main():
             file_data["run_type"] = line["run_type"]
             if line["run_type"] == "single-ended":
                 file_data.pop("paired_end", None)
-        if line.get("derived_from"):
-            file_data["derived_from"] = line["derived_from"]
 
         if line.get("paired_with"):
             # file has partner, time for fancy stuff
