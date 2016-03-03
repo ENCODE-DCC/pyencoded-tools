@@ -553,13 +553,15 @@ class GetFields():
                         temp = get_ENCODE(obj[field], self.connection)  # if found get_ENCODE the embedded object
                         return self.get_embedded(path, temp)
             else:  # if not obj.get(field) then we kick back an error
-                return ""
+                print("Field {} not found in object {}".format(field, obj.get("@id")))
+                sys.exit(1)
         else:
             field = path.popleft()
             if obj.get(field):
                 return obj[field]
             else:
-                return ""
+                print("Field {} not found in object {}".format(field, obj.get("@id")))
+                sys.exit(1)
 
 
 def patch_set(args, connection):
