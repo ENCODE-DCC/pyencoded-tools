@@ -14,6 +14,32 @@ import magic  # install me with 'pip install python-magic'
 # this is the site for python-magic in case we need it
 
 EPILOG = '''
+This script takes in an Excel file with the data
+This is a dryrun-default script, run with --update or --patchall to work
+
+By DEFAULT:
+If there is a uuid, alias, @id, or accession in the document
+it will ask if you want to PATCH that object
+Use '--patchall' if you want to patch ALL objects in your document and ignore that message
+
+If no object identifiers are found in the document you need to use '--update'
+for POSTing to occur
+
+Defining Object type:
+    Name each "sheet" of the excel file the name of the object type you are using
+Ex: Experiment, Biosample, Document, AntibodyCharacterization
+
+    Or use the '--type' argument, but this will only work for single sheet documents
+Ex: %(prog)s mydata.xsls --type Experiment
+
+
+The header of each sheet should be the names of the fields,
+Ex: award, lab, target, etc.
+
+To upload objects with attachments, have a column titled "attachment"
+containing the name of the file you wish to attach
+
+
 For more details:
 
         %(prog)s --help
@@ -152,12 +178,20 @@ def excel_reader(datafile, sheet, update, connection, patchall):
         post_json = dict(zip(keys, values))
 #        print("before", post_json)
         post_json = dict_patcher(post_json)
-#        print("after", post_json)
+        # I think we can add attchments here
+        if post_json.get("attachment"):
+            attach = attachment(post_json["attachment"])
+            post_json["attachment"] = attach
+        #print("after", post_json)
         temp = {}
         if post_json.get("uuid"):
             temp = encodedcc.get_ENCODE(post_json["uuid"], connection)
         elif post_json.get("alias"):
             temp = encodedcc.get_ENCODE(post_json["alias"], connection)
+        elif post_json.get("accession"):
+            temp = encodedcc.get_ENCODE(post_json["accession"], connection)
+        elif post_json.get("@id"):
+            temp = encodedcc.get_ENCODE(post_json["@id"], connection)
         if temp.get("uuid"):
             if patchall:
                 e = encodedcc.patch_ENCODE(temp["uuid"], connection, post_json)
@@ -184,7 +218,8 @@ def excel_reader(datafile, sheet, update, connection, patchall):
                     error += 1
                 elif e["status"] == "success":
                     success += 1
-    print("{}: {} out of {} posted, {} errors, {} patched".format(sheet.upper(), success, total, error, patch))
+    print("{sheet}: {success} out of {total} posted, {error} errors, {patch} patched".format(
+        sheet=sheet.upper(), success=success, total=total, error=error, patch=patch))
 
 
 def dict_patcher(old_dict):
@@ -205,10 +240,13 @@ def dict_patcher(old_dict):
 
 
 def main():
-
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
+    print("Running on {server}".format(server=connection.server))
+    if not os.path.isfile(args.infile):
+        print("File {filename} not found!".format(filename=args.infile))
+        sys.exit(1)
     if args.type:
         names = [args.type]
     else:
@@ -221,7 +259,7 @@ def main():
         if n.lower() in supported_collections:
             excel_reader(args.infile, n, args.update, connection, args.patchall)
         else:
-            print("Sheet name '{}' not part of supported object types!".format(n), file=sys.stderr)
+            print("Sheet name '{name}' not part of supported object types!".format(name=n), file=sys.stderr)
 
 if __name__ == '__main__':
         main()
