@@ -7,6 +7,7 @@ import xlrd
 import datetime
 import sys
 import mimetypes
+import requests
 from PIL import Image
 from base64 import b64encode
 import magic  # install me with 'pip install python-magic'
@@ -84,8 +85,13 @@ def attachment(path):
     """ Create an attachment upload object from a filename
     Embeds the attachment as a data url.
     """
-
-    filename = os.path.basename(path)
+    if not os.path.isfile(path):
+        r = requests.get(path)
+        filename = path.split("/")[-1]
+        with open(filename, "wb") as outfile:
+            outfile.write(r.content)
+    else:
+        filename = os.path.basename(path)
     mime_type, encoding = mimetypes.guess_type(path)
     major, minor = mime_type.split('/')
     detected_type = magic.from_file(path, mime=True).decode('ascii')
