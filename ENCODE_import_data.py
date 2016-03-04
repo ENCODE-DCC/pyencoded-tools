@@ -87,11 +87,10 @@ def attachment(path):
     """
     if not os.path.isfile(path):
         r = requests.get(path)
-        filename = path.split("/")[-1]
-        with open(filename, "wb") as outfile:
+        path = path.split("/")[-1]
+        with open(path, "wb") as outfile:
             outfile.write(r.content)
-    else:
-        filename = os.path.basename(path)
+    filename = os.path.basename(path)
     mime_type, encoding = mimetypes.guess_type(path)
     major, minor = mime_type.split('/')
     detected_type = magic.from_file(path, mime=True).decode('ascii')
