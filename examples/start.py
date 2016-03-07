@@ -15,13 +15,11 @@ def getArgs():
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-
-    parser.add_argument('--infile',
-                        help="single column list of object accessions")
+    parser.add_argument('--object',
+                        help="Either the file containing a list of ENCs as a column,\
+                        a single accession by itself, or a comma separated list of identifiers")
     parser.add_argument('--query',
                         help="query of objects you want to process")
-    parser.add_argument('--accession',
-                        help="single accession to process")
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  \
@@ -48,14 +46,28 @@ def main():
     connection = encodedcc.ENC_Connection(key)
     accessions = []
     if args.query:
-        temp = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
+        if "search" in args.query:
+            temp = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
+        else:
+            temp = [encodedcc.get_ENCODE(args.query, connection)]
+    elif args.object:
+        if os.path.isfile(args.object):
+            accessions = [line.strip() for line in open(args.object)]
+        else:
+            accessions = args.object.split(",")
+    if any(temp):
         for obj in temp:
-            accessions.append(obj.get("@id"))
-    elif args.infile:
-        accessions = [line.strip() for line in open(args.infile)]
-    elif args.accession:
-        accessions = [args.accession]
-    else:
+            if obj.get("accession"):
+                accessions.append(obj["accession"])
+            elif obj.get("uuid"):
+                accessions.append(obj["uuid"])
+            elif obj.get("@id"):
+                accessions.append(obj["@id"])
+            elif obj.get("aliases"):
+                accessions.append(obj["aliases"][0])
+            else:
+                print("ERROR: object has no identifier", file=sys.stderr)
+    if len(accessions) == 0:
         print("No accessions to check!", file=sys.stderr)
         sys.exit(1)
     for acc in accessions:
