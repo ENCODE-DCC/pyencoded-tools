@@ -126,7 +126,7 @@ class Data_Release():
         self.statusDict = {}
         self.connection = connection
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
-        ignore = ["Lab", "Document", "Award", "AntibodyCharacterization", "Platform",
+        ignore = ["Lab", "Award", "AntibodyCharacterization", "Platform",
                   "Publication", "Organism", "Reference", "AccessKey", "User", "Target"]
         self.profilesJSON = []
         self.dontExpand = []
@@ -147,6 +147,7 @@ class Data_Release():
         self.profiles_ref = []
         #print(self.dontExpand)
         for profile in self.profilesJSON:
+            #print(profile)
             self.profiles_ref.append(self.helper(profile))
 
         for item in self.profilesJSON:
@@ -223,8 +224,6 @@ class Data_Release():
         keysLink is the list of keys that point to links, used in the PROFILES'''
         d = dictionary["properties"]
         for prop in d.keys():
-            if prop == "documents":
-                print("found them", dictionary["title"])
             if d[prop].get("linkTo") or d[prop].get("linkFrom"):
                 self.keysLink.append(prop)
             else:
@@ -245,8 +244,6 @@ class Data_Release():
                 if key in self.PROFILES[name]:
                     # if the key is in profiles it's a link
                     if type(obj[key]) is list:
-                        if key.lower() == "documents":
-                            print(name, obj[key])
                         for link in obj[key]:
                             item = link.split("/")[1].replace("-", "")
                             if item in self.profiles_ref and link not in self.searched:
