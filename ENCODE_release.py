@@ -126,7 +126,7 @@ class Data_Release():
         self.statusDict = {}
         self.connection = connection
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
-        ignore = ["Lab", "Document", "Award", "AntibodyCharacterization", "Platform",
+        ignore = ["Lab", "Award", "AntibodyCharacterization", "Platform",
                   "Publication", "Organism", "Reference", "AccessKey", "User", "Target"]
         self.profilesJSON = []
         self.dontExpand = []
@@ -147,6 +147,7 @@ class Data_Release():
         self.profiles_ref = []
         #print(self.dontExpand)
         for profile in self.profilesJSON:
+            #print(profile)
             self.profiles_ref.append(self.helper(profile))
 
         for item in self.profilesJSON:
