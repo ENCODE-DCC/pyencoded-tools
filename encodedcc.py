@@ -458,6 +458,8 @@ class GetFields():
             return ":integer"
         elif type(attr) == list:
             return ":array"
+        elif type(attr) == dict:
+            return ":dict"
         else:
             # this must be a string
             return ""
@@ -553,15 +555,13 @@ class GetFields():
                         temp = get_ENCODE(obj[field], self.connection)  # if found get_ENCODE the embedded object
                         return self.get_embedded(path, temp)
             else:  # if not obj.get(field) then we kick back an error
-                print("Field {} not found in object {}".format(field, obj.get("@id")))
-                sys.exit(1)
+                return ""
         else:
             field = path.popleft()
             if obj.get(field):
                 return obj[field]
             else:
-                print("Field {} not found in object {}".format(field, obj.get("@id")))
-                sys.exit(1)
+                return ""
 
 
 def patch_set(args, connection):
@@ -619,7 +619,7 @@ def patch_set(args, connection):
                     if k[1] in ["list", "array"]:
                         old_list = full_data[name]
                         l = temp_data[key].strip("[]").split(",")
-                        #l = [x.replace(" ", "") for x in l]
+                        l = [x.replace("'", "") for x in l]
                         new_list = l
                         patch_list = list(set(old_list) - set(new_list))
                         put_dict[name] = patch_list
@@ -652,13 +652,17 @@ def patch_set(args, connection):
                         if type(temp_data[key]) == dict:
                             l = [temp_data[key]]
                         else:
-                            l = temp_data[key].strip("[]").split(",")
-                            #l = [x.replace(" ", "") for x in l]
+                            l = temp_data[key].strip("[]").split(", ")
+                            l = [x.replace("'", "") for x in l]
                         if args.overwrite:
                             patch_data[k[0]] = l
                         else:
                             append_list = get_ENCODE(accession, connection).get(k[0], [])
                             patch_data[k[0]] = l + append_list
+                    elif k[1] == "dict":
+                        # this is a dictionary that is being PATCHed
+                        temp_data[key] = temp_data[key].replace("'", '"')
+                        patch_data[k[0]] = json.loads(temp_data[key])
                 else:
                     patch_data[k[0]] = temp_data[key]
                 old_data = {}
