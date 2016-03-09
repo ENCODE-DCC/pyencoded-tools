@@ -233,9 +233,9 @@ def dict_patcher(old_dict):
         if old_dict[key] != "":  # this removes empty cells
             k = key.split(":")
             if len(k) > 1:
-                if k[1] == "int" or "integer":
+                if k[1] in ["int", "integer"]:
                     new_dict[k[0]] = int(old_dict[key])
-                elif k[1] == "list" or k[1] == "array":
+                elif k[1] in ["list", "array"]:
                     l = old_dict[key].strip("[]").split(",")
                     #l = [x.replace(" ", "") for x in l]
                     new_dict[k[0]] = l
