@@ -2,51 +2,44 @@ import encodedcc
 
 
 def files(objList, fileCheckedItems, connection):
-    for obj in objList:
-        exp = encodedcc.get_ENCODE(obj, connection)
+    for i in range(0, len(objList)):
+        exp = encodedcc.get_ENCODE(objList[i], connection, frame='embedded')
         if any(exp.get("files")):
             expfiles = exp["files"]
         else:
-            expfiles = exp["original_files"]
-
-        for f in expfiles:
+            tempfiles = exp.get("original_files")
+            expfiles = []
+            for t in tempfiles:
+                temp = encodedcc.get_ENCODE(t, connection, frame='embedded')
+                expfiles.append(temp)
+        for i in range(0, len(expfiles)):
             fileob = {}
-            file = encodedcc.get_ENCODE(f, connection)
+            file = expfiles[i]
             for field in fileCheckedItems:
                 fileob[field] = file.get(field)
-            fileob["submitted_by"] = encodedcc.get_ENCODE(file["submitted_by"], connection)["title"]
-            fileob["experiment"] = exp["accession"]
-            fileob["experiment-lab"] = encodedcc.get(exp["lab"], connection)["name"]
-            fileob["biosample"] = exp.get("biosample_term_name", "")
-            fileob["flowcell"] = []
-            fileob["lane"] = []
+            fileob['submitted_by'] = file['submitted_by']['title']
+            fileob['experiment'] = exp['accession']
+            fileob['experiment-lab'] = exp['lab']['name']
+            fileob['biosample'] = exp.get('biosample_term_name', '')
+            fileob['flowcell'] = []
+            fileob['lane'] = []
             fileob["Uniquely mapped reads number"] = ""
-
-            if file.get("file_format", "") == "bam":
-                for q in file.get("quality_metrics", []):
+            if expfiles[i].get("file_format", "") == "bam":
+                temp_file = expfiles[i]
+                for q in temp_file.get("quality_metrics", []):
                     if "star-quality-metrics" in q.get("@id", ""):
-                        fileob["Uniquely mapped reads number"] = q["Uniquely mapped reads number"]
-            for fcd in file["flowcell_details"]:
-                fileob["flowcell"].append(fcd.get("flowcell", ""))
-                fileob["lane"].append(fcd["lane"])
+                        fileob["Uniquely mapped reads number"] = q.get("Uniquely mapped reads number")
+            for fcd in file['flowcell_details']:
+                fileob['flowcell'].append(fcd.get('flowcell', ''))
+                fileob['lane'].append(fcd['lane'])
             try:
-                fileob["platform"] = encodedcc.get_ENCODE(fileob["platform"], connection)["title"]
+                fileob['platform'] = fileob['platform']['title']
             except:
-                fileob["platform"] = None
-            temp_rep = encodedcc.get_ENCODE(exp["replicates"][0], connection)
-            temp_lib = encodedcc.get_ENCODE(temp_rep["library"], connection)
-            temp_bio = encodedcc.get_ENCODE(temp_lib["biosample"], connection)
-            temp_don = encodedcc.get_ENCODE(temp_bio["donor"], connection)
-            temp_org = encodedcc.get_ENCODE(temp_don["organism"], connection)
-            fileob = temp_org["name"]
-            if "replicate" in file:
-                rep = file["replicate"]
-                
-
-
-
-
-
+                fileob['platform'] = None
+            try:
+                fileob['species'] = exp['replicates'][0]['library']['biosample']['donor']['organism']['name']
+            except:
+                fileob['species'] = ''
             if 'replicate' in file:
                     rep = file['replicate']
                     if 'library' in rep and rep['library'] is not None:
