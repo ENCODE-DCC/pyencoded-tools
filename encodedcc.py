@@ -652,12 +652,8 @@ def patch_set(args, connection):
                         if type(temp_data[key]) == dict:
                             l = [temp_data[key]]
                         else:
-                            #print(temp_data[key])
                             l = temp_data[key].strip("[]").split(", ")
-                            #print("before", l)
                             l = [x.replace("'", "") for x in l]
-                            #print("l is here", l)
-                            #print(type(l))
                         if args.overwrite:
                             patch_data[k[0]] = l
                         else:
@@ -665,7 +661,6 @@ def patch_set(args, connection):
                             patch_data[k[0]] = l + append_list
                     elif k[1] == "dict":
                         # this is a dictionary that is being PATCHed
-                        #print(type(temp_data[key]), temp_data[key])
                         temp_data[key] = temp_data[key].replace("'", '"')
                         patch_data[k[0]] = json.loads(temp_data[key])
                 else:
@@ -675,7 +670,6 @@ def patch_set(args, connection):
                     old_data[key] = full_data.get(key)
                 print("OBJECT:", accession)
                 for key in patch_data.keys():
-                    #pass
                     print("OLD DATA:", key, old_data[key])
                     print("NEW DATA:", key, patch_data[key])
                 if args.update:
