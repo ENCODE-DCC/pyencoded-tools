@@ -38,23 +38,30 @@ def main():
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
     data = encodedcc.get_ENCODE(args.search, connection, frame="page").get("@graph", [])
+    # bronze = warning and not compliant, missing error
+    # silver = warning, missing error and not compliant
+    # gold = nothing, missing all 3
     for d in data:
         audits = d.get("audit", {})
         status = ""
+        accession = d["accession"]
         if any(audits):
             if audits.get("ERROR") is None:
                 # no errors gets bronze award
                 status = "bronze"
-                if audits.get("NOT COMPLIANT") is None:
+                #print("bronze", accession, audits.keys())
+                if audits.get("NOT_COMPLIANT") is None:
                     # no errors and no not compliants gets silver
                     status = "silver"
+                    #print("silver", accession, audits.keys())
                     if audits.get("WARNING") is None:
                         # no errors, not compliants, or warnings gets gold
                         status = "gold"
+                        #print("gold", accession, audits.keys())
         else:
             # if there are no audits at all of course it qualifies for gold
             status = "gold"
-        print("{exp}\t{stat}".format(exp=d["accession"], stat=status))
+        print("{exp}\t{stat}".format(exp=accession, stat=status))
 
 if __name__ == '__main__':
         main()
