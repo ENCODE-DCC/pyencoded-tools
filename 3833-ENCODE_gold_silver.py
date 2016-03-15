@@ -43,24 +43,23 @@ def main():
     # gold = nothing, missing all 3
     for d in data:
         audits = d.get("audit", {})
-        status = ""
         accession = d["accession"]
+        temp = {"Error": False, "Not Compliant": False, "Warning": False}
         if any(audits):
-            if audits.get("ERROR") is None:
-                # no errors gets bronze award
-                status = "bronze"
-                #print("bronze", accession, audits.keys())
-                if audits.get("NOT_COMPLIANT") is None:
-                    # no errors and no not compliants gets silver
-                    status = "silver"
-                    #print("silver", accession, audits.keys())
-                    if audits.get("WARNING") is None:
-                        # no errors, not compliants, or warnings gets gold
-                        status = "gold"
-                        #print("gold", accession, audits.keys())
-        else:
-            # if there are no audits at all of course it qualifies for gold
+            if audits.get("ERROR"):
+                temp["Error"] = True
+            if audits.get("NOT_COMPLIANT"):
+                temp["Not Compliant"] = True
+            if audits.get("WARNING"):
+                temp["Warning"] = True
+        if temp["Error"] and temp["Warning"] and temp["Not Compliant"]:
+            status = "bronze"
+        elif temp["Error"] and temp["Warning"] and not temp["Not Compliant"]:
+            status = "silver"
+        elif not temp["Error"] and not temp["Warning"] and not temp["Not Compliant"]:
             status = "gold"
+        else:
+            status = "Error"
         print("{exp}\t{stat}".format(exp=accession, stat=status))
 
 if __name__ == '__main__':
