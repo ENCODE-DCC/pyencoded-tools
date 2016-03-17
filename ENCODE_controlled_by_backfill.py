@@ -234,10 +234,10 @@ def main():
     connection = encodedcc.ENC_Connection(key)
     accessions = []
     if args.infile:
-            if os.path.isfile(args.infile):
-                accessions = [line.rstrip('\n') for line in open(args.infile)]
-            else:
-                accessions = args.infile.split(",")
+        if os.path.isfile(args.infile):
+            accessions = [line.rstrip('\n') for line in open(args.infile)]
+        else:
+            accessions = args.infile.split(",")
     elif args.query:
         if "search" in args.query:
             temp = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
