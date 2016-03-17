@@ -117,7 +117,11 @@ class BackFill:
                                 exp_list.append(e["accession"])
                 if self.update:
                     for exp in exp_list:
-                        print("patching experiment file {} with controlled_by {}".format(exp, c["accession"]))
+                        temp = encodedcc.get_ENCODE(exp, self.connection).get("controlled_by", [])
+                        control = temp.append(c["accession"])
+                        patch_dict = {"controlled_by": control}
+                        print("PATCHing experiment file {} with controlled_by {}".format(exp, c["accession"]))
+                        encodedcc.patch_ENCODE(exp, self.connection, patch_dict)
                 temp = {"Exp Accession": obj["accession"], "Check type": "Single", "Experiment": exp_list, "Control": c["accession"]}
                 if len(exp_list) > 0:
                     self.data.append(temp)
@@ -169,7 +173,11 @@ class BackFill:
                         con_list.append(c_key)
                 if self.update:
                     for con in con_list:
+                        temp = encodedcc.get_ENCODE(exp, self.connection).get("controlled_by", [])
+                        control = temp.append(con)
+                        patch_dict = {"controlled_by": control}
                         print("patching experiment file {} with controlled_by {}".format(e_key, con))
+                        encodedcc.patch_ENCODE(e_key, self.connection, patch_dict)
                 temp = {"Exp Accession": obj["accession"], "Check type": "Multi-runtype ignored", "Experiment": e_key, "Control": con_list}
                 self.data.append(temp)
                 if self.DEBUG:
@@ -183,7 +191,11 @@ class BackFill:
                         exp_list.append(e_key)
                 if self.update:
                     for exp in exp_list:
+                        temp = encodedcc.get_ENCODE(exp, self.connection).get("controlled_by", [])
+                        control = temp.append(c_key)
+                        patch_dict = {"controlled_by": control}
                         print("patching experiment file {} with controlled_by {}".format(exp, c_key))
+                        encodedcc.patch_ENCODE(exp, self.connection, patch_dict)
                 temp = {"Exp Accession": obj["accession"], "Check type": "Multi", "Experiment": exp_list, "Control": c_key}
                 if len(exp_list) > 0:
                     self.data.append(temp)
@@ -233,7 +245,11 @@ class BackFill:
             for key in exp_data.keys():
                 if con_data.get(key):
                     if args.update:
+                        temp = encodedcc.get_ENCODE(exp, self.connection).get("controlled_by", [])
+                        control = temp.append(con_data[key])
+                        patch_dict = {"controlled_by": control}
                         print("patching experiment file {} with controlled_by {}".format(exp_data[key], con_data[key]))
+                        encodedcc.patch_ENCODE(exp_data[key], self.connection, patch_dict)
                     temp = {"Exp Accession": obj["accession"], "Check type": "Biosample", "Experiment": exp_data[key], "Control": con_data[key]}
                     self.data.append(temp)
                     if self.DEBUG:
