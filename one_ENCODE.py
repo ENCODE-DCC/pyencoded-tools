@@ -128,31 +128,28 @@ def main():
 
         new_json = json.loads(new_json_string)
         if '@id' in new_json:
-            try:
-                id_response = encodedcc.get_ENCODE(new_json['@id'], connection)
-            except:
+            id_response = encodedcc.get_ENCODE(new_json['@id'], connection)
+            if id_response.get("code") == 404:
                 id_response = {}
                 new_object = True
         else:
             id_response = {}
         if 'uuid' in new_json:
-            try:
-                uuid_response = encodedcc.get_ENCODE(new_json['uuid'], connection)
-            except:
+            uuid_response = encodedcc.get_ENCODE(new_json['uuid'], connection)
+            if uuid_response.get("code") == 404:
                 uuid_response = {}
                 new_object = True
         else:
             uuid_response = {}
         if 'accession' in new_json:
-            try:
-                accession_response = encodedcc.get_ENCODE(new_json['accession'], connection)
-            except:
+            accession_response = encodedcc.get_ENCODE(new_json['accession'], connection)
+            if accession_response.get("code") == 404:
                 accession_response = {}
                 new_object = True
         else:
-            print("No identifier in new JSON object.  Assuming POST or PUT with auto-accessioning.")
-            new_object = True
             accession_response = {}
+        if new_object:
+            print("No identifier in new JSON object.  Assuming POST or PUT with auto-accessioning.")
 
     object_exists = False
     if id_response:
