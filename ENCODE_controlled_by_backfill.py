@@ -93,11 +93,12 @@ def getArgs():
 
 
 class BackFill:
-    def __init__(self, connection, dataList, debug=False, missing=False):
+    def __init__(self, connection, dataList, debug=False, missing=False, update=False):
         self.connection = connection
         self.data = dataList
         self.DEBUG = debug
         self.MISSING = missing
+        self.update = update
 
     def single_rep(self, obj):
         '''one control with one replicate in control,
@@ -114,6 +115,9 @@ class BackFill:
                     if e.get("file_type", "") == "fastq":
                         if not self.MISSING or (self.MISSING and not e.get("controlled_by")):
                                 exp_list.append(e["accession"])
+                if self.update:
+                    for exp in exp_list:
+                        print("patching experiment file {} with controlled_by {}".format(exp, c["accession"]))
                 temp = {"Exp Accession": obj["accession"], "Check type": "Single", "Experiment": exp_list, "Control": c["accession"]}
                 if len(exp_list) > 0:
                     self.data.append(temp)
@@ -163,6 +167,9 @@ class BackFill:
                 for c_key in con_data.keys():
                     if exp_data[e_key] == con_data[c_key]:
                         con_list.append(c_key)
+                if self.update:
+                    for con in con_list:
+                        print("patching experiment file {} with controlled_by {}".format(e_key, con))
                 temp = {"Exp Accession": obj["accession"], "Check type": "Multi-runtype ignored", "Experiment": e_key, "Control": con_list}
                 self.data.append(temp)
                 if self.DEBUG:
@@ -174,6 +181,9 @@ class BackFill:
                 for e_key in exp_data.keys():
                     if con_data[c_key] == exp_data[e_key]:
                         exp_list.append(e_key)
+                if self.update:
+                    for exp in exp_list:
+                        print("patching experiment file {} with controlled_by {}".format(exp, c_key))
                 temp = {"Exp Accession": obj["accession"], "Check type": "Multi", "Experiment": exp_list, "Control": c_key}
                 if len(exp_list) > 0:
                     self.data.append(temp)
@@ -222,6 +232,8 @@ class BackFill:
 
             for key in exp_data.keys():
                 if con_data.get(key):
+                    if args.update:
+                        print("patching experiment file {} with controlled_by {}".format(exp_data[key], con_data[key]))
                     temp = {"Exp Accession": obj["accession"], "Check type": "Biosample", "Experiment": exp_data[key], "Control": con_data[key]}
                     self.data.append(temp)
                     if self.DEBUG:
@@ -233,6 +245,10 @@ def main():
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
     accessions = []
+    if args.update:
+        print("This is an UPDATE run data will be PATCHed")
+    else:
+        print("This is a dryrun, no data will be changed")
     if args.infile:
         if os.path.isfile(args.infile):
             accessions = [line.rstrip('\n') for line in open(args.infile)]
@@ -280,7 +296,7 @@ def main():
                 if args.debug:
                     print("Missing possible_controls for {}".format(acc), file=sys.stderr)
             if isValid:
-                b = BackFill(connection, dataList, debug=args.debug, missing=args.missing)
+                b = BackFill(connection, dataList, debug=args.debug, missing=args.missing, update=args.update)
                 if args.method == "single":
                     b.single_rep(obj)
                     if args.debug:
