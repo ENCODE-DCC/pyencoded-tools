@@ -1,6 +1,6 @@
 import argparse
 import os.path
-import encodedcc
+#import encodedcc
 import sys
 import requests
 from urllib.parse import urljoin
@@ -8,9 +8,6 @@ import gzip
 import subprocess
 import csv
 import logging
-import hashlib
-import json
-import copy
 
 logger = logging.getLogger(__name__)
 
@@ -69,62 +66,6 @@ def getArgs():
                         help="Let the script PATCH the data.  Default is False")
     args = parser.parse_args()
     return args
-
-
-def md5(path):
-    md5sum = hashlib.md5()
-    with open(path, 'rb') as f:
-        for chunk in iter(lambda: f.read(1024*1024), b''):
-            md5sum.update(chunk)
-    return md5sum.hexdigest()
-
-
-def post_file(file_metadata, connection, update=False):
-    local_path = file_metadata.get('submitted_file_name')
-    if not file_metadata.get('md5sum'):
-        file_metadata['md5sum'] = md5(local_path)
-    try:
-        logger.debug("POST JSON: %s" % (json.dumps(file_metadata)))
-    except:
-        pass
-    if update:
-        url = urljoin(connection.server, '/files/')
-        r = requests.post(url, auth=connection.auth, headers=connection.headers, data=json.dumps(file_metadata))
-        try:
-            r.raise_for_status()
-        except:
-            logger.warning('POST failed: %s %s' % (r.status_code, r.reason))
-            logger.warning(r.text)
-            return None
-        else:
-            return r.json()['@graph'][0]
-    else:
-        file_obj = copy.copy(file_metadata)
-        file_obj.update({'accession': None})
-        return file_obj
-
-
-def upload_file(file_obj, update=False):
-    if update:
-        creds = file_obj['upload_credentials']
-        logger.debug('AWS creds: %s' % (creds))
-        env = os.environ.copy()
-        env.update({
-            'AWS_ACCESS_KEY_ID': creds['access_key'],
-            'AWS_SECRET_ACCESS_KEY': creds['secret_key'],
-            'AWS_SECURITY_TOKEN': creds['session_token'],
-        })
-        path = file_obj.get('submitted_file_name')
-        try:
-            subprocess.check_call(['aws', 's3', 'cp', path, creds['upload_url']], env=env)
-        except subprocess.CalledProcessError as e:
-            # The aws command returns a non-zero exit code on error.
-            logger.error("AWS upload failed with exit code %d" % (e.returncode))
-            return e.returncode
-        else:
-            return 0
-    else:
-        return None
 
 
 def trim_file(url, connection, filename, size):
@@ -207,12 +148,12 @@ def main():
         print(file_data)
 
         # upload file to ENCODE
-        file_object = post_file(file_data, connection, args.update)
+        file_object = encodedcc.post_file(file_data, connection, args.update)
         if not file_object:
             logger.warning('Skipping row %d: POST file object failed' % (acc))
             continue
         # post on aws
-        aws_return_code = upload_file(file_object, args.update)
+        aws_return_code = encodedcc.upload_file(file_object, args.update)
         if aws_return_code:
             logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_return_code))
 
