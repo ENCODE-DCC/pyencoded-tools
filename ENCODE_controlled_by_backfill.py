@@ -30,7 +30,7 @@ There are three methods to pick from
 "multi" assumes one control with number of replicates equal to number of replicates in experiment
 "biosample" assumes multiple controls that should be matched on biosample
 
-By not selecting the '--method' option the script will try to guess at what the type is
+***By NOT selecting the '--method' option the script will try to guess at what the correct method is***
 
 
     %(prog)s --ignore_runtype
@@ -108,7 +108,7 @@ class BackFill:
             control = temp + [con]
             patch_dict = {"controlled_by": control}
             print("patching experiment file {} with controlled_by {}".format(exp, con))
-            #encodedcc.patch_ENCODE(exp, self.connection, patch_dict)
+            encodedcc.patch_ENCODE(exp, self.connection, patch_dict)
         else:
             print("ERROR: controlled_by for experiment file {} already contains {}".format(exp, con))
 
@@ -147,7 +147,6 @@ class BackFill:
             x_file_paired = None
         x_pair = str(x_file_bio_num[0]) + "-" + str(x_file_paired)
         x_data[x_file_acc] = x_pair
-
 
     def multi_rep(self, obj):
         '''one control, with one replicate in
@@ -205,9 +204,6 @@ class BackFill:
                 if self.DEBUG:
                     print("experiment files", temp_list)
                     print("control files", x_key)
-
-
-
 
     def multi_control(self, obj):
         '''multiple controls, match on biosample'''
