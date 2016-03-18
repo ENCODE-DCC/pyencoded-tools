@@ -316,3 +316,39 @@ Useage:
     ./ENCODE_antibody_approver.py --infile MyFile.txt --user /users/some-user
 
 Either a uuid or an @id can be used for user identification
+
+
+### ENCODE_controlled_by_backfill.py
+
+Script to fix the controlled_by backfill problems
+This is a dryrun default script, run with '--update' to PATCH data
+
+Useage:
+
+    ENCODE_controlled_by_backfill.py --infile MyFile.txt
+    ENCODE_controlled_by_backfill.py --infile ENCSR000AAA
+    ENCODE_controlled_by_backfill.py --infile ENCSR000AAA,ENCSR000AAB,ENCSR000AAC
+    ENCODE_controlled_by_backfill.py --query "/search/?type=Experiment"
+
+Script will take a file with single column list of accessions  
+Can also take a single accession or comma separated list of accessions  
+A query from which to gather accessions  
+
+    ENCODE_controlled_by_backfill.py --method single
+    ENCODE_controlled_by_backfill.py --method multi
+    ENCODE_controlled_by_backfill.py --method biosample
+
+There are three methods to pick from  
+"single" assumes one replicate in the control  
+"multi" assumes one control with number of replicates equal to number of replicates in experiment  
+"biosample" assumes multiple controls that should be matched on biosample
+
+***By NOT selecting the '--method' option the script will try to guess the correct method***
+
+    ENCODE_controlled_by_backfill.py --ignore_runtype
+
+This makes the script ignore the value of the paired ends, default is off
+
+    ENCODE_controlled_by_backfill.py --missing
+
+Script will print out only the names of files missing controlled_by
