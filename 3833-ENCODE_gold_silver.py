@@ -32,35 +32,44 @@ def getArgs():
     args = parser.parse_args()
     return args
 
+def audit_check(d):
+    files = d.get("files", [])
+    for f in files:
+        if f.get("output_category", "") == "raw data":
+            status = "ungraded"
+            return status
+    audits = d.get("audit", {})
+    temp = {"Error": False, "Not Compliant": False, "Warning": False}
+    if any(audits):
+        if audits.get("ERROR"):
+            temp["Error"] = True
+        if audits.get("NOT_COMPLIANT"):
+            temp["Not Compliant"] = True
+        if audits.get("WARNING"):
+            temp["Warning"] = True
+    if temp["Error"] and temp["Warning"] and temp["Not Compliant"]:
+        status = "bronze"
+    elif temp["Error"] and temp["Warning"] and not temp["Not Compliant"]:
+        status = "silver"
+    elif not temp["Error"] and not temp["Warning"] and not temp["Not Compliant"]:
+        status = "gold"
+    else:
+        status = "Error"
+    return status
+
 
 def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-    data = encodedcc.get_ENCODE(args.search, connection, frame="page").get("@graph", [])
+    data = encodedcc.get_ENCODE(args.search, connection).get("@graph", [])
     # bronze = warning and not compliant, missing error
     # silver = warning, missing error and not compliant
     # gold = nothing, missing all 3
     for d in data:
-        audits = d.get("audit", {})
-        accession = d["accession"]
-        temp = {"Error": False, "Not Compliant": False, "Warning": False}
-        if any(audits):
-            if audits.get("ERROR"):
-                temp["Error"] = True
-            if audits.get("NOT_COMPLIANT"):
-                temp["Not Compliant"] = True
-            if audits.get("WARNING"):
-                temp["Warning"] = True
-        if temp["Error"] and temp["Warning"] and temp["Not Compliant"]:
-            status = "bronze"
-        elif temp["Error"] and temp["Warning"] and not temp["Not Compliant"]:
-            status = "silver"
-        elif not temp["Error"] and not temp["Warning"] and not temp["Not Compliant"]:
-            status = "gold"
-        else:
-            status = "Error"
-        print("{exp}\t{stat}".format(exp=accession, stat=status))
+        obj = encodedcc.get_ENCODE(d["@id"], connection, frame="page")
+        status = audit_check(obj)
+        print("{exp}\t{stat}".format(exp=d["accession"], stat=status))
 
 if __name__ == '__main__':
         main()
