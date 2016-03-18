@@ -93,12 +93,23 @@ def getArgs():
 
 
 class BackFill:
-    def __init__(self, connection, dataList, debug=False, missing=False, update=False):
+    def __init__(self, connection, debug=False, missing=False, update=False, ignore_runtype=False):
         self.connection = connection
-        self.data = dataList
         self.DEBUG = debug
         self.MISSING = missing
         self.update = update
+        self.ignore_runtype = ignore_runtype
+        self.dataList = []
+
+    def updater(self, exp, con):
+        temp = encodedcc.get_ENCODE(exp, self.connection).get("controlled_by", [])
+        if con not in temp:
+            control = temp + [con]
+            patch_dict = {"controlled_by": control}
+            print("patching experiment file {} with controlled_by {}".format(exp, con))
+            #encodedcc.patch_ENCODE(exp, self.connection, patch_dict)
+        else:
+            print("ERROR: controlled_by for experiment file {} already contains {}".format(exp, con))
 
     def single_rep(self, obj):
         '''one control with one replicate in control,
@@ -117,19 +128,25 @@ class BackFill:
                                 exp_list.append(e["accession"])
                 if self.update:
                     for exp in exp_list:
-                        temp = encodedcc.get_ENCODE(exp, self.connection).get("controlled_by", [])
-                        control = temp.append(c["accession"])
-                        patch_dict = {"controlled_by": control}
-                        print("PATCHing experiment file {} with controlled_by {}".format(exp, c["accession"]))
-                        encodedcc.patch_ENCODE(exp, self.connection, patch_dict)
-                temp = {"Exp Accession": obj["accession"], "Check type": "Single", "Experiment": exp_list, "Control": c["accession"]}
+                        self.updater(exp, c["accession"])
+                temp = {"ExpAcc": obj["accession"], "Method": "Single", "ExpFile": exp_list, "ConFile": c["accession"]}
                 if len(exp_list) > 0:
-                    self.data.append(temp)
+                    self.dataList.append(temp)
                 if self.DEBUG:
                     print("experiment files {}".format(temp["Experiment"]))
                     print("control files {}".format(temp["Control"]))
 
-    def multi_rep(self, obj, ignore_runtype=False):
+    def pair_dict_maker(self, x_data, x):
+        x_file_bio_num = x.get("biological_replicates")
+        x_file_paired = x.get("paired_end")
+        x_file_acc = x["accession"]
+        if self.ignore_runtype:
+            x_file_paired = None
+        x_pair = str(x_file_bio_num[0]) + "-" + str(x_file_paired)
+        x_data[x_file_acc] = x_pair
+
+
+    def multi_rep(self, obj):
         '''one control, with one replicate in
         control per replicate in experiment'''
         control_files = encodedcc.get_ENCODE(obj["possible_controls"][0]["accession"], self.connection, frame="embedded").get("files", [])
@@ -147,25 +164,12 @@ class BackFill:
         for e in obj["files"]:
             if e.get("file_type", "") == "fastq":
                 if not self.MISSING or (self.MISSING and not e.get("controlled_by")):
-                    exp_file_bio_num = e.get("biological_replicates")
-                    exp_file_paired = e.get("paired_end")
-                    exp_file_acc = e["accession"]
-                    if ignore_runtype:
-                        exp_file_paired = None
-                    exp_pair = str(exp_file_bio_num[0]) + "-" + str(exp_file_paired)
-                    exp_data[exp_file_acc] = exp_pair
-
+                    self.pair_dict_maker(exp_data, e)
         for c in control_files:
             if c.get("file_type", "") == "fastq":
-                con_file_bio_num = c.get("biological_replicates")
-                con_file_paired = c.get("paired_end")
-                con_file_acc = c["accession"]
-                if ignore_runtype:
-                    con_file_paired = None
-                con_pair = str(con_file_bio_num[0]) + "-" + str(con_file_paired)
-                con_data[con_file_acc] = con_pair
+                self.pair_dict_maker(con_data, c)
 
-        if ignore_runtype:
+        if self.ignore_runtype:
             for e_key in exp_data.keys():
                 con_list = []
                 for c_key in con_data.keys():
@@ -173,13 +177,9 @@ class BackFill:
                         con_list.append(c_key)
                 if self.update:
                     for con in con_list:
-                        temp = encodedcc.get_ENCODE(exp, self.connection).get("controlled_by", [])
-                        control = temp.append(con)
-                        patch_dict = {"controlled_by": control}
-                        print("patching experiment file {} with controlled_by {}".format(e_key, con))
-                        encodedcc.patch_ENCODE(e_key, self.connection, patch_dict)
-                temp = {"Exp Accession": obj["accession"], "Check type": "Multi-runtype ignored", "Experiment": e_key, "Control": con_list}
-                self.data.append(temp)
+                        self.updater(e_key, con)
+                temp = {"ExpAcc": obj["accession"], "Method": "Multi-runtype ignored", "ExpFile": e_key, "ConFile": con_list}
+                self.dataList.append(temp)
                 if self.DEBUG:
                     print("experiment files", e_key)
                     print("control files", con_list)
@@ -191,14 +191,10 @@ class BackFill:
                         exp_list.append(e_key)
                 if self.update:
                     for exp in exp_list:
-                        temp = encodedcc.get_ENCODE(exp, self.connection).get("controlled_by", [])
-                        control = temp.append(c_key)
-                        patch_dict = {"controlled_by": control}
-                        print("patching experiment file {} with controlled_by {}".format(exp, c_key))
-                        encodedcc.patch_ENCODE(exp, self.connection, patch_dict)
-                temp = {"Exp Accession": obj["accession"], "Check type": "Multi", "Experiment": exp_list, "Control": c_key}
+                        self.updater(exp, c_key)
+                temp = {"ExpAcc": obj["accession"], "Method": "Multi", "ExpFile": exp_list, "ConFile": c_key}
                 if len(exp_list) > 0:
-                    self.data.append(temp)
+                    self.dataList.append(temp)
                 if self.DEBUG:
                     print("experiment files", exp_list)
                     print("control files", c_key)
@@ -245,13 +241,9 @@ class BackFill:
             for key in exp_data.keys():
                 if con_data.get(key):
                     if args.update:
-                        temp = encodedcc.get_ENCODE(exp, self.connection).get("controlled_by", [])
-                        control = temp.append(con_data[key])
-                        patch_dict = {"controlled_by": control}
-                        print("patching experiment file {} with controlled_by {}".format(exp_data[key], con_data[key]))
-                        encodedcc.patch_ENCODE(exp_data[key], self.connection, patch_dict)
-                    temp = {"Exp Accession": obj["accession"], "Check type": "Biosample", "Experiment": exp_data[key], "Control": con_data[key]}
-                    self.data.append(temp)
+                        self.updater(exp_data[key], con_data[key])
+                    temp = {"ExpAcc": obj["accession"], "Method": "Biosample", "ExpFile": exp_data[key], "ConFile": con_data[key]}
+                    self.dataList.append(temp)
                     if self.DEBUG:
                         print("Biosample {}: files {}".format(key, temp))
 
@@ -290,7 +282,6 @@ def main():
         print("ERROR: object has no identifier", file=sys.stderr)
         sys.exit(1)
     else:
-        dataList = []
         for acc in accessions:
             obj = encodedcc.get_ENCODE(acc, connection, frame="embedded")
             isValid = True
@@ -312,13 +303,13 @@ def main():
                 if args.debug:
                     print("Missing possible_controls for {}".format(acc), file=sys.stderr)
             if isValid:
-                b = BackFill(connection, dataList, debug=args.debug, missing=args.missing, update=args.update)
+                b = BackFill(connection, debug=args.debug, missing=args.missing, update=args.update, ignore_runtype=args.ignore_runtype)
                 if args.method == "single":
                     b.single_rep(obj)
                     if args.debug:
                         print("SINGLE REP {}".format(acc))
                 elif args.method == "multi":
-                    b.multi_rep(obj, args.ignore_runtype)
+                    b.multi_rep(obj)
                     if args.debug:
                         print("MULTI REP {}".format(acc))
                 elif args.method == "biosample":
@@ -334,7 +325,7 @@ def main():
                         if con_rep == exp_rep:
                             # same number experiment replicates as control replicates
                             # method is multi
-                            b.multi_rep(obj, args.ignore_runtype)
+                            b.multi_rep(obj)
                             if args.debug:
                                 print("MULTI REP {}".format(acc))
                         elif con_rep == 1:
@@ -365,10 +356,11 @@ def main():
                         if args.debug:
                             print("Experiment {} does not fit any of the current patterns!".format(acc))
 
-        if len(dataList) > 0:
-            print("Experiment Accession\tCheck Type\tControl Files\tExperiment Files")
-            for d in dataList:
-                print("{}\t{}\t{}\t{}".format(d["Exp Accession"], d["Check type"], d["Control"], d["Experiment"]))
+        if len(b.dataList) > 0:
+            print("Experiment\tMethod\tExperimentFile\tControlFile")
+            for d in b.dataList:
+                for e in d["ExpFile"]:
+                    print("{ExpAcc}\t{Method}\t{ExpFile}\t{ConFile}".format(ExpAcc=d["ExpAcc"], Method=d["Method"], ExpFile=e, ConFile=d["ConFile"]))
 
 if __name__ == '__main__':
         main()
