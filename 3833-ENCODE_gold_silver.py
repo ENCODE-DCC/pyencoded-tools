@@ -15,7 +15,7 @@ def getArgs():
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('--search',
+    parser.add_argument('--query',
                         default="/search/?type=Experiment",
                         help="input optional search url")
     parser.add_argument('--key',
