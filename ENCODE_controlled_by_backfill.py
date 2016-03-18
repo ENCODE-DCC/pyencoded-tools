@@ -102,6 +102,7 @@ class BackFill:
         self.dataList = []
 
     def updater(self, exp, con):
+        ''' helper function runs the update step'''
         temp = encodedcc.get_ENCODE(exp, self.connection).get("controlled_by", [])
         if con not in temp:
             control = temp + [con]
@@ -137,6 +138,8 @@ class BackFill:
                     print("control files {}".format(temp["Control"]))
 
     def pair_dict_maker(self, x_data, x):
+        ''' helper function makes the exp_data 
+        and con_data dictionaries'''
         x_file_bio_num = x.get("biological_replicates")
         x_file_paired = x.get("paired_end")
         x_file_acc = x["accession"]
@@ -170,34 +173,41 @@ class BackFill:
                 self.pair_dict_maker(con_data, c)
 
         if self.ignore_runtype:
-            for e_key in exp_data.keys():
-                con_list = []
-                for c_key in con_data.keys():
-                    if exp_data[e_key] == con_data[c_key]:
-                        con_list.append(c_key)
+            self.mini(exp_data, con_data, obj)
+        else:
+            self.mini(con_data, exp_data, obj)
+
+    def mini(self, x_data, y_data, obj):
+        ''' just a helper function
+        does all the fancy sorting for multi rep
+        '''
+        for x_key in x_data.keys():
+            temp_list = []
+            for y_key in y_data.keys():
+                if x_data[x_key] == y_data[y_key]:
+                    temp_list.append(y_key)
+            if self.ignore_runtype:
                 if self.update:
-                    for con in con_list:
-                        self.updater(e_key, con)
-                temp = {"ExpAcc": obj["accession"], "Method": "Multi-runtype ignored", "ExpFile": e_key, "ConFile": con_list}
+                    for t in temp_list:
+                        self.updater(x_key, t)
+                temp = {"ExpAcc": obj["accession"], "Method": "Multi-runtype ignored", "ExpFile": x_key, "ConFile": temp_list}
                 self.dataList.append(temp)
                 if self.DEBUG:
-                    print("experiment files", e_key)
-                    print("control files", con_list)
-        else:
-            for c_key in con_data.keys():
-                exp_list = []
-                for e_key in exp_data.keys():
-                    if con_data[c_key] == exp_data[e_key]:
-                        exp_list.append(e_key)
+                    print("experiment files", x_key)
+                    print("control files", temp_list)
+            else:
                 if self.update:
-                    for exp in exp_list:
-                        self.updater(exp, c_key)
-                temp = {"ExpAcc": obj["accession"], "Method": "Multi", "ExpFile": exp_list, "ConFile": c_key}
-                if len(exp_list) > 0:
+                    for t in temp_list:
+                        self.updater(t, x_key)
+                temp = {"ExpAcc": obj["accession"], "Method": "Multi", "ExpFile": temp_list, "ConFile": x_key}
+                if len(temp_list) > 0:
                     self.dataList.append(temp)
                 if self.DEBUG:
-                    print("experiment files", exp_list)
-                    print("control files", c_key)
+                    print("experiment files", temp_list)
+                    print("control files", x_key)
+
+
+
 
     def multi_control(self, obj):
         '''multiple controls, match on biosample'''
