@@ -2,19 +2,19 @@
 
 ### ENCODE_get_fields.py
 This script takes object identifiers and fieldnames and returns a TSV of the data gathered  
-To get multiple objects use the '--object' argument and provide a file with the list of object identifiers
+To get multiple objects use the *--object* argument and provide a file with the list of object identifiers
 
         ./ENCODE_get_fields.py --object filenames.txt
 this can take accessions, uuids, @ids, or aliases
 
-To get a single object use the '--object' argument and use the object's identifier, also will take a comma separated list
+To get a single object use the *--object* argument and use the object's identifier, also will take a comma separated list
 
         ./ENCODE_get_fields.py --object ENCSR000AAA
         ./ENCODE_get_fields.py --object 3e6-some-uuid-here-e45
         ./ENCODE_get_fields.py --object this-is:an-alias
         ./ENCODE_get_fields.py --object ENCSR000AAA,ENCSR000AAB
 
-To get multiple fields use the '--field' argument and feed it a file with the list of fieldnames
+To get multiple fields use the *--field* argument and feed it a file with the list of fieldnames
 
         ./ENCODE_get_fields.py --field fieldnames.txt
 this should be a single column file
@@ -41,7 +41,7 @@ this can also get embedded values from lists
 To use a custom query for your object list:
 
         ./ENCODE_get_fields.py --query www.my/custom/url
-this can be used with either useage of the '--field' option
+this can be used with either useage of the *--field* option
 
 
 Output prints in format of fieldname:object_type for non-strings
@@ -60,7 +60,7 @@ Output prints in format of fieldname:object_type for non-strings
     ENCSR000AAA     ['released']
 this is a possible output even if multiple files exist in experiment
 
-To show all possible outputs from a list type field use the '--listfull' argument
+To show all possible outputs from a list type field use the *--listfull* argument
 
         ./ENCODE_get_fields.py --field files.status --listfull
 
@@ -70,32 +70,32 @@ To show all possible outputs from a list type field use the '--listfull' argumen
 
 **ENCODE_collection useage and functionality:**
 
-ENCODE_get_fields.py has ported over some functions of ENCODE_collection and now supports the '--collection' and '--allfields' options
+ENCODE_get_fields.py has ported over some functions of ENCODE_collection and now supports the *--collection* and *--allfields* options
 
-Useage for '--allfields':
+Useage for *--allfields*:
 
         ./ENCODE_get_fields.py --object ENCSR000AAA --allfields
 
     accession    status    files        award ...
     ENCSR000AAA  released  [/files/...] /awards/...
 
-The '--allfields' option can be used with any of the commands,  
+The *--allfields* option can be used with any of the commands,  
 it returns all fields at the frame=object level,  
-it also overrides any other --field option
+it also overrides any other *--field* option
 
-Useage for '--collection':
+Useage for *--collection*:
 
         ./ENCODE_get_fields.py --collection Experiment --status
 
     accession    status
     ENCSR000AAA  released
 
-The  '--collection' option can be used with or without the '--es' option  
-the '--es' option allows the script to search using elastic search, which is slightly faster than the normal table view used  
+The  *--collection* option can be used with or without the *--es* option  
+the *--es* option allows the script to search using elastic search, which is slightly faster than the normal table view used  
 However, it may not posses the latest updates to the data and may not be preferable to your application  
-'--collection' also overrides any other '--object' option and so but it can be combined with any of the '--field' or '--allfields' options
+*--collection* also overrides any other *--object* option and so but it can be combined with any of the *--field* or *--allfields* options
 
-**NOTE:** while '--collection' should work with the '--field' field.embeddedfield functionality I cannot guarantee speed when running due to embedded objects being extracted
+**NOTE:** while *--collection* should work with the *--field* field.embeddedfield functionality I cannot guarantee speed when running due to embedded objects being extracted
 
 
 ### ENCODE_patch_set.py
@@ -128,15 +128,17 @@ To PATCH flowcells:
 
         ./ENCODE_patch_set.py --flowcell
 
-the "flowcell" option is a flag used to have the script search for flowcell data in the infile
+the *--flowcell* option is a flag used to have the script search for flowcell data in the infile  
+Example infile:  
 
     accession   flowcell   lane    barcode   machine
     ENCSR000AAA value1     value2  value3    value4
 
 not all the columns are needed for the flowcell to be built
 
-**Removing data:**
-Data can be removed with the *--remove* option.  This must be run with the *--update* command to make the changes.  
+**Removing data:**  
+Data can be removed with the *--remove* option.  
+This must be run with the *--update* command to make the changes.  
 To remove items from a list you must also tag the column header as such, otherwise it will remove the entire item
 
        accession    subobject:list
@@ -170,30 +172,30 @@ A query may be fed to the script to use for the object list
 
     ./ENCODE_release.py --infile file.txt --update
 
-*'--update'* should be used whenever you want to PATCH the changes to the database, otherwise the script will stop before PATCHing
+*--update* should be used whenever you want to PATCH the changes to the database, otherwise the script will stop before PATCHing
 
     ./ENCODE_release.py --infile file.txt --force --update
 
-if an object does not pass the 'Error' or 'Not Compliant' audit it can still be released with the *'--force'* option  
-MUST BE RUN WITH *'--update'* TO WORK
+if an object does not pass the 'Error' or 'Not Compliant' audit it can still be released with the *--force* option  
+MUST BE RUN WITH *--update* TO WORK
 
     ./ENCODE_release.py --infile file.txt --logall
 
-Default script will not log status of 'released' objects, using *'--logall'* will make it include the statuses of released items in the report file
+Default script will not log status of 'released' objects, using *--logall* will make it include the statuses of released items in the report file
 
 **Misc. Useage:**
 
 The output file default is 'Release_report.txt'
- * This can be changed with '--output'
+ * This can be changed with *--output*
 
 Default keyfile location is '~/keyfile.json'
- * Change with '--keyfile'
+ * Change with *--keyfile*
 
 Default key is 'default'
- * Change with '--key'
+ * Change with *--key*
 
 Default debug is off
- * Change with '--debug'
+ * Change with *--debug*
 
 
 ### ENCODE_error_summary.py
@@ -204,40 +206,43 @@ This script outputs a TSV file that has been formatted so that when it is opened
 **You must use Google Sheets to open the resulting file**  
 Excel is unable to handle the formulas
 
-For more details:
-        ENCODE_error_summary.py --help
-
 This script will print out the following during it's run: "WARNING:root:No results found"  
 This is due to how the long and short RNA-seq are searched and it does not affect the final results of the script
 
 All commands need to be quote enclosed
 
-*'--rfa'* command uses the award.rfa property to refine inital matrix
+*--rfa* command uses the award.rfa property to refine inital matrix
 
     ./ENCODE_error_summary.py --rfa "ENCODE,Roadmap"
 
-*'--species'* command uses the organism.name property to refine the inital matrix
+*--species* command uses the organism.name property to refine the inital matrix
 
     ./ENCODE_error_summary.py --species "celegans,human,mouse"
 
-*'--lab'* command uses the lab.title property to refine inital matrix
+*--lab* command uses the lab.title property to refine inital matrix
 
     ./ENCODE_error_summary.py --lab "bing-ren,j-micheal-cherry"
 
-*'--status'* uses the status property to refine inital matrix
+*--status* uses the status property to refine inital matrix
 
     ./ENCODE_error_summary.py --status "released,submitted"
 
-the usual list of assay this script shows is  
-    Short RNA-seq, Long RNA-seq, microRNA profiling by array assay, microRNA-seq
-    DNase-seq, whole-genome shotgun bisulfite sequencing, RAMPAGE, CAGE
+The usual list of assay this script shows is:  
+* Short RNA-seq
+* Long RNA-seq
+* microRNA profiling by array assay
+* microRNA-seq DNase-seq
+* whole-genome shotgun bisulfite sequencing
+* RAMPAGE
+* CAGE
 
-use the '--all' command to select all the available assays for display  
-the output file can be renamed using the '--outfile' option  
-the '--allaudits' command will also list the "WARNING" and "DCC ACTION" audits
+use the *--all* command to select all the available assays for display  
+the output file can be renamed using the *--outfile* option  
+the *--allaudits* command will also list the "WARNING" and "DCC ACTION" audits
 
 
-### ENCODE_publications.py
+### ENCODE_publications.py  
+**_PLEASE NOTE:_** This script is a dryrun-default script, run it with the *--update* option to make any changes
 
 Takes in a VERY specific file format to use for updating the publications  
 Also can update the existing publications using the pubmed database
@@ -245,7 +250,6 @@ Also can update the existing publications using the pubmed database
 An EMAIL is required to run this script  
 This is for the Entrez database
 
-This is a dryrun default script  
 This script requires the BioPython module
 
 Options:
@@ -284,7 +288,7 @@ Prints the header line from the fastq
 
 ### ENCODE_submit_files.py
 
-Dryrun default script, run with '--update' to make changes
+**_PLEASE NOTE:_** This script is a dryrun-default script, run it with the *--update* option to make any changes
 
 Provide with a CSV file of metadata to post
 
@@ -299,7 +303,7 @@ validateFiles must be made executable for this to work
 
 
 ### ENCODE_antibody_approver.py
-This is a dryrun default script, run with '--update' to make changes
+**_PLEASE NOTE:_** This script is a dryrun-default script, run it with the *--update* option to make any changes
 
 Given a TSV file this script will attempt to add in the information to the antibodies, the file is provided by the user
 
@@ -319,9 +323,9 @@ Either a uuid or an @id can be used for user identification
 
 
 ### ENCODE_controlled_by_backfill.py
+**_PLEASE NOTE:_** This script is a dryrun-default script, run it with the *--update* option to make any changes
 
-Script to fix the controlled_by backfill problems.
-This is a dryrun default script, run with '--update' to PATCH data
+Script to match files with their controlled by value.
 
 Usage:
 
@@ -330,9 +334,9 @@ Usage:
     ENCODE_controlled_by_backfill.py --infile ENCSR000AAA,ENCSR000AAB,ENCSR000AAC
     ENCODE_controlled_by_backfill.py --query "/search/?type=Experiment"
 
-Script will take a file with single column list of accessions  
-Can also take a single accession or comma separated list of accessions  
-A query from which to gather accessions  
+Script will take a file with single column list of experiment accessions  
+Can also take a single experiment accession or comma separated list of experiment accessions  
+A query from which to gather experiment accessions  
 
     ENCODE_controlled_by_backfill.py --method single
     ENCODE_controlled_by_backfill.py --method multi
