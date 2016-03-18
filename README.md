@@ -320,10 +320,10 @@ Either a uuid or an @id can be used for user identification
 
 ### ENCODE_controlled_by_backfill.py
 
-Script to fix the controlled_by backfill problems
+Script to fix the controlled_by backfill problems.
 This is a dryrun default script, run with '--update' to PATCH data
 
-Useage:
+Usage:
 
     ENCODE_controlled_by_backfill.py --infile MyFile.txt
     ENCODE_controlled_by_backfill.py --infile ENCSR000AAA
