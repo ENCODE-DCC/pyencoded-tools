@@ -45,28 +45,28 @@ def main():
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
     accessions = []
-    if args.query:
-        if "search" in args.query:
-            temp = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
-        else:
-            temp = [encodedcc.get_ENCODE(args.query, connection)]
-    elif args.object:
+    if args.object:
         if os.path.isfile(args.object):
             accessions = [line.strip() for line in open(args.object)]
         else:
             accessions = args.object.split(",")
-    if any(temp):
-        for obj in temp:
-            if obj.get("accession"):
-                accessions.append(obj["accession"])
-            elif obj.get("uuid"):
-                accessions.append(obj["uuid"])
-            elif obj.get("@id"):
-                accessions.append(obj["@id"])
-            elif obj.get("aliases"):
-                accessions.append(obj["aliases"][0])
-            else:
-                print("ERROR: object has no identifier", file=sys.stderr)
+    elif args.query:
+        if "search" in args.query:
+            temp = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
+        else:
+            temp = [encodedcc.get_ENCODE(args.query, connection)]
+        if any(temp):
+            for obj in temp:
+                if obj.get("accession"):
+                    accessions.append(obj["accession"])
+                elif obj.get("uuid"):
+                    accessions.append(obj["uuid"])
+                elif obj.get("@id"):
+                    accessions.append(obj["@id"])
+                elif obj.get("aliases"):
+                    accessions.append(obj["aliases"][0])
+                else:
+                    print("ERROR: object has no identifier", file=sys.stderr)
     if len(accessions) == 0:
         print("No accessions to check!", file=sys.stderr)
         sys.exit(1)
