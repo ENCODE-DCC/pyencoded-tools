@@ -340,7 +340,7 @@ A query from which to gather accessions
 
 There are three methods to pick from  
 "single" assumes one replicate in the control  
-"multi" assumes one control with number of replicates equal to number of replicates in experiment  
+"multi" assumes one control with its number of replicates equal to number of replicates in experiment  
 "biosample" assumes multiple controls that should be matched on biosample
 
 ***By NOT selecting the '--method' option the script will try to guess the correct method***
