@@ -37,23 +37,22 @@ def audit_check(d):
     status = "ungraded"
     for f in files:
         if f.get("output_category", "") != "raw data":
-            print("shall we?")
             audits = d.get("audit", {})
-            Error = False
-            Not_Compliant = False
-            Warn = False
+            error = False
+            not_compliant = False
+            warning = False
             if any(audits):
                 if audits.get("ERROR"):
-                    Error = True
+                    error = True
                 if audits.get("NOT_COMPLIANT"):
-                    Not_Compliant = True
+                    not_compliant = True
                 if audits.get("WARNING"):
-                    Warn = True
-            if Error and Warn and Not_Compliant:
+                    warning = True
+            if error and warning and not_compliant:
                 return "bronze"
-            elif Error and Warn and not Not_Compliant:
+            elif warning and not not_compliant and not error:
                 return "silver"
-            elif not Error and not Warn and not Not_Compliant:
+            elif not error and not warning and not not_compliant:
                 return "gold"
             else:
                 return "Error"
