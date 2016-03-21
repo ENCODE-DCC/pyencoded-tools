@@ -34,22 +34,26 @@ def getArgs():
 
 def audit_check(d):
     files = d.get("files", [])
+    status = "ungraded"
     for f in files:
         if f.get("output_category", "") != "raw data":
+            print("shall we?")
             audits = d.get("audit", {})
-            temp = {"Error": False, "Not Compliant": False, "Warning": False}
+            Error = False
+            Not_Compliant = False
+            Warn = False
             if any(audits):
                 if audits.get("ERROR"):
-                    temp["Error"] = True
+                    Error = True
                 if audits.get("NOT_COMPLIANT"):
-                    temp["Not Compliant"] = True
+                    Not_Compliant = True
                 if audits.get("WARNING"):
-                    temp["Warning"] = True
-            if temp["Error"] and temp["Warning"] and temp["Not Compliant"]:
+                    Warn = True
+            if Error and Warn and Not_Compliant:
                 return "bronze"
-            elif temp["Error"] and temp["Warning"] and not temp["Not Compliant"]:
+            elif Error and Warn and not Not_Compliant:
                 return "silver"
-            elif not temp["Error"] and not temp["Warning"] and not temp["Not Compliant"]:
+            elif not Error and not Warn and not Not_Compliant:
                 return "gold"
             else:
                 return "Error"
@@ -62,6 +66,7 @@ def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
+    print("Running on {}".format(connection.server))
     data = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
     # bronze = warning and not compliant, missing error
     # silver = warning, missing error and not compliant
