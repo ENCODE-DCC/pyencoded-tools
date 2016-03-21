@@ -350,18 +350,23 @@ def process_row(row, connection):
                 read_length = len(sequence)
                 json_payload.update({"read_length": read_length})
     for key in row.keys():
-        if key in ["flowcell", "machine", "lane", "barcode"]:
-            flowcell_dict[key] = row[key]
+        k = key.split(":")
+        if k[0] in ["flowcell", "machine", "lane", "barcode"]:
+            flowcell_dict[k[0]] = row[k[0]]
         else:
-            if not key:
+            if k[1] in ["int", "integer"]:
+                value = int(row[k[0]])
+            elif k[1] in ["list", "array"]:
+                value = row[k[0]].strip("[]").split(",")
+            if not k[0]:
                 continue
             try:
-                json_payload.update({key: json.loads(row[key])})
+                json_payload.update({k[0]: json.loads(value)})
             except:
                 try:
-                    json_payload.update({key: json.loads('"%s"' % (row[key]))})
+                    json_payload.update({k[0]: json.loads('"%s"' % (value))})
                 except:
-                    logger.warning('Could not convert field %s value %s to JSON' % (key, row[key]))
+                    logger.warning('Could not convert field %s value %s to JSON' % (k[0], value))
                     return None
     if any(flowcell_dict):
         flowcell_list = [flowcell_dict]
