@@ -62,18 +62,18 @@ def get_args():
                         help="The keypair identifier from the keyfile.  \
                         Default is --key=default")
     parser.add_argument('--keyfile',
-                        default=os.path.expanduser("./keypairs.json"),
-                        help="The keypair file.  Default is --keyfile=%s" % (os.path.expanduser("./keypairs.json")))
+                        default=os.path.expanduser("~/keypairs.json"),
+                        help="The keypair file.  Default is --keyfile=%s" % (os.path.expanduser("~/keypairs.json")))
     parser.add_argument('--update',
                         help="POST data to server, default is False.",
                         default=False, action='store_true')
     parser.add_argument('--encvaldata',
                         help="Directory in which https://github.com/ENCODE-DCC/encValData.git is cloned.\
-                        Default is --encvaldata=%s" % (os.path.expanduser("./encValData/")),
-                        default=os.path.expanduser("./encValData/"))
+                        Default is --encvaldata=%s" % (os.path.expanduser("~/encValData/")),
+                        default=os.path.expanduser("~/encValData/"))
     parser.add_argument('--validatefiles',
-                        help="validateFiles program needed to run script.  Default is --validatefiles=%s" % (os.path.expanduser("./validateFiles")),
-                        default=os.path.expanduser("./validateFiles"))
+                        help="validateFiles program needed to run script.  Default is --validatefiles=%s" % (os.path.expanduser("~/validateFiles")),
+                        default=os.path.expanduser("~/validateFiles"))
 
     args = parser.parse_args()
 
@@ -354,14 +354,20 @@ def process_row(row, connection):
         if k[0] in ["flowcell", "machine", "lane", "barcode"]:
             flowcell_dict[k[0]] = row[k[0]]
         else:
-            if k[1] in ["int", "integer"]:
-                value = int(row[k[0]])
-            elif k[1] in ["list", "array"]:
-                value = row[k[0]].strip("[]").split(",")
+            if len(k) > 1:
+                if k[1] in ["int", "integer"]:
+                    value = int(row[key])
+                elif k[1] in ["list", "array"]:
+                    value = row[key].strip("[]").split(",")
+            else:
+                value = row[key]
             if not k[0]:
                 continue
             try:
-                json_payload.update({k[0]: json.loads(value)})
+                if type(value) == list:
+                    json_payload.update({k[0]: value})
+                else:
+                    json_payload.update({k[0]: json.loads(value)})
             except:
                 try:
                     json_payload.update({k[0]: json.loads('"%s"' % (value))})
