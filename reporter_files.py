@@ -25,8 +25,9 @@ def files(objList, fileCheckedItems, connection):
             fileob["replicate_id"] = ""
             if file.get("file_format", "") == "bam":
                 for q in file.get("quality_metrics", []):
-                    if "star-quality-metrics" in q.get("@id", ""):
-                        fileob["Uniquely mapped reads number"] = q["Uniquely mapped reads number"]
+                    if "star-quality-metrics" in q:
+                        star = encodedcc.get_ENCODE(q, connection)
+                        fileob["Uniquely mapped reads number"] = star["Uniquely mapped reads number"]
             for fcd in file["flowcell_details"]:
                 fileob["flowcell"].append(fcd.get("flowcell", ""))
                 fileob["lane"].append(fcd["lane"])
@@ -61,7 +62,7 @@ def files(objList, fileCheckedItems, connection):
                     if "biosample" in library:
                         bio = encodedcc.get_ENCODE(library["biosample"], connection)
                         fileob["biosample_aliases"] = bio["aliases"]
-            if "aliases" in exp:
+            if any(exp.get("aliases", [])):
                 fileob["alias"] = exp["aliases"][0]
             else:
                 fileob["alias"] = ""
