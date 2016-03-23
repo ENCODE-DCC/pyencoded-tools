@@ -15,6 +15,9 @@ def getArgs():
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    parser.add_argument('--object',
+                        help="Either the file containing a list of ENCs as a column,\
+                        a single accession by itself, or a comma separated list of identifiers")
     parser.add_argument('--query',
                         default="/search/?type=Experiment",
                         help="input optional search url")
@@ -34,30 +37,19 @@ def getArgs():
 
 def audit_check(d):
     files = d.get("files", [])
-    status = "ungraded"
+    status = "ungradeable"
     for f in files:
         if f.get("output_category", "") != "raw data":
             audits = d.get("audit", {})
-            error = False
-            not_compliant = False
-            warning = False
             if any(audits):
                 if audits.get("ERROR"):
-                    error = True
-                if audits.get("NOT_COMPLIANT"):
-                    not_compliant = True
-                if audits.get("WARNING"):
-                    warning = True
-            if error and warning and not_compliant:
-                return "bronze"
-            elif warning and not not_compliant and not error:
-                return "silver"
-            elif not error and not warning and not not_compliant:
-                return "gold"
-            else:
-                return "Error"
-        else:
-            status = "ungraded"
+                    return "ungraded"
+                elif audits.get("NOT_COMPLIANT"):
+                    return "bronze"
+                elif audits.get("WARNING"):
+                    return "silver"
+                else:
+                    return "gold"
     return status
 
 
@@ -66,14 +58,40 @@ def main():
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
     print("Running on {}".format(connection.server))
-    data = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
-    # bronze = warning and not compliant, missing error
-    # silver = warning, missing error and not compliant
-    # gold = nothing, missing all 3
-    for d in data:
-        obj = encodedcc.get_ENCODE(d["@id"], connection, frame="page")
+    accessions = []
+    if args.object:
+        if os.path.isfile(args.object):
+            accessions = [line.strip() for line in open(args.object)]
+        else:
+            accessions = args.object.split(",")
+    elif args.query:
+        if "search" in args.query:
+            temp = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
+        else:
+            temp = [encodedcc.get_ENCODE(args.query, connection)]
+        if any(temp):
+            for obj in temp:
+                if obj.get("accession"):
+                    accessions.append(obj["accession"])
+                elif obj.get("uuid"):
+                    accessions.append(obj["uuid"])
+                elif obj.get("@id"):
+                    accessions.append(obj["@id"])
+                else:
+                    print("ERROR: object has no identifier", file=sys.stderr)
+    if len(accessions) == 0:
+        print("No accessions to check!", file=sys.stderr)
+        sys.exit(1)
+    # E | NC | W
+    # 0 | 0  | 0 = gold
+    # 0 | 0  | 1 = silver
+    # 0 | 1  | X = bronze
+    # 1 | X  | X = ungraded
+    # failing raw data check = ungradable
+    for acc in accessions:
+        obj = encodedcc.get_ENCODE(acc, connection, frame="page")
         status = audit_check(obj)
-        print("{exp}\t{stat}".format(exp=d["accession"], stat=status))
+        print("{exp}\t{stat}".format(exp=acc, stat=status))
 
 if __name__ == '__main__':
         main()
