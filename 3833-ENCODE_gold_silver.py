@@ -36,19 +36,18 @@ def getArgs():
 
 def audit_check(d):
     files = d.get("files", [])
-    status = "ungradeable"
+    status = "ungradable"
     for f in files:
         if f.get("output_category", "") != "raw data":
             audits = d.get("audit", {})
-            if any(audits):
-                if audits.get("ERROR"):
-                    return "ungraded"
-                elif audits.get("NOT_COMPLIANT"):
-                    return "bronze"
-                elif audits.get("WARNING"):
-                    return "silver"
-                else:
-                    return "gold"
+            if audits.get("ERROR"):
+                return "unreleasable"
+            elif audits.get("NOT_COMPLIANT"):
+                return "bronze"
+            elif audits.get("WARNING"):
+                return "silver"
+            else:
+                return "gold"
     return status
 
 
@@ -84,7 +83,7 @@ def main():
     # 0 | 0  | 0 = gold
     # 0 | 0  | 1 = silver
     # 0 | 1  | X = bronze
-    # 1 | X  | X = ungraded
+    # 1 | X  | X = unreleaseable
     # failing raw data check = ungradable
     print("accession\tvalidation_status")
     for acc in accessions:
