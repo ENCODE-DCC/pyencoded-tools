@@ -19,7 +19,6 @@ def getArgs():
                         help="Either the file containing a list of ENCs as a column,\
                         a single accession by itself, or a comma separated list of identifiers")
     parser.add_argument('--query',
-                        default="/search/?type=Experiment",
                         help="input optional search url")
     parser.add_argument('--key',
                         default='default',
@@ -57,7 +56,6 @@ def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-    print("Running on {}".format(connection.server))
     accessions = []
     if args.object:
         if os.path.isfile(args.object):
@@ -88,6 +86,7 @@ def main():
     # 0 | 1  | X = bronze
     # 1 | X  | X = ungraded
     # failing raw data check = ungradable
+    print("accession\tvalidation_status")
     for acc in accessions:
         obj = encodedcc.get_ENCODE(acc, connection, frame="page")
         status = audit_check(obj)
