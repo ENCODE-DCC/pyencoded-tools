@@ -34,6 +34,7 @@ def getArgs():
     args = parser.parse_args()
     return args
 
+
 def audit_check(d):
     files = d.get("files", [])
     status = "ungradable"
@@ -88,8 +89,9 @@ def main():
     print("accession\tvalidation_status")
     for acc in accessions:
         obj = encodedcc.get_ENCODE(acc, connection, frame="page")
-        status = audit_check(obj)
-        print("{exp}\t{stat}".format(exp=acc, stat=status))
+        if obj["status"] != "replaced":
+            status = audit_check(obj)
+            print("{exp}\t{stat}".format(exp=acc, stat=status))
 
 if __name__ == '__main__':
         main()
