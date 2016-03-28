@@ -37,7 +37,7 @@ def getArgs():
     return args
 
 
-def updater(status_dict, accessions, md5sum, experiments, update):
+def updater(status_dict, accessions, md5sum, experiments, connection, update):
     newest, exp = status_dict[max(status_dict.keys())]
     accessions.remove(newest)
     patch_dict = {"alternate_accessions": accessions}
@@ -101,10 +101,10 @@ def main():
             print("ERROR: Too many items in 'active' state! {} items found".format(len(active.keys())))
         elif len(active.keys()) == 1 and len(deprecate.keys()) > 0:
             #print("replace deprecated with active")
-            updater(active, accessions, s, experiments, args.update)
+            updater(active, accessions, s, experiments, connection, args.update)
         elif len(active.keys()) == 0 and len(deprecate.keys()) > 0:
             #print("replaced oldest deprecate with newest")
-            updater(deprecate, accessions, s, experiments, args.update)
+            updater(deprecate, accessions, s, experiments, connection, args.update)
 
 
 if __name__ == '__main__':
