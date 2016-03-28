@@ -98,7 +98,7 @@ def main():
             else:
                 print("Error: status {} was not expected".format(d["status"]))
         if len(active.keys()) > 1:
-            print("Too many in active state", len(active.keys()))
+            print("ERROR: Too many items in 'active' state! {} items found".format(len(active.keys())))
         elif len(active.keys()) == 1 and len(deprecate.keys()) > 0:
             #print("replace deprecated with active")
             updater(active, accessions, s, experiments, args.update)
