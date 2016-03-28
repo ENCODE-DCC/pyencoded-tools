@@ -105,38 +105,6 @@ def main():
         elif len(active.keys()) == 0 and len(deprecate.keys()) > 0:
             #print("replaced oldest deprecate with newest")
             updater(deprecate, accessions, s, experiments, args.update)
-        '''
-        if {"in progress", "deleted"} == set(status):
-            for d in sums[s]:
-                if d["status"] == "in progress":
-                    newest = d["accession"]
-                    exp = d["experiment"]
-                    experiments.remove(exp)
-            accessions.remove(newest)
-            patch_dict = {"alternate_accessions": accessions}
-            print("{md5sum} {newfile} {fileexp} {otherfiles} {otherexp}".format(md5sum=s, newfile=newest, fileexp=exp, otherfiles=accessions, otherexp=experiments))
-            if args.update:
-                encodedcc.patch_ENCODE(newest, connection, patch_dict)
-            for a in accessions:
-                print("patching {} with status replaced".format(a))
-                if args.update:
-                    encodedcc.patch_ENCODE(a, connection, {"status": "replaced"})
-        else:
-            newest = date[max(date.keys())]
-            for d in sums[s]:
-                if date[d["date_created"]] == newest:
-                    exp = d["experiment"]
-                    experiments.remove(exp)
-            accessions.remove(newest)
-            patch_dict = {"alternate_accessions": accessions}
-            print("{md5sum} {newfile} {fileexp} {otherfiles} {otherexp}".format(md5sum=s, newfile=newest, fileexp=exp, otherfiles=accessions, otherexp=experiments))
-            if args.update:
-                encodedcc.patch_ENCODE(newest, connection, patch_dict)
-            for a in accessions:
-                print("patching {} with status replaced".format(a))
-                if args.update:
-                    encodedcc.patch_ENCODE(a, connection, {"status": "replaced"})
-        '''
 
 
 if __name__ == '__main__':
