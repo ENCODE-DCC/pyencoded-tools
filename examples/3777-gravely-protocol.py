@@ -23,9 +23,10 @@ def getArgs():
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('--object',
-                        help="Either the file containing a list of ENCs as a column,\
-                        a single accession by itself, or a comma separated list of identifiers")
+    parser.add_argument('--lib',
+                        help="library file")
+    parser.add_argument('--bio',
+                        help="biosample file")
     parser.add_argument('--query',
                         help="query of objects you want to process")
     parser.add_argument('--key',
@@ -129,23 +130,23 @@ def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-    biosamples = [line.strip() for line in open("LV08_biosample_protocol_oneCellLine.txt")]
-    libraries = [line.strip() for line in open("LV08_library_protocol.txt")]
+    if args.lib:
+        libraries = [line.strip() for line in open(args.lib)]
+        lib_alias = dict.fromkeys(libraries)
+        # http://graveleylab.cam.uchc.edu/ENCODE/ENCODE_DATA/protocol/LV08_library_protocol/L-AKAP1-LV08-3.pdf
+        for key in lib_alias.keys():
+            lib_alias[key] = "brenton-graveley:" + key.split("/")[-1].split(".")[0]
+        for key in lib_alias.keys():
+            file_manager(key, lib_alias[key], connection, "Library")
 
-    bio_alias = dict.fromkeys(biosamples)
-    # http://graveleylab.cam.uchc.edu/ENCODE/ENCODE_DATA/protocol/LV08_biosample_protocol/DDX3X-LV08-15.pdf
-    for key in bio_alias.keys():
-        bio_alias[key] = "brenton-graveley:" + key.split("/")[-1].split(".")[0]
-
-    lib_alias = dict.fromkeys(libraries)
-    # http://graveleylab.cam.uchc.edu/ENCODE/ENCODE_DATA/protocol/LV08_library_protocol/L-AKAP1-LV08-3.pdf
-    for key in lib_alias.keys():
-        lib_alias[key] = "brenton-graveley:" + key.split("/")[-1].split(".")[0]
-
-    for key in bio_alias.keys():
-        file_manager(key, bio_alias[key], connection, "Biosample")
-    for key in lib_alias.keys():
-        file_manager(key, lib_alias[key], connection, "Library")
+    if args.bio:
+        biosamples = [line.strip() for line in open(args.bio)]
+        bio_alias = dict.fromkeys(biosamples)
+        # http://graveleylab.cam.uchc.edu/ENCODE/ENCODE_DATA/protocol/LV08_biosample_protocol/DDX3X-LV08-15.pdf
+        for key in bio_alias.keys():
+            bio_alias[key] = "brenton-graveley:" + key.split("/")[-1].split(".")[0]
+        for key in bio_alias.keys():
+            file_manager(key, bio_alias[key], connection, "Biosample")
 
 
 if __name__ == '__main__':
