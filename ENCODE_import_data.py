@@ -171,6 +171,40 @@ def cell_value(cell, datemode):
     raise ValueError(repr(cell), 'unknown cell type')
 
 
+def temp():
+    if k[1] in ["int", "integer"]:
+        new_dict[k[0]] = int(old_dict[key])
+        return int(old_dict[key])
+    elif k[1] in ["list", "array"]:
+        l = old_dict[key].strip("[]").split(",")
+        return l
+        new_dict[k[0]] = l
+
+
+def dict_patcher(old_dict):
+    new_dict = {}
+    for key in old_dict.keys():
+        if old_dict[key] != "":  # this removes empty cells
+
+            # first split on embedded
+            path = key.split(".")
+            # if this has values then use them
+
+
+
+            k = key.split(":")
+            if len(k) > 1:
+                if k[1] in ["int", "integer"]:
+                    new_dict[k[0]] = int(old_dict[key])
+                elif k[1] in ["list", "array"]:
+                    l = old_dict[key].strip("[]").split(",")
+                    #l = [x.replace(" ", "") for x in l]
+                    new_dict[k[0]] = l
+            else:
+                new_dict[k[0]] = old_dict[key]
+    return new_dict
+
+
 def excel_reader(datafile, sheet, update, connection, patchall):
     row = reader(datafile, sheetname=sheet)
     keys = next(row)  # grab the first row of headers
@@ -225,23 +259,6 @@ def excel_reader(datafile, sheet, update, connection, patchall):
                     success += 1
     print("{sheet}: {success} out of {total} posted, {error} errors, {patch} patched".format(
         sheet=sheet.upper(), success=success, total=total, error=error, patch=patch))
-
-
-def dict_patcher(old_dict):
-    new_dict = {}
-    for key in old_dict.keys():
-        if old_dict[key] != "":  # this removes empty cells
-            k = key.split(":")
-            if len(k) > 1:
-                if k[1] in ["int", "integer"]:
-                    new_dict[k[0]] = int(old_dict[key])
-                elif k[1] in ["list", "array"]:
-                    l = old_dict[key].strip("[]").split(",")
-                    #l = [x.replace(" ", "") for x in l]
-                    new_dict[k[0]] = l
-            else:
-                new_dict[k[0]] = old_dict[key]
-    return new_dict
 
 
 def main():
