@@ -171,7 +171,8 @@ def cell_value(cell, datemode):
     raise ValueError(repr(cell), 'unknown cell type')
 
 
-def temp(value, val_type):
+def data_formatter(value, val_type):
+    ''' returns formatted data'''
     if val_type in ["int", "integer"]:
         return int(value)
     elif val_type in ["list", "array"]:
@@ -184,49 +185,39 @@ def dict_patcher(old_dict):
     for key in old_dict.keys():
         if old_dict[key] != "":  # this removes empty cells
 
-            # first split on embedded
-            path = key.split(".")
-            # if this has values then use them
-
-
-
-
             k = key.split(":")
             path = k[0].split(".")
-            if len(k) == 0 and len(path) == 0:
+            if len(k) == 1 and len(path) == 1:
                 # this object is a string and not embedded
                 # return plain value
                 new_dict[k[0]] = old_dict[key]
-            elif len(k) > 1 and len(path) == 0:
+            elif len(k) > 1 and len(path) == 1:
                 # non-string non-embedded object
-                # use temp function
-                new_dict[k[0]] = temp(old_dict[key], k[1])
-            elif len(k) == 0 and len(path) > 1:
+                # use data_formatter function
+                new_dict[k[0]] = data_formatter(old_dict[key], k[1])
+            elif len(k) == 1 and len(path) > 1:
                 # embedded string object
                 # need to build the mini dictionary to put this in
                 if new_dict.get(path[0]):
                     # I have already added the embedded object to the new dictionary
                     # add to it
+                    new_dict[path[0]][0].update({path[1]: old_dict[key]})
                 else:
                     # make new item in dictionary
-                temp_dict = {}
+                    temp_dict = {path[1]: old_dict[key]}
+                    new_dict[path[0]] = [temp_dict]
             elif len(k) > 1 and len(path) > 1:
                 # embedded non-string object
                 # need mini dictionary to build
-                temp_dict = {}
+                if new_dict.get(path[0]):
+                    # I have already added the embedded object to the new dictionary
+                    # add to it
+                    new_dict[path[0]][0].update({path[1]: data_formatter(old_dict[key], k[1])})
+                else:
+                    # make new item in dictionary
+                    temp_dict = {path[1]: data_formatter(old_dict[key], k[1])}
+                    new_dict[path[0]] = [temp_dict]
 
-
-
-            if len(k) > 1:
-                new_dict[k[0]] = temp(old_dict[key], k[1])
-                if k[1] in ["int", "integer"]:
-                    new_dict[k[0]] = int(old_dict[key])
-                elif k[1] in ["list", "array"]:
-                    l = old_dict[key].strip("[]").split(",")
-                    #l = [x.replace(" ", "") for x in l]
-                    new_dict[k[0]] = l
-            else:
-                new_dict[k[0]] = old_dict[key]
     return new_dict
 
 
