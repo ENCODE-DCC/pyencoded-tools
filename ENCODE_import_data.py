@@ -171,14 +171,12 @@ def cell_value(cell, datemode):
     raise ValueError(repr(cell), 'unknown cell type')
 
 
-def temp():
-    if k[1] in ["int", "integer"]:
-        new_dict[k[0]] = int(old_dict[key])
-        return int(old_dict[key])
-    elif k[1] in ["list", "array"]:
-        l = old_dict[key].strip("[]").split(",")
-        return l
-        new_dict[k[0]] = l
+def temp(value, val_type):
+    if val_type in ["int", "integer"]:
+        return int(value)
+    elif val_type in ["list", "array"]:
+        return value.strip("[]").split(",")
+        
 
 
 def dict_patcher(old_dict):
@@ -192,8 +190,35 @@ def dict_patcher(old_dict):
 
 
 
+
             k = key.split(":")
+            path = k[0].split(".")
+            if len(k) == 0 and len(path) == 0:
+                # this object is a string and not embedded
+                # return plain value
+                new_dict[k[0]] = old_dict[key]
+            elif len(k) > 1 and len(path) == 0:
+                # non-string non-embedded object
+                # use temp function
+                new_dict[k[0]] = temp(old_dict[key], k[1])
+            elif len(k) == 0 and len(path) > 1:
+                # embedded string object
+                # need to build the mini dictionary to put this in
+                if new_dict.get(path[0]):
+                    # I have already added the embedded object to the new dictionary
+                    # add to it
+                else:
+                    # make new item in dictionary
+                temp_dict = {}
+            elif len(k) > 1 and len(path) > 1:
+                # embedded non-string object
+                # need mini dictionary to build
+                temp_dict = {}
+
+
+
             if len(k) > 1:
+                new_dict[k[0]] = temp(old_dict[key], k[1])
                 if k[1] in ["int", "integer"]:
                     new_dict[k[0]] = int(old_dict[key])
                 elif k[1] in ["list", "array"]:
