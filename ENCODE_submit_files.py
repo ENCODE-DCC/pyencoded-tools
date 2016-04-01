@@ -13,6 +13,8 @@ import json
 import subprocess
 import tempfile
 import encodedcc
+from dateutil.parser import parse
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -332,7 +334,6 @@ def main():
     args = get_args()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-
     if not test_encode_keys(connection):
         logger.error("Invalid ENCODE server or keys: server=%s auth=%s" % (connection.server, connection.auth))
         sys.exit(1)
@@ -356,7 +357,7 @@ def main():
         if not json_payload:
             logger.warning('Skipping row %d: invalid field format for JSON' % (n))
             continue
-
+        
         file_object = encodedcc.post_file(json_payload, connection, args.update)
         if not file_object:
             logger.warning('Skipping row %d: POST file object failed' % (n))
@@ -365,6 +366,19 @@ def main():
         aws_return_code = encodedcc.upload_file(file_object, args.update)
         if aws_return_code:
             logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_return_code))
+            print("Retrying upload to S3...")
+            creds = file_object["upload_credentials"]
+            expire = parse(creds["expiration"]).date()
+            now = datetime.datetime.now().date()
+            if now > expire:
+                new_file_object = encodedcc.ENC_Item(connection, file_object["@id"])
+                print("Your upload credentials are stale")
+                file_object = new_file_object.new_creds()
+
+            aws_retry = encodedcc.upload_file(file_object, args.update)
+            if aws_retry:
+                logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_retry))
+
 
         output_csv.writeheader()
         output_row = {}
