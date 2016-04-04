@@ -198,6 +198,7 @@ def dict_patcher(old_dict):
             elif len(k) == 1 and len(path) > 1:
                 # embedded string object
                 # need to build the mini dictionary to put this in
+                value = path[1].split("-")
                 if new_dict.get(path[0]):
                     # I have already added the embedded object to the new dictionary
                     # add to it
@@ -209,6 +210,7 @@ def dict_patcher(old_dict):
             elif len(k) > 1 and len(path) > 1:
                 # embedded non-string object
                 # need mini dictionary to build
+                value = path[1].split("-")
                 if new_dict.get(path[0]):
                     # I have already added the embedded object to the new dictionary
                     # add to it
@@ -237,7 +239,7 @@ def excel_reader(datafile, sheet, update, connection, patchall):
         if post_json.get("attachment"):
             attach = attachment(post_json["attachment"])
             post_json["attachment"] = attach
-        #print("after", post_json)
+        print("after", post_json)
         temp = {}
         if post_json.get("uuid"):
             temp = encodedcc.get_ENCODE(post_json["uuid"], connection)
