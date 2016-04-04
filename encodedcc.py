@@ -735,6 +735,7 @@ def post_file(file_metadata, connection, update=False):
         try:
             r.raise_for_status()
         except:
+            # if conflicts return the conflict for submit files
             if r.status_code == 409:
                 return r
             else:
