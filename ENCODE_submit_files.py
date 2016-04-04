@@ -357,36 +357,50 @@ def main():
         if not json_payload:
             logger.warning('Skipping row %d: invalid field format for JSON' % (n))
             continue
-        
+
+        upload = False  # using this to check if file can be uploaded
         file_object = encodedcc.post_file(json_payload, connection, args.update)
-        if not file_object:
-            logger.warning('Skipping row %d: POST file object failed' % (n))
-            continue
+        if file_object.status_code == 409:
+            print("POST Conflict", file_object.json())
+            i = input("Upload file to S3? y/n: ")
+            if i.lower() == "y":
+                print("Uploading file to S3")
+                file_object = file_object.json()['@graph'][0]
+                upload = True  # file has conflict but user says yes to upload
+            else:
+                logger.warning('Skipping row %d: POST file object failed' % (n))
+        else:
+            if not file_object:
+                logger.warning('Skipping row %d: POST file object failed' % (n))
+                continue
+            else:
+                upload = True  # file has no conflict and can be uploaded
 
-        aws_return_code = encodedcc.upload_file(file_object, args.update)
-        if aws_return_code:
-            logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_return_code))
-            print("Retrying upload to S3...")
-            creds = file_object["upload_credentials"]
-            expire = parse(creds["expiration"]).date()
-            now = datetime.datetime.now().date()
-            if now > expire:
-                new_file_object = encodedcc.ENC_Item(connection, file_object["@id"])
-                print("Your upload credentials are stale")
-                file_object = new_file_object.new_creds()
+        if upload:
+            aws_return_code = encodedcc.upload_file(file_object, args.update)
+            if aws_return_code:
+                logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_return_code))
+                print("Retrying upload to S3...")
+                creds = file_object["upload_credentials"]
+                expire = parse(creds["expiration"]).date()
+                now = datetime.datetime.now().date()
+                if now > expire:
+                    new_file_object = encodedcc.ENC_Item(connection, file_object["@id"])
+                    print("Your upload credentials are stale")
+                    file_object = new_file_object.new_creds()
 
-            aws_retry = encodedcc.upload_file(file_object, args.update)
-            if aws_retry:
-                logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_retry))
+                aws_retry = encodedcc.upload_file(file_object, args.update)
+                if aws_retry:
+                    logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_retry))
 
 
-        output_csv.writeheader()
-        output_row = {}
-        for key in output_csv.fieldnames:
-            output_row.update({key: file_object.get(key)})
-        output_row.update({'aws_return': aws_return_code})
+            output_csv.writeheader()
+            output_row = {}
+            for key in output_csv.fieldnames:
+                output_row.update({key: file_object.get(key)})
+            output_row.update({'aws_return': aws_return_code})
 
-        output_csv.writerow(output_row)
+            output_csv.writerow(output_row)
 
 
 if __name__ == '__main__':

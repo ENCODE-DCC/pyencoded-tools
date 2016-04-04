@@ -726,7 +726,7 @@ def post_file(file_metadata, connection, update=False):
     if not file_metadata.get('md5sum'):
         file_metadata['md5sum'] = md5(local_path)
     try:
-        logger.debug("POST JSON: %s" % (json.dumps(file_metadata)))
+        logging.debug("POST JSON: %s" % (json.dumps(file_metadata)))
     except:
         pass
     if update:
@@ -735,9 +735,12 @@ def post_file(file_metadata, connection, update=False):
         try:
             r.raise_for_status()
         except:
-            logger.warning('POST failed: %s %s' % (r.status_code, r.reason))
-            logger.warning(r.text)
-            return None
+            if r.status_code == 409:
+                return r
+            else:
+                logging.warning('POST failed: %s %s' % (r.status_code, r.reason))
+                logging.warning(r.text)
+                return None
         else:
             return r.json()['@graph'][0]
     else:
@@ -749,7 +752,7 @@ def post_file(file_metadata, connection, update=False):
 def upload_file(file_obj, update=False):
     if update:
         creds = file_obj['upload_credentials']
-        logger.debug('AWS creds: %s' % (creds))
+        logging.debug('AWS creds: %s' % (creds))
         env = os.environ.copy()
         env.update({
             'AWS_ACCESS_KEY_ID': creds['access_key'],
@@ -761,7 +764,7 @@ def upload_file(file_obj, update=False):
             subprocess.check_call(['aws', 's3', 'cp', path, creds['upload_url']], env=env)
         except subprocess.CalledProcessError as e:
             # The aws command returns a non-zero exit code on error.
-            logger.error("AWS upload failed with exit code %d" % (e.returncode))
+            logging.error("AWS upload failed with exit code %d" % (e.returncode))
             return e.returncode
         else:
             return 0
