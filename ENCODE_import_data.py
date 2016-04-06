@@ -199,21 +199,22 @@ def dict_patcher(old_dict):
                 # embedded string object
                 # need to build the mini dictionary to put this in
                 value = path[1].split("-")
-                print(value)
                 if new_dict.get(path[0]):
                     # I have already added the embedded object to the new dictionary
                     # add to it
-                    print(new_dict[path[0]])
                     if len(value) > 1:
+                        print("VALUE", value)
                         # this has a number next to it
                         temp_data = new_dict[path[0]]
+                        #print(new_dict[path[0]][int(value[1])])
+                        print(temp_data, "TEMP")
                         temp_data.insert(int(value[1]), {value[0]: old_dict[key]})
                     else:
                         new_dict[path[0]][0].update({path[1]: old_dict[key]})
                 else:
                     # make new item in dictionary
                     temp_dict = {path[1]: old_dict[key]}
-                    new_dict[value[0]] = [temp_dict]
+                    new_dict[path[0]] = [temp_dict]
             elif len(k) > 1 and len(path) > 1:
                 # embedded non-string object
                 # need mini dictionary to build
@@ -221,7 +222,15 @@ def dict_patcher(old_dict):
                 if new_dict.get(path[0]):
                     # I have already added the embedded object to the new dictionary
                     # add to it
-                    new_dict[path[0]][0].update({path[1]: data_formatter(old_dict[key], k[1])})
+                    if len(value) > 1:
+                        # this has a number next to it
+                        temp_data = new_dict[path[0]]
+                        print(new_dict[path[0]][int(value[1])])
+                        print(temp_data, "TEMP")
+                        temp_data.insert(int(value[1]), {value[0]: old_dict[key]})
+                    else:
+                        #new_dict[path[0]][0].update({path[1]: old_dict[key]})
+                        new_dict[path[0]][0].update({path[1]: data_formatter(old_dict[key], k[1])})
                 else:
                     # make new item in dictionary
                     temp_dict = {path[1]: data_formatter(old_dict[key], k[1])}
