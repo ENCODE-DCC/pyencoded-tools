@@ -184,7 +184,6 @@ def dict_patcher(old_dict):
     new_dict = {}
     for key in old_dict.keys():
         if old_dict[key] != "":  # this removes empty cells
-
             k = key.split(":")
             path = k[0].split(".")
             if len(k) == 1 and len(path) == 1:
@@ -203,13 +202,15 @@ def dict_patcher(old_dict):
                     # I have already added the embedded object to the new dictionary
                     # add to it
                     if len(value) > 1:
-                        print("VALUE", value)
                         # this has a number next to it
-                        temp_data = new_dict[path[0]]
-                        #print(new_dict[path[0]][int(value[1])])
-                        print(temp_data, "TEMP")
-                        temp_data.insert(int(value[1]), {value[0]: old_dict[key]})
+                        if len(new_dict[path[0]]) == int(value[1]):
+                            # this means we have not added any part of new item to the list
+                            new_dict[path[0]].insert(int(value[1]), {value[0]: old_dict[key]})
+                        else:
+                            # this should be that we have started putting in the new object
+                            new_dict[path[0]][int(value[1])].update({value[0]: old_dict[key]})
                     else:
+                        # the object does not exist in the embedded part, add it
                         new_dict[path[0]][0].update({path[1]: old_dict[key]})
                 else:
                     # make new item in dictionary
@@ -224,18 +225,19 @@ def dict_patcher(old_dict):
                     # add to it
                     if len(value) > 1:
                         # this has a number next to it
-                        temp_data = new_dict[path[0]]
-                        print(new_dict[path[0]][int(value[1])])
-                        print(temp_data, "TEMP")
-                        temp_data.insert(int(value[1]), {value[0]: old_dict[key]})
+                        if len(new_dict[path[0]]) == int(value[1]):
+                            # this means we have not added any part of new item to the list
+                            new_dict[path[0]].insert(int(value[1]), {value[0]: old_dict[key]})
+                        else:
+                            # this should be that we have started putting in the new object
+                            new_dict[path[0]][int(value[1])].update({value[0]: old_dict[key]})
                     else:
-                        #new_dict[path[0]][0].update({path[1]: old_dict[key]})
+                        # the object does not exist in the embedded part, add it
                         new_dict[path[0]][0].update({path[1]: data_formatter(old_dict[key], k[1])})
                 else:
                     # make new item in dictionary
                     temp_dict = {path[1]: data_formatter(old_dict[key], k[1])}
                     new_dict[path[0]] = [temp_dict]
-
     return new_dict
 
 
@@ -249,13 +251,12 @@ def excel_reader(datafile, sheet, update, connection, patchall):
     for values in row:
         total += 1
         post_json = dict(zip(keys, values))
-#        print("before", post_json)
         post_json = dict_patcher(post_json)
-        # I think we can add attchments here
+        # add attchments here
         if post_json.get("attachment"):
             attach = attachment(post_json["attachment"])
             post_json["attachment"] = attach
-        print("after", post_json)
+        print(post_json)
         temp = {}
         if post_json.get("uuid"):
             temp = encodedcc.get_ENCODE(post_json["uuid"], connection)
