@@ -376,7 +376,7 @@ Or use the '--type' argument, but this will only work for single sheet documents
 
     ENCODE_import_data.py mydata.xlsx --type Experiment
 
-The header of each sheet should be the names of the fields just as in ENCODE_patch_set.py,  
+The header should be the names of the fields just as in ENCODE_patch_set.py,  
 Ex: award, lab, target, etc.
 
     For integers use ':int' or ':integer'
