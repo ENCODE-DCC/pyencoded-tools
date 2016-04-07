@@ -356,3 +356,80 @@ This makes the script ignore the value of the paired ends, default is off
     ENCODE_controlled_by_backfill.py --missing
 
 Script will print out only the names of files missing controlled_by
+
+
+### ENCODE_import_data.py
+**_PLEASE NOTE:_** This script is a dryrun-default script, run it with the *--update* option to make any changes  
+This script takes in an Excel file with the data
+
+By DEFAULT:  
+If there is a uuid, alias, @id, or accession in the document it will ask if you want to PATCH that object  
+Use '--patchall' if you want to patch ALL objects in your document and ignore that message
+
+If no object identifiers are found in the document you need to use '--update' for POSTing to occur
+
+Defining Object type:
+    Name each "sheet" of the excel file the name of the object type you are using with the format used on https://www.encodeproject.org/profiles/  
+Ex: Experiment, Biosample, Document, AntibodyCharacterization
+
+    Or use the '--type' argument, but this will only work for single sheet documents
+Ex: ENCODE_import_data.py mydata.xsls --type Experiment
+
+The header of each sheet should be the names of the fields just as in ENCODE_patch_set.py,  
+Ex: award, lab, target, etc.
+
+    For integers use ':int' or ':integer'
+    For lists use ':list' or ':array'
+    String are the default and do not require an identifier
+
+To upload objects with attachments, have a column titled "attachment" containing the name of the file you wish to attach
+
+FOR EMBEDDED SUBOBJECTS:  
+Embedded objects are considered to be things like:
+ - characterization_reviews in AntibodyCharacterizations  
+ - tags in Constructs  
+ They are assumed to be of the format of a list of dictionary objects  
+ Ex:  
+```
+"characterization_reviews": [
+        {
+            "organism": "/organisms/human/",
+            "biosample_term_name": "A375",
+            "lane": 2,
+            "biosample_type": "immortalized cell line",
+            "biosample_term_id": "EFO:0002103",
+            "lane_status": "compliant"
+        },
+        {
+            "organism": "/organisms/mouse/",
+            "biosample_term_name": "embryonic fibroblast",
+            "lane": 3,
+            "biosample_type": "primary cell",
+            "biosample_term_id": "CL:2000042",
+            "lane_status": "compliant"
+        }
+    ]
+```
+Formatting in the document should be as follows for the above example:  
+
+    characterization_reviews.organism    characterization_reviews.lane:int    ....    characterization_reviews.organism-1    characterization_reviews.lane-1:int
+    /organisms/human/                    2                                            /organisms/mouse/                      3
+
+A second example:
+
+    tags.name    tags.location    tags.name-1    tags.location-1
+    FLAG         C-terminal       BOGUS          Fake-data
+
+Again, this will become
+```
+"tags": [
+        {
+            "location": "C-terminal",
+            "name": "FLAG"
+        },
+        {
+            "location": "Fake-data",
+            "name": "BOGUS"
+        }
+    ]
+```
