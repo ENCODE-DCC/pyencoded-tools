@@ -753,7 +753,10 @@ def post_file(file_metadata, connection, update=False):
 
 def upload_file(file_obj, update=False):
     if update:
-        creds = file_obj['upload_credentials']
+        if isinstance(file_obj, ENC_Item):
+            creds = file_obj.new_creds()
+        else:
+            creds = file_obj['upload_credentials']
         logging.debug('AWS creds: %s' % (creds))
         env = os.environ.copy()
         env.update({

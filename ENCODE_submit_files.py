@@ -392,7 +392,7 @@ def main():
                     conflict = conflict[0]
                     # the second item in the tuple is the value
                     obj = conflict[1]
-                    print("Conflicting identifier {}".format(obj))
+                    print("Getting upload credentials from conflicting identifier {}".format(obj))
                     if ":" in obj:
                         obj = quote(obj)
                     temp_object = encodedcc.get_ENCODE(obj, connection)
