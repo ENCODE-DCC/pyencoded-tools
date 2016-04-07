@@ -15,6 +15,7 @@ import tempfile
 import encodedcc
 from dateutil.parser import parse
 import datetime
+import ast
 
 logger = logging.getLogger(__name__)
 
@@ -367,7 +368,11 @@ def main():
                     i = input("Upload file to S3? y/n: ")
                     if i.lower() == "y":
                         print("Uploading file to S3")
-                        file_object = file_object.json()['@graph'][0]
+                        detail = file_object.json()["detail"]
+                        conflict = ast.literal_eval(detail.split(": ")[1])[0]
+                        print(type(conflict), conflict)
+                        sys.exit(1)
+                        #file_object = file_object.json()['@graph'][0]
                         upload = True  # file has conflict but user says yes to upload
                     else:
                         logger.warning('Skipping row %d: POST file object failed' % (n))
