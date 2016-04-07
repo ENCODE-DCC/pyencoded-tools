@@ -16,6 +16,7 @@ import encodedcc
 from dateutil.parser import parse
 import datetime
 import ast
+from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
 
@@ -330,6 +331,25 @@ def process_row(row, connection):
     return json_payload
 
 
+def uploader(file_object, update):
+    aws_return_code = encodedcc.upload_file(file_object, update)
+    if aws_return_code:
+        logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_return_code))
+        print("Retrying upload to S3...")
+        creds = file_object["upload_credentials"]
+        expire = parse(creds["expiration"]).date()
+        now = datetime.datetime.now().date()
+        if now > expire:
+            new_file_object = encodedcc.ENC_Item(connection, file_object["@id"])
+            print("Your upload credentials are stale.  Getting new credentials.")
+            file_object = new_file_object.new_creds()
+
+        aws_retry = encodedcc.upload_file(file_object, update)
+        if aws_retry:
+            logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_retry))
+    return aws_return_code
+
+
 def main():
 
     args = get_args()
@@ -359,54 +379,44 @@ def main():
             logger.warning('Skipping row %d: invalid field format for JSON' % (n))
             continue
 
-        if args.update:
-            upload = False  # using this to check if file can be uploaded
-            file_object = encodedcc.post_file(json_payload, connection, args.update)
-            if isinstance(file_object, requests.models.Response):
-                if file_object.status_code == 409:
-                    print("POST Conflict", file_object.json())
-                    i = input("Upload file to S3? y/n: ")
-                    if i.lower() == "y":
-                        print("Uploading file to S3")
-                        detail = file_object.json()["detail"]
-                        conflict = ast.literal_eval(detail.split(": ")[1])[0]
-                        print(type(conflict), conflict)
-                        sys.exit(1)
-                        #file_object = file_object.json()['@graph'][0]
-                        upload = True  # file has conflict but user says yes to upload
-                    else:
-                        logger.warning('Skipping row %d: POST file object failed' % (n))
-            else:
-                if not file_object:
-                    logger.warning('Skipping row %d: POST file object failed' % (n))
-                    continue
+        file_object = encodedcc.post_file(json_payload, connection, args.update)
+        if isinstance(file_object, requests.models.Response):
+            if file_object.status_code == 409:
+                print("POST Conflict", file_object.json())
+                i = input("Upload file to S3? y/n: ")
+                if i.lower() == "y":
+                    detail = file_object.json()["detail"]
+                    # pull out the list with the 'key conflict' and turn it into a list
+                    conflict = ast.literal_eval(detail.lstrip("Keys conflict: "))
+                    # get the first tuple in the list
+                    conflict = conflict[0]
+                    # the second item in the tuple is the value
+                    obj = conflict[1]
+                    print("Conflicting identifier {}".format(obj))
+                    if ":" in obj:
+                        obj = quote(obj)
+                    temp_object = encodedcc.get_ENCODE(obj, connection)
+                    file_object = encodedcc.ENC_Item(connection, temp_object["@id"])
+                    print("Uploading file to S3")
+                    aws_return_code = uploader(file_object, args.update)
                 else:
-                    upload = True  # file has no conflict and can be uploaded
-            upload = False
-            if upload:
-                aws_return_code = encodedcc.upload_file(file_object, args.update)
-                if aws_return_code:
-                    logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_return_code))
-                    print("Retrying upload to S3...")
-                    creds = file_object["upload_credentials"]
-                    expire = parse(creds["expiration"]).date()
-                    now = datetime.datetime.now().date()
-                    if now > expire:
-                        new_file_object = encodedcc.ENC_Item(connection, file_object["@id"])
-                        print("Your upload credentials are stale")
-                        file_object = new_file_object.new_creds()
+                    logger.warning('Skipping row %d: POST file object failed' % (n))
+                    aws_return_code = None
+        else:
+            if not file_object:
+                logger.warning('Skipping row %d: POST file object failed' % (n))
+                aws_return_code = None
+                continue
+            else:
+                aws_return_code = uploader(file_object, args.update)
 
-                    aws_retry = encodedcc.upload_file(file_object, args.update)
-                    if aws_retry:
-                        logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_retry))
+        output_csv.writeheader()
+        output_row = {}
+        for key in output_csv.fieldnames:
+            output_row.update({key: file_object.get(key)})
+        output_row.update({'aws_return': aws_return_code})
 
-                output_csv.writeheader()
-                output_row = {}
-                for key in output_csv.fieldnames:
-                    output_row.update({key: file_object.get(key)})
-                output_row.update({'aws_return': aws_return_code})
-
-                output_csv.writerow(output_row)
+        output_csv.writerow(output_row)
 
 
 if __name__ == '__main__':

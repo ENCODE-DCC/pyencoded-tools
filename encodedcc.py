@@ -215,7 +215,7 @@ class ENC_Item(object):
         return new_object
 
     def new_creds(self):
-        if self.type == 'file':  # There is no id, so this is a new object to POST
+        if self.type.lower() == 'file':  # There is no id, so this is a new object to POST
             r = requests.post("%s/%s/upload/" % (self.connection.server, self.id),
                               auth=self.connection.auth,
                               headers=self.connection.headers,
