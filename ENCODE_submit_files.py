@@ -358,19 +358,19 @@ def main():
             logger.warning('Skipping row %d: invalid field format for JSON' % (n))
             continue
 
-        upload = False  # using this to check if file can be uploaded
         if args.update:
+            upload = False  # using this to check if file can be uploaded
             file_object = encodedcc.post_file(json_payload, connection, args.update)
-            if file_object.status_code == 409:
-                print("POST Conflict", file_object.json())
-                i = input("Upload file to S3? y/n: ")
-                if i.lower() == "y":
-                    print("Uploading file to S3")
-                    print(file_object)
-                    file_object = file_object.json()['@graph'][0]
-                    upload = True  # file has conflict but user says yes to upload
-                else:
-                    logger.warning('Skipping row %d: POST file object failed' % (n))
+            if isinstance(file_object, requests.models.Response):
+                if file_object.status_code == 409:
+                    print("POST Conflict", file_object.json())
+                    i = input("Upload file to S3? y/n: ")
+                    if i.lower() == "y":
+                        print("Uploading file to S3")
+                        file_object = file_object.json()['@graph'][0]
+                        upload = True  # file has conflict but user says yes to upload
+                    else:
+                        logger.warning('Skipping row %d: POST file object failed' % (n))
             else:
                 if not file_object:
                     logger.warning('Skipping row %d: POST file object failed' % (n))
@@ -394,7 +394,6 @@ def main():
                     aws_retry = encodedcc.upload_file(file_object, args.update)
                     if aws_retry:
                         logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_retry))
-
 
                 output_csv.writeheader()
                 output_row = {}
