@@ -171,6 +171,76 @@ def cell_value(cell, datemode):
     raise ValueError(repr(cell), 'unknown cell type')
 
 
+def data_formatter(value, val_type):
+    ''' returns formatted data'''
+    if val_type in ["int", "integer"]:
+        return int(value)
+    elif val_type in ["list", "array"]:
+        return value.strip("[]").split(",")
+        
+
+
+def dict_patcher(old_dict):
+    new_dict = {}
+    for key in old_dict.keys():
+        if old_dict[key] != "":  # this removes empty cells
+            k = key.split(":")
+            path = k[0].split(".")
+            if len(k) == 1 and len(path) == 1:
+                # this object is a string and not embedded
+                # return plain value
+                new_dict[k[0]] = old_dict[key]
+            elif len(k) > 1 and len(path) == 1:
+                # non-string non-embedded object
+                # use data_formatter function
+                new_dict[k[0]] = data_formatter(old_dict[key], k[1])
+            elif len(k) == 1 and len(path) > 1:
+                # embedded string object
+                # need to build the mini dictionary to put this in
+                value = path[1].split("-")
+                if new_dict.get(path[0]):
+                    # I have already added the embedded object to the new dictionary
+                    # add to it
+                    if len(value) > 1:
+                        # this has a number next to it
+                        if len(new_dict[path[0]]) == int(value[1]):
+                            # this means we have not added any part of new item to the list
+                            new_dict[path[0]].insert(int(value[1]), {value[0]: old_dict[key]})
+                        else:
+                            # this should be that we have started putting in the new object
+                            new_dict[path[0]][int(value[1])].update({value[0]: old_dict[key]})
+                    else:
+                        # the object does not exist in the embedded part, add it
+                        new_dict[path[0]][0].update({path[1]: old_dict[key]})
+                else:
+                    # make new item in dictionary
+                    temp_dict = {path[1]: old_dict[key]}
+                    new_dict[path[0]] = [temp_dict]
+            elif len(k) > 1 and len(path) > 1:
+                # embedded non-string object
+                # need mini dictionary to build
+                value = path[1].split("-")
+                if new_dict.get(path[0]):
+                    # I have already added the embedded object to the new dictionary
+                    # add to it
+                    if len(value) > 1:
+                        # this has a number next to it
+                        if len(new_dict[path[0]]) == int(value[1]):
+                            # this means we have not added any part of new item to the list
+                            new_dict[path[0]].insert(int(value[1]), {value[0]: old_dict[key]})
+                        else:
+                            # this should be that we have started putting in the new object
+                            new_dict[path[0]][int(value[1])].update({value[0]: old_dict[key]})
+                    else:
+                        # the object does not exist in the embedded part, add it
+                        new_dict[path[0]][0].update({path[1]: data_formatter(old_dict[key], k[1])})
+                else:
+                    # make new item in dictionary
+                    temp_dict = {path[1]: data_formatter(old_dict[key], k[1])}
+                    new_dict[path[0]] = [temp_dict]
+    return new_dict
+
+
 def excel_reader(datafile, sheet, update, connection, patchall):
     row = reader(datafile, sheetname=sheet)
     keys = next(row)  # grab the first row of headers
@@ -181,13 +251,12 @@ def excel_reader(datafile, sheet, update, connection, patchall):
     for values in row:
         total += 1
         post_json = dict(zip(keys, values))
-#        print("before", post_json)
         post_json = dict_patcher(post_json)
-        # I think we can add attchments here
+        # add attchments here
         if post_json.get("attachment"):
             attach = attachment(post_json["attachment"])
             post_json["attachment"] = attach
-        #print("after", post_json)
+        print(post_json)
         temp = {}
         if post_json.get("uuid"):
             temp = encodedcc.get_ENCODE(post_json["uuid"], connection)
@@ -225,23 +294,6 @@ def excel_reader(datafile, sheet, update, connection, patchall):
                     success += 1
     print("{sheet}: {success} out of {total} posted, {error} errors, {patch} patched".format(
         sheet=sheet.upper(), success=success, total=total, error=error, patch=patch))
-
-
-def dict_patcher(old_dict):
-    new_dict = {}
-    for key in old_dict.keys():
-        if old_dict[key] != "":  # this removes empty cells
-            k = key.split(":")
-            if len(k) > 1:
-                if k[1] in ["int", "integer"]:
-                    new_dict[k[0]] = int(old_dict[key])
-                elif k[1] in ["list", "array"]:
-                    l = old_dict[key].strip("[]").split(",")
-                    #l = [x.replace(" ", "") for x in l]
-                    new_dict[k[0]] = l
-            else:
-                new_dict[k[0]] = old_dict[key]
-    return new_dict
 
 
 def main():
