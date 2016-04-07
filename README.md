@@ -368,8 +368,8 @@ Use '--patchall' if you want to patch ALL objects in your document and ignore th
 
 If no object identifiers are found in the document you need to use '--update' for POSTing to occur
 
-Defining Object type:
-    Name each "sheet" of the excel file the name of the object type you are using with the format used on https://www.encodeproject.org/profiles/  
+Defining Object type:  
+Name each "sheet" of the excel file the name of the object type you are using with the format used on https://www.encodeproject.org/profiles/  
 Ex: Experiment, Biosample, Document, AntibodyCharacterization
 
     Or use the '--type' argument, but this will only work for single sheet documents
