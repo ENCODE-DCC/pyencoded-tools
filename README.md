@@ -372,8 +372,9 @@ Defining Object type:
 Name each "sheet" of the excel file the name of the object type you are using with the format used on https://www.encodeproject.org/profiles/  
 Ex: Experiment, Biosample, Document, AntibodyCharacterization
 
-    Or use the '--type' argument, but this will only work for single sheet documents
-Ex: ENCODE_import_data.py mydata.xsls --type Experiment
+Or use the '--type' argument, but this will only work for single sheet documents  
+
+    ENCODE_import_data.py mydata.xlsx --type Experiment
 
 The header of each sheet should be the names of the fields just as in ENCODE_patch_set.py,  
 Ex: award, lab, target, etc.
