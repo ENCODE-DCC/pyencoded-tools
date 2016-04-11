@@ -347,6 +347,7 @@ def uploader(file_object, update):
         aws_retry = encodedcc.upload_file(file_object, update)
         if aws_retry:
             logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_retry))
+            encodedcc.patch_ENCODE(file_object["@id"], connection, {"status": "upload failed"})
     return aws_return_code
 
 
