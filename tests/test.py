@@ -20,24 +20,9 @@ def test_nothing():
 def test_key():
     key = encodedcc.ENC_Key(keypairs, "default")
     assert(key)
-
-
-@pytest.mark.key
-def test_key_server():
-    key = encodedcc.ENC_Key(keypairs, "default")
-    assert(key.server)
-
-
-@pytest.mark.key
-def test_key_authid():
-    key = encodedcc.ENC_Key(keypairs, "default")
-    assert(key.authid)
-
-
-@pytest.mark.key
-def test_key_authpw():
-    key = encodedcc.ENC_Key(keypairs, "default")
-    assert(key.authpw)
+    assert(type(key.server) is str)
+    assert(type(key.authpw) is str)
+    assert(type(key.authid) is str)
 
 
 @pytest.mark.connection
@@ -45,19 +30,7 @@ def test_connection():
     key = encodedcc.ENC_Key(keypairs, "default")
     connection = encodedcc.ENC_Connection(key)
     assert(connection)
-
-
-@pytest.mark.connection
-def test_connection_key():
-    key = encodedcc.ENC_Key(keypairs, "default")
-    connection = encodedcc.ENC_Connection(key)
     assert(connection.auth)
-
-
-@pytest.mark.connection
-def test_connection_server():
-    key = encodedcc.ENC_Key(keypairs, "default")
-    connection = encodedcc.ENC_Connection(key)
     assert(connection.server)
 
 
@@ -66,4 +39,4 @@ def test_get():
     key = encodedcc.ENC_Key(keypairs, "default")
     connection = encodedcc.ENC_Connection(key)
     result = encodedcc.get_ENCODE("/profiles/", connection)
-    assert(result)
+    assert(type(result) is dict)
