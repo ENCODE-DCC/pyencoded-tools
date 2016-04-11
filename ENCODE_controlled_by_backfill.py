@@ -246,7 +246,7 @@ class BackFill:
 
             for key in exp_data.keys():
                 if con_data.get(key):
-                    if args.update:
+                    if self.update:
                         self.updater(exp_data[key], con_data[key])
                     temp = {"ExpAcc": obj["accession"], "Method": "Biosample", "ExpFile": exp_data[key], "ConFile": con_data[key]}
                     self.dataList.append(temp)
