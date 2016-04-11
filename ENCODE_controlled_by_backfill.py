@@ -127,15 +127,13 @@ class BackFill:
                     if e.get("file_type", "") == "fastq":
                         if not self.MISSING or (self.MISSING and not e.get("controlled_by")):
                                 exp_list.append(e["accession"])
-                if self.update:
-                    for exp in exp_list:
-                        self.updater(exp, c["accession"])
-                temp = {"ExpAcc": obj["accession"], "Method": "Single", "ExpFile": exp_list, "ConFile": c["accession"]}
-                if len(exp_list) > 0:
+                for exp in exp_list:
+                    temp = {"ExpAcc": obj["accession"], "Method": "Single", "ExpFile": exp, "ConFile": c["accession"]}
                     self.dataList.append(temp)
+                    if self.update:
+                        self.updater(exp, c["accession"])
                 if self.DEBUG:
-                    print("experiment files {}".format(temp["Experiment"]))
-                    print("control files {}".format(temp["Control"]))
+                    print("ExpFile: {}, ConFile: {}".format(temp["ExpFile"], temp["ConFile"]))
 
     def pair_dict_maker(self, x_data, x):
         ''' helper function makes the exp_data 
@@ -186,24 +184,21 @@ class BackFill:
                 if x_data[x_key] == y_data[y_key]:
                     temp_list.append(y_key)
             if self.ignore_runtype:
-                if self.update:
-                    for t in temp_list:
-                        self.updater(x_key, t)
-                temp = {"ExpAcc": obj["accession"], "Method": "Multi-runtype ignored", "ExpFile": x_key, "ConFile": temp_list}
-                self.dataList.append(temp)
-                if self.DEBUG:
-                    print("experiment files", x_key)
-                    print("control files", temp_list)
-            else:
-                if self.update:
-                    for t in temp_list:
-                        self.updater(t, x_key)
-                temp = {"ExpAcc": obj["accession"], "Method": "Multi", "ExpFile": temp_list, "ConFile": x_key}
-                if len(temp_list) > 0:
+                for t in temp_list:
+                    temp = {"ExpAcc": obj["accession"], "Method": "Multi-runtype ignored", "ExpFile": x_key, "ConFile": t}
                     self.dataList.append(temp)
+                    if self.update:
+                        self.updater(x_key, t)
                 if self.DEBUG:
-                    print("experiment files", temp_list)
-                    print("control files", x_key)
+                    print("ExpFile: {}, ConFile: {}".format(temp["ExpFile"], temp["ConFile"]))
+            else:
+                for t in temp_list:
+                    temp = {"ExpAcc": obj["accession"], "Method": "Multi", "ExpFile": t, "ConFile": x_key}
+                    self.dataList.append(temp)
+                    if self.update:
+                        self.updater(t, x_key)
+                if self.DEBUG:
+                    print("ExpFile: {}, ConFile: {}".format(temp["ExpFile"], temp["ConFile"]))
 
     def multi_control(self, obj):
         '''multiple controls, match on biosample'''
@@ -246,12 +241,12 @@ class BackFill:
 
             for key in exp_data.keys():
                 if con_data.get(key):
-                    if self.update:
-                        self.updater(exp_data[key], con_data[key])
                     temp = {"ExpAcc": obj["accession"], "Method": "Biosample", "ExpFile": exp_data[key], "ConFile": con_data[key]}
                     self.dataList.append(temp)
+                    if self.update:
+                        self.updater(exp_data[key], con_data[key])
                     if self.DEBUG:
-                        print("Biosample {}: files {}".format(key, temp))
+                        print("Biosample: {}, ExpFile: {}, ConFile: {}".format(key, temp["ExpFile"], temp["ConFile"]))
 
 
 def main():
@@ -309,19 +304,19 @@ def main():
                 if args.debug:
                     print("Missing possible_controls for {}".format(acc), file=sys.stderr)
             if isValid:
-                b = BackFill(connection, debug=args.debug, missing=args.missing, update=args.update, ignore_runtype=args.ignore_runtype)
+                backfill = BackFill(connection, debug=args.debug, missing=args.missing, update=args.update, ignore_runtype=args.ignore_runtype)
                 if args.method == "single":
-                    b.single_rep(obj)
                     if args.debug:
                         print("SINGLE REP {}".format(acc))
+                    backfill.single_rep(obj)
                 elif args.method == "multi":
-                    b.multi_rep(obj)
                     if args.debug:
                         print("MULTI REP {}".format(acc))
+                    backfill.multi_rep(obj)
                 elif args.method == "biosample":
-                    b.multi_control(obj)
                     if args.debug:
                         print("BIOSAMPLE {}".format(acc))
+                    backfill.multi_control(obj)
                 else:
                     exp_rep = len(obj["replicates"])
                     exp_con = len(obj["possible_controls"])
@@ -331,15 +326,15 @@ def main():
                         if con_rep == exp_rep:
                             # same number experiment replicates as control replicates
                             # method is multi
-                            b.multi_rep(obj)
                             if args.debug:
                                 print("MULTI REP {}".format(acc))
+                            backfill.multi_rep(obj)
                         elif con_rep == 1:
                             # one control replicate and multiple experiment replicates
                             # method is single
-                            b.single_rep(obj)
                             if args.debug:
                                 print("SINGLE REP {}".format(acc))
+                            backfill.single_rep(obj)
                         else:
                             if args.debug:
                                 print("Experiment {} contains {} experiment replicates and {} control replicates and so does not fit the current pattern!".format(acc, exp_rep, con_rep))
@@ -352,9 +347,9 @@ def main():
                         if con_reps == exp_rep:
                             # same number of controls with one replicate as number of experiment replicates
                             # method is biosample
-                            b.multi_control(obj)
                             if args.debug:
                                 print("BIOSAMPLE {}".format(acc))
+                            backfill.multi_control(obj)
                         else:
                             if args.debug:
                                 print("Experiment {} contains {} experiment replicates and {} control replicates between {} total controls and so does not fit the current pattern!".format(acc, exp_rep, con_rep, exp_con))
@@ -362,11 +357,10 @@ def main():
                         if args.debug:
                             print("Experiment {} does not fit any of the current patterns!".format(acc))
 
-        if len(b.dataList) > 0:
+        if len(backfill.dataList) > 0:
             print("Experiment\tMethod\tExperimentFile\tControlFile")
-            for d in b.dataList:
-                for e in d["ExpFile"]:
-                    print("{ExpAcc}\t{Method}\t{ExpFile}\t{ConFile}".format(ExpAcc=d["ExpAcc"], Method=d["Method"], ExpFile=e, ConFile=d["ConFile"]))
+            for data in backfill.dataList:
+                print("{ExpAcc}\t{Method}\t{ExpFile}\t{ConFile}".format(ExpAcc=data["ExpAcc"], Method=data["Method"], ExpFile=data["ExpFile"], ConFile=data["ConFile"]))
 
 if __name__ == '__main__':
         main()
