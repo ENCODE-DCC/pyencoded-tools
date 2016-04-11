@@ -6,58 +6,64 @@ import os.path
 # py.test with -v for verbose, or -m key/connection/etc to use the marked tests
 
 
+keypairs = {
+            "default":
+                {"server":"https://test.encodedcc.org", "key":"keystring", "secret":"secretstring"}
+            }
+
+
 def test_nothing():
     assert(1)
 
 
 @pytest.mark.key
 def test_key():
-    key = encodedcc.ENC_Key(os.path.expanduser("~/keypairs.json"), "default")
+    key = encodedcc.ENC_Key(keypairs, "default")
     assert(key)
 
 
 @pytest.mark.key
 def test_key_server():
-    key = encodedcc.ENC_Key(os.path.expanduser("~/keypairs.json"), "default")
+    key = encodedcc.ENC_Key(keypairs, "default")
     assert(key.server)
 
 
 @pytest.mark.key
 def test_key_authid():
-    key = encodedcc.ENC_Key(os.path.expanduser("~/keypairs.json"), "default")
+    key = encodedcc.ENC_Key(keypairs, "default")
     assert(key.authid)
 
 
 @pytest.mark.key
 def test_key_authpw():
-    key = encodedcc.ENC_Key(os.path.expanduser("~/keypairs.json"), "default")
+    key = encodedcc.ENC_Key(keypairs, "default")
     assert(key.authpw)
 
 
 @pytest.mark.connection
 def test_connection():
-    key = encodedcc.ENC_Key(os.path.expanduser("~/keypairs.json"), "default")
+    key = encodedcc.ENC_Key(keypairs, "default")
     connection = encodedcc.ENC_Connection(key)
     assert(connection)
 
 
 @pytest.mark.connection
 def test_connection_key():
-    key = encodedcc.ENC_Key(os.path.expanduser("~/keypairs.json"), "default")
+    key = encodedcc.ENC_Key(keypairs, "default")
     connection = encodedcc.ENC_Connection(key)
     assert(connection.auth)
 
 
 @pytest.mark.connection
 def test_connection_server():
-    key = encodedcc.ENC_Key(os.path.expanduser("~/keypairs.json"), "default")
+    key = encodedcc.ENC_Key(keypairs, "default")
     connection = encodedcc.ENC_Connection(key)
     assert(connection.server)
 
 
 @pytest.mark.get
 def test_get():
-    key = encodedcc.ENC_Key(os.path.expanduser("~/keypairs.json"), "default")
+    key = encodedcc.ENC_Key(keypairs, "default")
     connection = encodedcc.ENC_Connection(key)
     result = encodedcc.get_ENCODE("/profiles/", connection)
     assert(result)
