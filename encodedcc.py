@@ -61,10 +61,13 @@ class dict_diff(object):
 
 class ENC_Key:
     def __init__(self, keyfile, keyname):
-        keys_f = open(keyfile, 'r')
-        keys_json_string = keys_f.read()
-        keys_f.close()
-        keys = json.loads(keys_json_string)
+        if os.path.isfile(str(keyfile)):
+            keys_f = open(keyfile, 'r')
+            keys_json_string = keys_f.read()
+            keys_f.close()
+            keys = json.loads(keys_json_string)
+        else:
+            keys = keyfile
         key_dict = keys[keyname]
         self.authid = key_dict['key']
         self.authpw = key_dict['secret']
