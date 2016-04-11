@@ -132,8 +132,8 @@ class BackFill:
                     self.dataList.append(temp)
                     if self.update:
                         self.updater(exp, c["accession"])
-                if self.DEBUG:
-                    print("ExpFile: {}, ConFile: {}".format(temp["ExpFile"], temp["ConFile"]))
+                    if self.DEBUG:
+                        print("ExpFile: {}, ConFile: {}".format(temp["ExpFile"], temp["ConFile"]))
 
     def pair_dict_maker(self, x_data, x):
         ''' helper function makes the exp_data 
@@ -189,16 +189,16 @@ class BackFill:
                     self.dataList.append(temp)
                     if self.update:
                         self.updater(x_key, t)
-                if self.DEBUG:
-                    print("ExpFile: {}, ConFile: {}".format(temp["ExpFile"], temp["ConFile"]))
+                    if self.DEBUG:
+                        print("ExpFile: {}, ConFile: {}".format(temp["ExpFile"], temp["ConFile"]))
             else:
                 for t in temp_list:
                     temp = {"ExpAcc": obj["accession"], "Method": "Multi", "ExpFile": t, "ConFile": x_key}
                     self.dataList.append(temp)
                     if self.update:
                         self.updater(t, x_key)
-                if self.DEBUG:
-                    print("ExpFile: {}, ConFile: {}".format(temp["ExpFile"], temp["ConFile"]))
+                    if self.DEBUG:
+                        print("ExpFile: {}, ConFile: {}".format(temp["ExpFile"], temp["ConFile"]))
 
     def multi_control(self, obj):
         '''multiple controls, match on biosample'''
@@ -357,10 +357,10 @@ def main():
                         if args.debug:
                             print("Experiment {} does not fit any of the current patterns!".format(acc))
 
-        if len(backfill.dataList) > 0:
-            print("Experiment\tMethod\tExperimentFile\tControlFile")
-            for data in backfill.dataList:
-                print("{ExpAcc}\t{Method}\t{ExpFile}\t{ConFile}".format(ExpAcc=data["ExpAcc"], Method=data["Method"], ExpFile=data["ExpFile"], ConFile=data["ConFile"]))
+                if len(backfill.dataList) > 0:
+                    print("Experiment\tMethod\tExperimentFile\tControlFile")
+                    for data in backfill.dataList:
+                        print("{ExpAcc}\t{Method}\t{ExpFile}\t{ConFile}".format(ExpAcc=data["ExpAcc"], Method=data["Method"], ExpFile=data["ExpFile"], ConFile=data["ConFile"]))
 
 if __name__ == '__main__':
         main()
