@@ -1,0 +1,29 @@
+{
+    "@id": "/targets/eGFP-PLAG1-human/",
+    "@type": [
+        "Target",
+        "Item"
+    ],
+    "aliases": [],
+    "dbxref": [
+        "HGNC:HBFQTL5",
+        "HGNC:CTIP1",
+        "HGNC:BCL11A-S",
+        "UniProtKB:Q9H165",
+        "HGNC:ZNF856",
+        "HGNC:BCL11A-XL",
+        "HGNC:BCL11A-L",
+        "ENSEMBL:ENSG00000119866",
+        "HGNC:EVI9",
+        "GeneID:53335",
+        "HGNC:BCL11a-M"
+    ],
+    "gene_name": "CUX1",
+    "investigated_as": [
+        "recombinant protein",
+        "transcription factor"
+    ],
+    "label": "eGFP-PLAG1",
+    "organism": "/organisms/human/",
+    "status": "current"
+}
