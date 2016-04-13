@@ -93,6 +93,10 @@ def main():
                         default="object")
     parser.add_argument('--type',
                         help="the object's type")
+    parser.add_argument('--update',
+                        default=False,
+                        action='store_true',
+                        help="Let the script PATCH/POST the data.  Default is False")
     args = parser.parse_args()
 
     global DEBUG_ON
@@ -105,6 +109,11 @@ def main():
 
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
+    print("Running on {}".format(connection.server))
+    if args.update:
+        print("This is an UPDATE run! Data will be PATCHed or POSTed accordingly")
+    else:
+        print("This is a dry run, no data will be changed")
 
     new_object = False
     if args.id:
@@ -119,6 +128,7 @@ def main():
             id_response = {}
             new_object = True
     else:
+
         if args.infile:
             infile = open(args.infile, 'r')
         else:
@@ -127,6 +137,8 @@ def main():
         new_json_string = infile.read()
 
         new_json = json.loads(new_json_string)
+        if args.debug:
+            encodedcc.pprint_ENCODE(new_json)
         if '@id' in new_json:
             id_response = encodedcc.get_ENCODE(new_json['@id'], connection)
             if id_response.get("code") == 404:
@@ -134,6 +146,7 @@ def main():
                 new_object = True
         else:
             id_response = {}
+            new_object = True
         if 'uuid' in new_json:
             uuid_response = encodedcc.get_ENCODE(new_json['uuid'], connection)
             if uuid_response.get("code") == 404:
@@ -141,6 +154,7 @@ def main():
                 new_object = True
         else:
             uuid_response = {}
+            new_object = True
         if 'accession' in new_json:
             accession_response = encodedcc.get_ENCODE(new_json['accession'], connection)
             if accession_response.get("code") == 404:
@@ -148,6 +162,8 @@ def main():
                 new_object = True
         else:
             accession_response = {}
+            new_object = True
+
         if new_object:
             print("No identifier in new JSON object.  Assuming POST or PUT with auto-accessioning.")
 
@@ -255,27 +271,31 @@ def main():
         if args.force_put:
             if not GET_ONLY:
                 print("Replacing existing object")
-                e = encodedcc.replace_ENCODE(identifier, connection, new_json)
-                print(e)
+                if args.update:
+                    e = encodedcc.replace_ENCODE(identifier, connection, new_json)
+                    print(e)
         else:
             if not GET_ONLY:
-                print("Patching existing object")
-                e = encodedcc.patch_ENCODE(identifier, connection, new_json)
-                print(e)
+                print("PATCHing existing object")
+                if args.update:
+                    e = encodedcc.patch_ENCODE(identifier, connection, new_json)
+                    print(e)
     elif new_object:
         if args.force_put:
             if not GET_ONLY:
                 print("PUT'ing new object")
-                e = encodedcc.replace_ENCODE(identifier, connection, new_json)
-                print(e)
+                if args.update:
+                    e = encodedcc.replace_ENCODE(identifier, connection, new_json)
+                    print(e)
         else:
             if not GET_ONLY:
                 print("POST'ing new object")
                 if not any(collection):
                     print("ERROR: Unable to POST to non-existing collection {}".format(collection))
                     sys.exit(1)
-                e = encodedcc.new_ENCODE(connection, collection, new_json)
-                print(e)
+                if args.update:
+                    e = encodedcc.new_ENCODE(connection, collection, new_json)
+                    print(e)
 
 
 if __name__ == '__main__':
