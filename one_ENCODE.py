@@ -108,6 +108,11 @@ def main():
         GET_ONLY = False
 
     key = encodedcc.ENC_Key(args.keyfile, args.key)
+    if args.server and args.authpw and args.authid:
+        key.server = args.server
+        key.authid = args.authid
+        key.authpw = args.authpw
+        print("Creating authorization data from command line inputs")
     connection = encodedcc.ENC_Connection(key)
     print("Running on {}".format(connection.server))
     if args.update:
