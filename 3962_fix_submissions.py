@@ -48,8 +48,9 @@ def main():
     search = "/search/?type=Experiment&lab.title=Bradley+Bernstein%2C+Broad&award.project=ENCODE"
     data = encodedcc.get_ENCODE(search, connection).get("@graph", [])
     headers = ["Experiment Accession", "Experiment Aliases", "File Accession", "File Aliases",
-               "Submitted File Name", "Bio Rep Num", "Tech Rep Num", "Replicate Aliases",
-               "Library Accession", "Library Aliases", "Date Created"]
+               "Submitted File Name", "Date Created", "Run Type", "Read Length", "Paired End",
+               "Bio Rep Num", "Tech Rep Num", "Replicate Aliases",
+               "Library Accession", "Library Aliases"]
     with open("broad_lab.txt", "w") as tsvfile:
         writer = csv.DictWriter(tsvfile, fieldnames=headers, delimiter="\t")
         writer.writeheader()
@@ -65,6 +66,9 @@ def main():
                     temp["File Aliases"] = file.get("aliases")
                     temp["Submitted File Name"] = file.get("submitted_file_name")
                     temp["Date Created"] = file.get("date_created")
+                    temp["Run Type"] = file.get("run_type")
+                    temp["Read Length"] = file.get("read_length")
+                    temp["Paired End"] = file.get("paired_end")
                     if file.get("replicate"):
                         rep = encodedcc.get_ENCODE(file["replicate"], connection)
                         temp["Replicate Aliases"] = rep.get("aliases")
