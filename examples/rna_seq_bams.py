@@ -47,8 +47,8 @@ def main():
     connection = encodedcc.ENC_Connection(key)
     query = "/search/?type=Experiment&lab.title=Brenton+Graveley%2C+UConn&award.project=ENCODE&status=released&files.file_type=bam"
     data = encodedcc.get_ENCODE(query, connection).get("@graph", [])
-    headers = ["File Accession", "Annotation", "Cell Line", "Target", "Experiment Accession", "Experiment Aliases",
-               "Biosample Accession", "Biosample Aliases", "Library Accession", "Library Aliases", "Lab", "Submitted Name"]
+    headers = ["File Accession", "Download", "Annotation", "Cell Line", "Assembly",  "Target", "Experiment Accession", "Experiment Aliases",
+               "Control Experiment", "Biosample Accession", "Biosample Aliases", "Library Accession", "Library Aliases", "Lab", "Submitted Name"]
     with open("output.txt", "w") as tsvfile:
         writer = csv.DictWriter(tsvfile, fieldnames=headers, delimiter="\t")
         writer.writeheader()
@@ -60,6 +60,7 @@ def main():
                 temp["Experiment Aliases"] = exp.get("aliases")
                 temp["Cell Line"] = exp.get("biosample_term_name")
                 temp["Target"] = exp.get("target")
+                temp["Control Experiment"] = exp["possible_controls"]
                 if exp.get("files"):
                     files = exp["files"]
                 else:
@@ -72,6 +73,8 @@ def main():
                         temp["Annotation"] = file.get("genome_annotation")
                         temp["File Accession"] = file.get("accession")
                         temp["Submitted Name"] = file.get("submitted_file_name")
+                        temp["Download"] = connection.server + "/files/" + file["accession"] + "/@@download/" + file["accession"] + ".bam"
+                        temp["Assembly"] = file.get("assembly")
                         print("File", file.get("accession"))
                         if file.get("replicate"):
                             rep = encodedcc.get_ENCODE(file["replicate"], connection)
