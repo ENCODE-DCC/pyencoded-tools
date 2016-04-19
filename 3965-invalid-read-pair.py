@@ -70,8 +70,17 @@ def main():
     if len(accessions) == 0:
         print("No accessions to check!", file=sys.stderr)
         sys.exit(1)
+    print("Experiment\tFASTQ\tFastq run_type\tfastq paired_end\tcontrol\tcontrol run_type\tcontrol paired_end")
     for acc in accessions:
-        encodedcc.get_ENCODE(acc, connection)
+        exp = encodedcc.get_ENCODE(acc, connection)
+        files = exp.get("files", [])
+        for fi in files:
+            file = encodedcc.get_ENCODE(fi, connection)
+            if file.get("file_type", "") == "fastq":
+                controlled_by = file.get("controlled_by", [])
+                for con in controlled_by:
+                    control = encodedcc.get_ENCODE(con, connection)
+                    print("{}\t{}\t{}\t{}\t{}\t{}\t{}".format(exp.get("accession"), file.get("accession"), file.get("run_type"), file.get("paired_end"), control.get("accession"), control.get("run_type"), control.get("paired_end")))
 
 if __name__ == '__main__':
         main()
