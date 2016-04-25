@@ -57,3 +57,5 @@ docs/_build/
 # PyBuilder
 target/
 keypairs.json
+
+LV13_library_protocol_2.txt

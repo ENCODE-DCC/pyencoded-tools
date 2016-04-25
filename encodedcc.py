@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 # -*- coding: latin-1 -*-
 
@@ -78,7 +77,7 @@ class ENC_Key:
 
 class ENC_Connection(object):
     def __init__(self, key):
-        self.headers = {'content-type': 'application/json'}
+        self.headers = {'content-type': 'application/json', 'accept': 'application/json'}
         self.server = key.server
         self.auth = (key.authid, key.authpw)
 
