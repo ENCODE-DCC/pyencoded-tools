@@ -362,9 +362,13 @@ Script will print out only the names of files missing controlled_by
 This script takes in a text file containing gravely documents for libraries and biosamples, parses it, downloads the PDFs from Gravely links, uploads to the portal and links the uploaded document to the relevant library or biosample
 
 Example usage for libraries:
+
     python3 examples/3777-gravely-protocol.py --keyfile keypairs.json --key test --lib library_protocols.txt
+
 Example usage for biosamples: 
+
     python3 examples/3777-gravely-protocol.py --keyfile keypairs.json --key test --bio biosample_protocols.txt
+    
 
 ### ENCODE_import_data.py
 **_PLEASE NOTE:_** This script is a dryrun-default script, run it with the *--update* option to make any changes  
