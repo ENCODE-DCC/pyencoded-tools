@@ -12,7 +12,7 @@ GET_HEADERS = {'accept': 'application/json'}
 CORE_MARKS = ['H3K27ac', 'H3K27me3', 'H3K36me3', 'H3K4me1',
               'H3K4me3', 'H3K9me3']
 EXPERIMENT_IGNORE_STATUS = ['deleted', 'revoked', 'replaced']
-FILE_IGNORE_STATUS = ['deleted', 'revoked', 'replaced',
+FILE_IGNORE_STATUS = ['deleted', 'revoked', 'replaced', 'archived',
                       'upload failed', 'format check failed', 'uploading']
 
 EPILOG = '''
@@ -93,7 +93,7 @@ def encoded_get(url, keypair=None, frame='object', return_response=False):
 
 
 def is_interesting(experiment):
-    if experiment['status'] in ['revoked', 'replaced', 'deleted']:
+    if experiment['status'] in EXPERIMENT_IGNORE_STATUS:
         return False
     return True
 
@@ -136,14 +136,14 @@ def is_not_missing_antibody(experiment):
 def is_not_missing_controls(experiment):
     if 'audit' in experiment:
         if 'NOT_COMPLIANT' in experiment['audit']:
-            for au in experiment['audit']['NOT_COMPLIANT']: # surprisingly didn't change after 3888
+            for au in experiment['audit']['NOT_COMPLIANT']:
                 if au['category'] in ['missing possible_controls',
                                       'missing controlled_by']:
                     return False
     return True
 
 
-def is_not_mismatched_controlled_by(experiment): # you can rename function
+def is_not_mismatched_control(experiment):
     if 'audit' in experiment:
         if 'ERROR' in experiment['audit']:
             for au in experiment['audit']['ERROR']:
@@ -152,7 +152,7 @@ def is_not_mismatched_controlled_by(experiment): # you can rename function
     return True
 
 
-def is_not_mismatched_controlled_by_run_type(experiment): # you can rename function
+def is_not_mismatched_control_run_type(experiment):
     if 'audit' in experiment:
         if 'WARNING' in experiment['audit']:
             for au in experiment['audit']['WARNING']:
@@ -161,7 +161,7 @@ def is_not_mismatched_controlled_by_run_type(experiment): # you can rename funct
     return True
 
 
-def is_not_mismatched_controlled_by_read_length(experiment): # you can rename function
+def is_not_mismatched_control_read_length(experiment):
     if 'audit' in experiment:
         if 'WARNING' in experiment['audit']:
             for au in experiment['audit']['WARNING']:
@@ -179,41 +179,75 @@ def is_not_missing_paired_with(experiment):
     return True
 
 
-def is_insufficient_read_depth(experiment): # can split into two methods - reporting low and insufficient separately
+def is_sufficient_read_depth(experiment):
     if 'audit' in experiment:
         list_of_audits = []
         if 'NOT_COMPLIANT' in experiment['audit']:
             list_of_audits.extend(experiment['audit']['NOT_COMPLIANT'])
-        # if 'WARNING' in experiment['audit']:
-        #    list_of_audits.extend(experiment['audit']['WARNING'])   ===> here it will be low not insufficient
         for au in list_of_audits:
             if au['category'] in ['insufficient read depth']:
                 return False
     return True
 
 
-def is_insufficient_library_complexity(experiment): # split into several different methods, 
-    '''
-    COMPLEXITY
-    insufficient (not compliant) 
-    poor (not compliat)
-    moderate (warning)
-
-    BOTTLENECKING
-    severe (not compliant)
-    moderate (not compliant)
-    mild (warning)
-    '''
+def is_not_low_read_depth(experiment):
     if 'audit' in experiment:
+        list_of_audits = []
         if 'NOT_COMPLIANT' in experiment['audit']:
-            for au in experiment['audit']['NOT_COMPLIANT']:
-                if au['category'] in ['insufficient library complexity']:
-                    return False
+            list_of_audits.extend(experiment['audit']['NOT_COMPLIANT'])
         if 'WARNING' in experiment['audit']:
-            for au in experiment['audit']['WARNING']:
-                if au['category'] in ['low library complexity']:
+            list_of_audits.extend(experiment['audit']['WARNING'])
+        for au in list_of_audits:
+            if au['category'] in ['low read depth']:
+                return False
+    return True
+
+
+def is_compliant_library_complexity(experiment):
+    if 'audit' in experiment:
+        list_of_audits = []
+        if 'NOT_COMPLIANT' in experiment['audit']:
+            list_of_audits.extend(experiment['audit']['NOT_COMPLIANT'])
+        for au in list_of_audits:
+            if au['category'] in ['insufficient library complexity',
+                                  'poor library complexity']:
                     return False
     return True
+
+
+def is_not_moderate_library_complexity(experiment):
+    if 'audit' in experiment:
+        list_of_audits = []
+        if 'WARNING' in experiment['audit']:
+            list_of_audits.extend(experiment['audit']['WARNING'])
+        for au in list_of_audits:
+            if au['category'] in ['moderate library complexity']:
+                    return False
+    return True
+
+
+def is_compliant_library_bottlenecking(experiment):
+    if 'audit' in experiment:
+        list_of_audits = []
+        if 'NOT_COMPLIANT' in experiment['audit']:
+            list_of_audits.extend(experiment['audit']['NOT_COMPLIANT'])
+        for au in list_of_audits:
+            if au['category'] in ['severe bottlenecking',
+                                  'moderate bottlenecking']:
+                    return False
+    return True
+
+
+def is_not_mild_library_bottlenecking(experiment):
+    if 'audit' in experiment:
+        list_of_audits = []
+        if 'WARNING' in experiment['audit']:
+            list_of_audits.extend(experiment['audit']['WARNING'])
+        for au in list_of_audits:
+            if au['category'] in ['mild bottlenecking']:
+                    return False
+    return True
+
 
 def main():
     args = getArgs()
@@ -221,8 +255,6 @@ def main():
     keypair = (key.authid, key.authpw)
     server = key.server
     connection = encodedcc.ENC_Connection(key)
-
-
 
     lab = '&lab.name=' + args.lab
     organism = '&replicates.library.biosample.donor.organism.scientific_name=' + \
@@ -232,33 +264,45 @@ def main():
                                             'search/?type=Experiment' +
                                             '&assay_term_name=ChIP-seq'
                                             '&award.rfa=ENCODE3' + organism +
-                                            '&target.investigated_as=' + args.target + lab +
-                                            '&format=json&frame=page&limit=all', keypair)['@graph']
-    print ("retreived "+str(len(histone_experiments_pages)) + " experiment pages")
+                                            '&target.investigated_as=' +
+                                            args.target + lab +
+                                            '&format=json&frame=' +
+                                            'page&limit=all',
+                                            keypair)['@graph']
+    print ("retreived "+str(len(histone_experiments_pages)) +
+           " experiment pages")
 
     histone_controls_pages = encoded_get(server +
                                          'search/?type=Experiment' +
                                          '&assay_term_name=ChIP-seq'
                                          '&award.rfa=ENCODE3' + organism +
-                                         '&target.investigated_as=control' + lab +
-                                         '&format=json&frame=page&limit=all', keypair)['@graph']
+                                         '&target.investigated_as=control' +
+                                         lab + '&format=json&frame=' +
+                                         'page&limit=all', keypair)['@graph']
     print ("retreived "+str(len(histone_controls_pages)) + " control pages")
 
     histone_experiments_objects = encoded_get(server +
-                                            'search/?type=Experiment' +
-                                            '&assay_term_name=ChIP-seq'
-                                            '&award.rfa=ENCODE3' + organism +
-                                            '&target.investigated_as=' + args.target + lab +
-                                            '&format=json&frame=embedded&limit=all', keypair)['@graph']
-    print ("retreived "+str(len(histone_experiments_objects)) + " experiment objects")
+                                              'search/?type=Experiment' +
+                                              '&assay_term_name=ChIP-seq'
+                                              '&award.rfa=ENCODE3' + organism +
+                                              '&target.investigated_as=' +
+                                              args.target + lab +
+                                              '&format=json&frame=' +
+                                              'embedded&limit=all',
+                                              keypair)['@graph']
+    print ("retreived "+str(len(histone_experiments_objects)) +
+           " experiment objects")
 
     histone_controls_objects = encoded_get(server +
-                                            'search/?type=Experiment' +
-                                            '&assay_term_name=ChIP-seq'
-                                            '&award.rfa=ENCODE3' + organism +
-                                            '&target.investigated_as=control' + lab +
-                                            '&format=json&frame=embedded&limit=all', keypair)['@graph']
-    print ("retreived "+str(len(histone_controls_objects)) + " control objects")
+                                           'search/?type=Experiment' +
+                                           '&assay_term_name=ChIP-seq'
+                                           '&award.rfa=ENCODE3' + organism +
+                                           '&target.investigated_as=control' +
+                                           lab + '&format=json&frame=' +
+                                           'embedded&limit=all',
+                                           keypair)['@graph']
+    print ("retreived "+str(len(histone_controls_objects)) +
+           " control objects")
 
     matrix = {}
     control_matrix = {}
@@ -297,9 +341,11 @@ def main():
             control_matrix[mark][sample] = []
 
         if 'aliases' in entry:
-            control_matrix[mark][sample].append((entry['accession'], entry['aliases']))
+            control_matrix[mark][sample].append((entry['accession'],
+                                                 entry['aliases']))
         else:
-            control_matrix[mark][sample].append((entry['accession'], 'NO ALIASES'))
+            control_matrix[mark][sample].append((entry['accession'],
+                                                'NO ALIASES'))
         sample_types.add(sample)
         marks.add(mark)
 
@@ -321,34 +367,56 @@ def main():
                 statuses['antibody'].append('not eligible antybody')
             if is_not_missing_antibody(page) is False:
                 statuses['antibody'].append('missing antybody')
-            if is_not_mismatched_controlled_by(page) is False:
+            if is_not_mismatched_control(page) is False:
                 statuses['control'].append('mismatched controled_by')
-            if is_not_mismatched_controlled_by_run_type(page) is False:
+            if is_not_mismatched_control_run_type(page) is False:
                 statuses['control'].append('mismatched controled_by run_type')
-            if is_not_mismatched_controlled_by_read_length(page) is False:
+            if is_not_mismatched_control_read_length(page) is False:
                 statuses['control'].append('mismatched controled_by read_length')
             if is_not_missing_controls(page) is False:
                 statuses['control'].append('missing control')
             if is_not_missing_paired_with(page) is False:
                 statuses['files'].append('missing paired_with files')
-            if is_insufficient_read_depth(page) is False:
+            if is_sufficient_read_depth(page) is False:
                 statuses['qc'].append('insufficient read depth')
-            if is_insufficient_library_complexity(page) is False:
-                statuses['qc'].append('insufficient library complexity')
+            if is_not_low_read_depth(page) is False:
+                statuses['qc'].append('low read depth')
+            if is_compliant_library_complexity(page) is False:
+                statuses['qc'].append('insufficient/poor library complexity')
+            if is_not_moderate_library_complexity(page) is False:
+                statuses['qc'].append('moderate library complexity')
+            if is_compliant_library_bottlenecking(page) is False:
+                statuses['qc'].append('severe/moderate library bottlenecking')
+            if is_not_mild_library_bottlenecking(page) is False:
+                statuses['qc'].append('mild library bottlenecking')
 
             if is_not_missing_controls(page) is True and \
-               is_not_mismatched_controlled_by(page) is True:
+               is_not_mismatched_control(page) is True:
                 not_encode_3_flag = False
                 for entry in obj['possible_controls']:
                     control_accession = entry['accession']
                     if control_accession in histone_controls_dict:
                         control_page = histone_controls_dict[control_accession]['page']
-                        if is_insufficient_read_depth(control_page) is False:
+                        if is_sufficient_read_depth(control_page) is False:
                             statuses['control'].append('insufficient read '
                                                        'depth in control')
-                        if is_insufficient_library_complexity(control_page) is False:
-                            statuses['control'].append('insufficient library '
+                        if is_not_low_read_depth(control_page) is False:
+                            statuses['control'].append('low read '
+                                                       'depth in control')
+                        if is_compliant_library_complexity(control_page) is False:
+                            statuses['control'].append('insufficient/poor '
+                                                       'library '
                                                        'complexity in control')
+                        if is_not_moderate_library_complexity(control_page) is False:
+                            statuses['control'].append('moderate library '
+                                                       'complexity in control')
+                        if is_compliant_library_bottlenecking(control_page) is False:
+                            statuses['control'].append('severe/moderate library '
+                                                       'bottlenecking in control')
+                        if is_not_mild_library_bottlenecking(control_page) is False:
+                            statuses['control'].append('mild library '
+                                                       'bottlenecking in control')
+
                     else:
                         not_encode_3_flag = True
                 if (not_encode_3_flag is True):
@@ -359,7 +427,7 @@ def main():
             rep_dict = {}
             for file_id in obj['original_files']:
                 file_object = encodedcc.get_ENCODE(file_id.split('/')[2], connection, 'embedded')
-                if file_object['status'] in ['deleted', 'replaced', 'revoked']:
+                if file_object['status'] in FILE_IGNORE_STATUS:
                     continue
                 if file_object['file_format'] == 'fastq':
                     if 'replicate' in file_object:
@@ -397,19 +465,27 @@ def main():
                 statuses['replication'].append('unreplicated')
             if is_not_missing_paired_with(page) is False:
                 statuses['files'].append('missing paired_with files')
-            if is_insufficient_read_depth(page) is False:
+            if is_sufficient_read_depth(page) is False:
                 statuses['qc'].append('insufficient read depth')
-            if is_insufficient_library_complexity(page) is False:
-                statuses['qc'].append('insufficient library complexity')
+            if is_not_low_read_depth(page) is False:
+                statuses['qc'].append('low read depth')
+            if is_compliant_library_complexity(page) is False:
+                statuses['qc'].append('insufficient/poor library complexity')
+            if is_not_moderate_library_complexity(page) is False:
+                statuses['qc'].append('moderate library complexity')
+            if is_compliant_library_bottlenecking(page) is False:
+                statuses['qc'].append('severe/moderate library bottlenecking')
+            if is_not_mild_library_bottlenecking(page) is False:
+                statuses['qc'].append('mild library bottlenecking')
+
 
         histone_controls_dict[ac]['statuses'] = statuses
         rep_dict = {}
         for file_id in obj['original_files']:     
             file_object = encodedcc.get_ENCODE(file_id.split('/')[2], connection, 'embedded')
-            if file_object['status'] in ['deleted', 'replaced', 'revoked']:
+            if file_object['status'] in FILE_IGNORE_STATUS:
                 continue
             if file_object['file_format'] == 'fastq':
-                #print (file_object['accession'])
                 if 'replicate' in file_object:
                     bio_rep_number = file_object['replicate']['biological_replicate_number']
                     tec_rep_number = file_object['replicate']['technical_replicate_number']
@@ -429,11 +505,6 @@ def main():
                 reps_string += member + ', '
             seq_info_string += 'REP' + str(k[0]) + '.' + str(k[1]) + ' ' +reps_string[:-2]+'\r'
         histone_controls_dict[ac]['seq_info'] = seq_info_string
-        #print (ac)
-        #print (histone_controls_dict[ac]['seq_info'])
-        
-    # we have matrix dictionary for the matrix creation - each cell contains a lit of all the accessions
-    # we have the histone_experiments_dict that for each accession has a list of statuses ['replication', 'antibody', control']
 
     if args.target == "histone":
 
@@ -448,8 +519,7 @@ def main():
             if m != 'control':
                 marks_to_print.append(m)
 
-    #output = open("/Users/idan/Desktop/mat.csv", "w")
-    with open(args.audit_matrix, 'wb') as output:
+    with open(args.audit_matrix, 'w') as output:
         fields = ['sample'] + marks_to_print
         writer = csv.DictWriter(output, fieldnames=fields)
         writer.writeheader()
@@ -532,13 +602,12 @@ def main():
             writer.writerow(row)
 
 
-    with open(args.run_type_matrix, 'wb') as output:
+    with open(args.run_type_matrix, 'w') as output:
         fields = ['sample'] + marks_to_print
         writer = csv.DictWriter(output, fieldnames=fields)
         writer.writeheader()
         for sample in sample_types:
             row = {'sample': sample}
-
 
             for mark in marks_to_print:
                 if mark != 'control':
