@@ -106,8 +106,9 @@ def is_replicated(experiment):
         list_of_audits = []
         if 'NOT_COMPLIANT' in experiment['audit']:
             list_of_audits.extend(experiment['audit']['NOT_COMPLIANT'])
-        if 'WARNING' in experiment['audit']:
-            list_of_audits.extend(experiment['audit']['WARNING'])
+        # commenting out, after ticket #3888
+        # if 'WARNING' in experiment['audit']:
+        #    list_of_audits.extend(experiment['audit']['WARNING'])
         for au in list_of_audits:
             if au['category'] in ['unreplicated experiment']:
                 return False
@@ -135,63 +136,74 @@ def is_not_missing_antibody(experiment):
 def is_not_missing_controls(experiment):
     if 'audit' in experiment:
         if 'NOT_COMPLIANT' in experiment['audit']:
-            for au in experiment['audit']['NOT_COMPLIANT']:
+            for au in experiment['audit']['NOT_COMPLIANT']: # surprisingly didn't change after 3888
                 if au['category'] in ['missing possible_controls',
                                       'missing controlled_by']:
                     return False
     return True
 
 
-def is_not_mismatched_controlled_by(experiment):
+def is_not_mismatched_controlled_by(experiment): # you can rename function
     if 'audit' in experiment:
         if 'ERROR' in experiment['audit']:
             for au in experiment['audit']['ERROR']:
-                if au['category'] in ['mismatched controlled_by']:
+                if au['category'] in ['mismatched control']:
                     return False
     return True
 
 
-def is_not_mismatched_controlled_by_run_type(experiment):
+def is_not_mismatched_controlled_by_run_type(experiment): # you can rename function
     if 'audit' in experiment:
         if 'WARNING' in experiment['audit']:
             for au in experiment['audit']['WARNING']:
-                if au['category'] in ['mismatched controlled_by run_type']:
+                if au['category'] in ['mismatched control run_type']:
                     return False
     return True
 
 
-def is_not_mismatched_controlled_by_read_length(experiment):
+def is_not_mismatched_controlled_by_read_length(experiment): # you can rename function
     if 'audit' in experiment:
         if 'WARNING' in experiment['audit']:
             for au in experiment['audit']['WARNING']:
-                if au['category'] in ['mismatched controlled_by read length']:
+                if au['category'] in ['mismatched control read length']:
                     return False
     return True
 
 
 def is_not_missing_paired_with(experiment):
     if 'audit' in experiment:
-        if 'NOT_COMPLIANT' in experiment['audit']:
-            for au in experiment['audit']['NOT_COMPLIANT']:
+        if 'ERROR' in experiment['audit']:
+            for au in experiment['audit']['ERROR']:
                 if au['category'] in ['missing paired_with']:
                     return False
     return True
 
 
-def is_insufficient_read_depth(experiment):
+def is_insufficient_read_depth(experiment): # can split into two methods - reporting low and insufficient separately
     if 'audit' in experiment:
         list_of_audits = []
         if 'NOT_COMPLIANT' in experiment['audit']:
             list_of_audits.extend(experiment['audit']['NOT_COMPLIANT'])
-        if 'WARNING' in experiment['audit']:
-            list_of_audits.extend(experiment['audit']['WARNING'])
+        # if 'WARNING' in experiment['audit']:
+        #    list_of_audits.extend(experiment['audit']['WARNING'])   ===> here it will be low not insufficient
         for au in list_of_audits:
             if au['category'] in ['insufficient read depth']:
                 return False
     return True
 
 
-def is_insufficient_library_complexity(experiment):
+def is_insufficient_library_complexity(experiment): # split into several different methods, 
+    '''
+    COMPLEXITY
+    insufficient (not compliant) 
+    poor (not compliat)
+    moderate (warning)
+
+    BOTTLENECKING
+    severe (not compliant)
+    moderate (not compliant)
+    mild (warning)
+    '''
     if 'audit' in experiment:
         if 'NOT_COMPLIANT' in experiment['audit']:
             for au in experiment['audit']['NOT_COMPLIANT']:
@@ -346,7 +358,7 @@ def main():
 
             rep_dict = {}
             for file_id in obj['original_files']:
-                file_object = encodedcc.get_ENCODE(file_id.split('/')[2], connection)
+                file_object = encodedcc.get_ENCODE(file_id.split('/')[2], connection, 'embedded')
                 if file_object['status'] in ['deleted', 'replaced', 'revoked']:
                     continue
                 if file_object['file_format'] == 'fastq':
@@ -393,7 +405,7 @@ def main():
         histone_controls_dict[ac]['statuses'] = statuses
         rep_dict = {}
         for file_id in obj['original_files']:     
-            file_object = encodedcc.get_ENCODE(file_id.split('/')[2], connection)
+            file_object = encodedcc.get_ENCODE(file_id.split('/')[2], connection, 'embedded')
             if file_object['status'] in ['deleted', 'replaced', 'revoked']:
                 continue
             if file_object['file_format'] == 'fastq':
