@@ -299,7 +299,7 @@ class Data_Release():
         self.set_up()
 
         good = ["released", "current", "disabled", "published", "finished", "virtual"]
-        bad = ["replaced", "revoked", "deleted", "upload failed",
+        bad = ["replaced", "revoked", "deleted", "upload failed", "archived",
                "format check failed", "uploading", "error"]
         ignore = ["User", "AntibodyCharacterization", "Publication"]
         for accession in self.ACCESSIONS:
