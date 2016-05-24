@@ -301,7 +301,7 @@ class Data_Release():
         good = ["released", "current", "disabled", "published", "finished", "virtual"]
         bad = ["replaced", "revoked", "deleted", "upload failed", "archived",
                "format check failed", "uploading", "error"]
-        ignore = ["User", "AntibodyCharacterization", "Publication"]
+        ignore = ["User", "AntibodyCharacterization", "Publication", "ReferenceEpigenome"]
         for accession in self.ACCESSIONS:
             self.searched = []
             expandedDict = encodedcc.get_ENCODE(accession, self.connection)
