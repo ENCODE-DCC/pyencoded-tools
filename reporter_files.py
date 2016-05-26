@@ -30,7 +30,7 @@ def files(objList, fileCheckedItems, connection):
                         fileob["Uniquely mapped reads number"] = star["Uniquely mapped reads number"]
             for fcd in file["flowcell_details"]:
                 fileob["flowcell"].append(fcd.get("flowcell", ""))
-                fileob["lane"].append(fcd["lane"])
+                fileob["lane"].append(fcd.get("lane"))
             try:
                 fileob["platform"] = encodedcc.get_ENCODE(fileob["platform"], connection)["title"]
             except:
