@@ -103,6 +103,15 @@ def file_manager(key, value, connection, obj_type):
     attach = attachment(filename)
     temp = "_".join(key.split("/")[-2:])
     aliases = ["brenton-graveley:" + temp]
+
+    if (encodedcc.get_ENCODE(quote(aliases[0]), connection)['status']) != 'error':
+
+        removing_patch = {'status':'deleted',
+                          'aliases': []}
+        print ('DELETING ' + aliases[0] + ' ' + str(removing_patch))
+        encodedcc.patch_ENCODE(quote(aliases[0]), connection, removing_patch)
+
+
     upload = {"aliases": aliases,
               "attachment": attach,
               "award": "U54HG007005",
@@ -113,6 +122,7 @@ def file_manager(key, value, connection, obj_type):
               }
 
     print("Uploading {} as {}".format(filename, aliases[0]))
+
     encodedcc.new_ENCODE(connection, "Document", upload)
 
     print("Patching {} with document {}".format(value, aliases[0]))
@@ -120,11 +130,16 @@ def file_manager(key, value, connection, obj_type):
         docs = {"protocol_documents": aliases}
     else:
         docs = {"documents": aliases}
+    
     encodedcc.patch_ENCODE(quote(value), connection, docs)
 
     print("Removing document {}".format(filename))
     subprocess.run(["rm", filename])
-
+    
+    '''
+    x = encodedcc.get_ENCODE(quote(value), connection)
+    print (x['documents'])
+    '''
 
 def main():
     args = getArgs()
@@ -134,6 +149,7 @@ def main():
         libraries = [line.strip() for line in open(args.lib)]
         lib_alias = dict.fromkeys(libraries)
         # http://graveleylab.cam.uchc.edu/ENCODE/ENCODE_DATA/protocol/LV08_library_protocol/L-AKAP1-LV08-3.pdf
+        #print (lib_alias)
         for key in lib_alias.keys():
             lib_alias[key] = "brenton-graveley:" + key.split("/")[-1].split(".")[0]
         for key in lib_alias.keys():
