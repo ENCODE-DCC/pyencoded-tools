@@ -388,16 +388,19 @@ def main():
 
             files_count = {}
             files_list = {}
-            for i in range(0, len(exp['files'])):
-                item = exp['files'][i]
-                if 'replicate' in item:
-                    repId = item['replicate']['uuid']
+            repIds = []
+            for item in exp['files']:
+
+                if item.get('biological_replicates') is None:
+                    repId = 'no rep'
+                elif len(item['biological_replicates']) == 1:
+                    repId = item['biological_replicates'][0]
                 else:
                     repId = 'no rep'
 
                 if repId in files_list:
                     files_list[repId].append(item['accession'])
-                elif repId != 'no rep':
+                else:
                     files_list[repId] = [item['accession']]
 
                 if repId in files_count:
@@ -419,9 +422,9 @@ def main():
                         repOb[field] = rep[field]
                     else:
                         repOb[field] = ''
-                if rep['uuid'] in files_count:
-                    repOb['files'] = files_list[rep['uuid']]
-                    repOb['rep_file_count'] = files_count[rep['uuid']]
+                if rep['biological_replicate_number'] in files_count:
+                    repOb['files'] = files_list[rep['biological_replicate_number']]
+                    repOb['rep_file_count'] = files_count[rep['biological_replicate_number']]
                 else:
                     repOb['rep_file_count'] = 0
                     repOb['files'] = []
