@@ -1,5 +1,12 @@
 # pyencoded-tools
 
+### ENCODE_duplicates_catch.py
+This script allows detection of non-revoked files on the portal having identical content md5sum. The script will run without any parameters, except the usual --keyfile and --key arguments. Execution of the script will result in a 'tsv' report on detected duplicates. The report includes individual sections fro each lab: 
+
+        LAB with DUPLICATES : <name of the lab>
+        NUM of replicate cases : <num of duplications detected>
+        <file accession>	<experiment accession>	<content md5sum>	<file status>
+
 ### ENCODE_get_fields.py
 This script takes object identifiers and fieldnames and returns a TSV of the data gathered  
 To get multiple objects use the *--object* argument and provide a file with the list of object identifiers
