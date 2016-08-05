@@ -131,8 +131,6 @@ class Data_Release():
         self.statusDict = {}
         self.connection = connection
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
-        #for k in temp.keys():
-        #    print (k)
 
         ignore = ["Lab", "Award", "AntibodyCharacterization", "Platform",
                   "Publication", "Organism", "Reference", "AccessKey", "User",
@@ -154,57 +152,50 @@ class Data_Release():
             else:
                 self.profilesJSON.append(profile)
         self.profiles_ref = []
-        #print("not expanding : " + str(self.dontExpand))
         for profile in self.profilesJSON:
-            #print("profile :" + str(profile))
             self.profiles_ref.append(self.helper(profile))
-        #print("profiles_ref : " + str(self.profiles_ref))
         for item in self.profilesJSON:
             profile = temp[item]  # getting the whole schema profile
-
-            self.keysLink = []  # if a key is in this list, it points to a link and will be embedded in the final product
+            self.keysLink = []  # if a key is in this list, it points to a
+            # link and will be embedded in the final product
             self.make_profile(profile)
             self.PROFILES[item] = self.keysLink
-            #print ('item:'+item)
-            #print ('self.keysLink:' + str(self.keysLink))
             # lets get the list of things that actually get a date released
             for value in profile["properties"].keys():
                 if value == "date_released":
                     self.date_released.append(item)
-        #print('date released ' + str(self.date_released))
 
         self.current = []
         self.finished = []
         for item in temp.keys():
             status = temp[item]["properties"]["status"]["enum"]
             if "current" in status:
-                #print ("item with CURRENT status " + item)
                 self.current.append(item)
             if "finished" in status:
-                #print ("item with FINISHED status " + item)
                 self.finished.append(item)
-
-        # defining hierarchy
-
 
     def set_up(self):
         '''do some setup for script'''
         if self.UPDATE:
-            print("WARNING: This run is an UPDATE run objects will be released.")
+            print("WARNING: This run is an " +
+                  "UPDATE run objects will be released.")
         else:
             print("Object status will be checked but not changed")
         if self.FORCE:
-            print("WARNING: Objects that do not pass audit will be FORCE-released")
+            print("WARNING: Objects that do not " +
+                  "pass audit will be FORCE-released")
         if self.LOGALL:
             print("Logging all statuses")
         if self.infile:
             if os.path.isfile(self.infile):
-                self.ACCESSIONS = [line.rstrip('\n') for line in open(self.infile)]
+                self.ACCESSIONS = [line.rstrip('\n') for line in open(
+                    self.infile)]
             else:
                 self.ACCESSIONS = self.infile.split(",")
         elif self.QUERY:
             if "search" in self.QUERY:
-                temp = encodedcc.get_ENCODE(self.QUERY, self.connection).get("@graph", [])
+                temp = encodedcc.get_ENCODE(
+                    self.QUERY, self.connection).get("@graph", [])
             else:
                 temp = [encodedcc.get_ENCODE(self.QUERY, self.connection)]
             if any(temp):
@@ -238,7 +229,8 @@ class Data_Release():
 
     def make_profile(self, dictionary):
         '''builds the PROFILES reference dictionary
-        keysLink is the list of keys that point to links, used in the PROFILES'''
+        keysLink is the list of keys that point to links,
+        used in the PROFILES'''
         d = dictionary["properties"]
         for prop in d.keys():
             if d[prop].get("linkTo") or d[prop].get("linkFrom"):
@@ -249,13 +241,31 @@ class Data_Release():
                     if i.get("linkTo") or i.get("linkFrom"):
                         self.keysLink.append(prop)
 
+    def process_link(self, identifier_link, approved_for_update_types):
+        item = identifier_link.split("/")[1].replace("-", "")
+        subobj = encodedcc.get_ENCODE(identifier_link, self.connection)
+        subobjname = subobj["@type"][0]
+        if item in self.profiles_ref and identifier_link not in self.searched:
+            # expand subobject
+            if subobjname in approved_for_update_types:
+                self.get_status(subobj)
+            else:
+                self.update_self(subobj, subobjname)
+        else:
+            if (item in self.dontExpand and
+               identifier_link not in self.searched):
+                # this is not one of the identifier_link we expand
+                # is it a identifier_link we just get status of
+                self.update_self(subobj, subobjname)
+
+    def update_self(self, subobj, subobjname):
+        self.searched.append(subobj["@id"])
+        self.statusDict[subobj["@id"]] = [subobjname,
+                                          subobj["status"]]
+
     def get_status(self, obj):
         '''take object get status, @type, @id, uuid
         {@id : [@type, status]}'''
-
-        #print ('from get status')
-        #print (obj['accession'])
-
         name = obj["@type"][0]
         approved_for_update_types = hi.dictionary_of_lower_levels.get(
             hi.levels_mapping.get(name))
@@ -269,54 +279,27 @@ class Data_Release():
                     # if the key is in profiles it's a link
                     if type(obj[key]) is list:
                         for link in obj[key]:
-                            item = link.split("/")[1].replace("-", "")
-                            if item in self.profiles_ref and link not in self.searched:
-                                # expand subobject
-                                subobj = encodedcc.get_ENCODE(link, self.connection)
-                                #print ('object type = ' + subobj['@type'][0])
-                                if subobj['@type'][0] in approved_for_update_types:
-                                    self.get_status(subobj)
-                                else:
-                                    self.searched.append(subobj["@id"])
-                                    self.statusDict[subobj["@id"]] = [subobj['@type'][0], subobj["status"]]
-                            else:
-                                if item in self.dontExpand and link not in self.searched:
-                                    # this is not one of the links we expand
-                                    # is it a link we just get status of
-                                    tempobj = encodedcc.get_ENCODE(link, self.connection)
-                                    tempname = tempobj["@type"][0]
-                                    self.searched.append(tempobj["@id"])
-                                    self.statusDict[tempobj["@id"]] = [tempname, tempobj["status"]]
+                            self.process_link(link, approved_for_update_types)
                     else:
-                        item = obj[key].split("/")[1].replace("-", "")
-                        if item in self.profiles_ref and obj[key] not in self.searched:
-                            # expand subobject
-                            subobj = encodedcc.get_ENCODE(obj[key], self.connection)
-                            if subobj['@type'][0] in approved_for_update_types:
-                                self.get_status(subobj)
-                            else:
-                                self.searched.append(subobj["@id"])
-                                self.statusDict[subobj["@id"]] = [subobj['@type'][0], subobj["status"]]
-                        else:
-                            if item in self.dontExpand and obj[key] not in self.searched:
-                                # this is not one of the links we expand
-                                # is it a link we just get status of
-                                tempobj = encodedcc.get_ENCODE(obj[key], self.connection)
-                                tempname = tempobj["@type"][0]
-                                self.searched.append(tempobj["@id"])
-                                self.statusDict[tempobj["@id"]] = [tempname, tempobj["status"]]
+                        self.process_link(obj[key], approved_for_update_types)
 
     def releasinator(self, name, identifier, status):
         '''releases objects into their equivalent released states'''
         patch_dict = {}
         if name in self.current:
-            log = '%s' % "UPDATING: {} {} with status {} is now current".format(name, identifier, status)
+            log = '%s' % "UPDATING: {} {} with status {} ".format(
+                name, identifier, status) + \
+                "is now current"
             patch_dict = {"status": "current"}
         elif name in self.finished:
-            log = '%s' % "UPDATING: {} {} with status {} is now finished".format(name, identifier, status)
+            log = '%s' % "UPDATING: {} {} with status {} ".format(
+                name, identifier, status) + \
+                "is now finished"
             patch_dict = {"status": "finished"}
         else:
-            log = "UPDATING: {} {} with status {} is now released".format(name, identifier, status)
+            log = "UPDATING: {} {} with status {} ".format(
+                name, identifier, status) + \
+                "is now released"
             patch_dict = {"status": "released"}
         if name in self.date_released:
             # if the object would have a date_released give it one
@@ -331,14 +314,25 @@ class Data_Release():
         # also makes the list of accessions to run from
         self.set_up()
 
-        good = ["released", "current", "disabled", "published", "finished",
+        good = ["released",
+                "current",
+                "disabled",
+                "published",
+                "finished",
                 "virtual"]
 
-        bad = ["replaced", "revoked", "deleted", "upload failed", "archived",
-               "format check failed", "uploading", "error"]
+        bad = ["replaced",
+               "revoked",
+               "deleted",
+               "upload failed",
+               "archived",
+               "format check failed",
+               "uploading",
+               "error"]
 
-        ignore = ["User", "AntibodyCharacterization", "Publication",
-                  "ReferenceEpigenome"]
+        ignore = ["User",
+                  "AntibodyCharacterization",
+                  "Publication"]
 
         for accession in self.ACCESSIONS:
             print ("entering run script " + accession)
@@ -359,20 +353,13 @@ class Data_Release():
                 logger.warning('%s' % "WARNING: Audit status: NOT COMPLIANT")
                 passAudit = False
             self.statusDict = {}
-            #print ('expanded dict: ' + str(expandedDict))
-            #print ('')
-            #print ('self before expantion :' + str(self.searched))
-            self.get_status(expandedDict) #the function to fix, it starts from the dictionary of the object to be released
+
+            self.get_status(expandedDict)
             if self.FORCE:
                 passAudit = True
-            #print ("status :" + str(self.statusDict))
-            
-            for entry in self.searched:
-                if entry.split('/')[1] == 'experiments' or entry.split('/')[1] == 'reference-epigenomes':
-                    print ("searched: " + str(entry))
+
             named = []
 
-            #print (self.statusDict.keys())
             for key in sorted(self.statusDict.keys()):
                 name = self.statusDict[key][0]
                 status = self.statusDict[key][1]
@@ -381,11 +368,14 @@ class Data_Release():
                         logger.info('%s' % name.upper())
                     if status in good:
                         if self.LOGALL:
-                            logger.info('%s' % "{} has status {}".format(key, status))
+                            logger.info('%s' % "{} has status {}".format(
+                                key, status))
                     elif status in bad:
-                        logger.warning('%s' % "WARNING: {} has status {}".format(key, status))
+                        logger.warning('%s' % "WARNING: {} ".format(key) +
+                                              "has status {}".format(status))
                     else:
-                        logger.info('%s' % "{} has status {}".format(key, status))
+                        logger.info('%s' % "{} has status {}".format(
+                            key, status))
                         if self.UPDATE:
                             if passAudit:
                                 self.releasinator(name, key, status)
