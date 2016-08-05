@@ -6,6 +6,7 @@ import datetime
 import encodedcc
 import logging
 import sys
+import hierarchy as hi
 
 EPILOG = '''
 %(prog)s is a script that will release objects fed to it
@@ -73,18 +74,22 @@ def getArgs():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         )
     parser.add_argument('--infile',
-                        help="File containing single column of accessions\
-                        or a single accession or comma separated list of accessions")
+                        help="File containing single column of accessions " +
+                        "or a single accession or comma separated list " +
+                        "of accessions")
     parser.add_argument('--query',
                         help="Custom query for accessions")
     parser.add_argument('--update',
-                        help="Run script and update the objects. Default is off",
+                        help="Run script and update the objects. Default is " +
+                        "off",
                         action='store_true', default=False)
     parser.add_argument('--force',
-                        help="Forces release of experiments that did not pass audit. Default is off",
+                        help="Forces release of experiments that did not " +
+                        "pass audit. Default is off",
                         action='store_true', default=False)
     parser.add_argument('--logall',
-                        help="Adds status of 'released' objects to output file. Default is off",
+                        help="Adds status of 'released' objects to output " +
+                        "file. Default is off",
                         action='store_true', default=False)
     parser.add_argument('--outfile',
                         help="Output file name", default='Release_report.txt')
@@ -126,8 +131,12 @@ class Data_Release():
         self.statusDict = {}
         self.connection = connection
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
+        #for k in temp.keys():
+        #    print (k)
+
         ignore = ["Lab", "Award", "AntibodyCharacterization", "Platform",
-                  "Publication", "Organism", "Reference", "AccessKey", "User", "Target"]
+                  "Publication", "Organism", "Reference", "AccessKey", "User",
+                  "Target"]
         self.profilesJSON = []
         self.dontExpand = []
         self.date_released = []
@@ -145,30 +154,38 @@ class Data_Release():
             else:
                 self.profilesJSON.append(profile)
         self.profiles_ref = []
-        #print(self.dontExpand)
+        #print("not expanding : " + str(self.dontExpand))
         for profile in self.profilesJSON:
-            #print(profile)
+            #print("profile :" + str(profile))
             self.profiles_ref.append(self.helper(profile))
-
+        #print("profiles_ref : " + str(self.profiles_ref))
         for item in self.profilesJSON:
-            profile = temp[item]
+            profile = temp[item]  # getting the whole schema profile
+
             self.keysLink = []  # if a key is in this list, it points to a link and will be embedded in the final product
             self.make_profile(profile)
             self.PROFILES[item] = self.keysLink
+            #print ('item:'+item)
+            #print ('self.keysLink:' + str(self.keysLink))
             # lets get the list of things that actually get a date released
             for value in profile["properties"].keys():
                 if value == "date_released":
                     self.date_released.append(item)
-        #print(self.date_released)
+        #print('date released ' + str(self.date_released))
 
         self.current = []
         self.finished = []
         for item in temp.keys():
             status = temp[item]["properties"]["status"]["enum"]
             if "current" in status:
+                #print ("item with CURRENT status " + item)
                 self.current.append(item)
             if "finished" in status:
+                #print ("item with FINISHED status " + item)
                 self.finished.append(item)
+
+        # defining hierarchy
+
 
     def set_up(self):
         '''do some setup for script'''
@@ -235,8 +252,15 @@ class Data_Release():
     def get_status(self, obj):
         '''take object get status, @type, @id, uuid
         {@id : [@type, status]}'''
+
+        #print ('from get status')
+        #print (obj['accession'])
+
         name = obj["@type"][0]
+        approved_for_update_types = hi.dictionary_of_lower_levels.get(
+            hi.levels_mapping.get(name))
         self.searched.append(obj["@id"])
+
         if self.PROFILES.get(name):
             self.statusDict[obj["@id"]] = [name, obj["status"]]
             for key in obj.keys():
@@ -249,7 +273,12 @@ class Data_Release():
                             if item in self.profiles_ref and link not in self.searched:
                                 # expand subobject
                                 subobj = encodedcc.get_ENCODE(link, self.connection)
-                                self.get_status(subobj)
+                                #print ('object type = ' + subobj['@type'][0])
+                                if subobj['@type'][0] in approved_for_update_types:
+                                    self.get_status(subobj)
+                                else:
+                                    self.searched.append(subobj["@id"])
+                                    self.statusDict[subobj["@id"]] = [subobj['@type'][0], subobj["status"]]
                             else:
                                 if item in self.dontExpand and link not in self.searched:
                                     # this is not one of the links we expand
@@ -263,7 +292,11 @@ class Data_Release():
                         if item in self.profiles_ref and obj[key] not in self.searched:
                             # expand subobject
                             subobj = encodedcc.get_ENCODE(obj[key], self.connection)
-                            self.get_status(subobj)
+                            if subobj['@type'][0] in approved_for_update_types:
+                                self.get_status(subobj)
+                            else:
+                                self.searched.append(subobj["@id"])
+                                self.statusDict[subobj["@id"]] = [subobj['@type'][0], subobj["status"]]
                         else:
                             if item in self.dontExpand and obj[key] not in self.searched:
                                 # this is not one of the links we expand
@@ -298,19 +331,27 @@ class Data_Release():
         # also makes the list of accessions to run from
         self.set_up()
 
-        good = ["released", "current", "disabled", "published", "finished", "virtual"]
+        good = ["released", "current", "disabled", "published", "finished",
+                "virtual"]
+
         bad = ["replaced", "revoked", "deleted", "upload failed", "archived",
                "format check failed", "uploading", "error"]
-        ignore = ["User", "AntibodyCharacterization", "Publication", "ReferenceEpigenome"]
+
+        ignore = ["User", "AntibodyCharacterization", "Publication",
+                  "ReferenceEpigenome"]
+
         for accession in self.ACCESSIONS:
+            print ("entering run script " + accession)
             self.searched = []
             expandedDict = encodedcc.get_ENCODE(accession, self.connection)
             objectStatus = expandedDict.get("status")
             obj = expandedDict["@type"][0]
 
-            audit = encodedcc.get_ENCODE(accession, self.connection, "page").get("audit", {})
+            audit = encodedcc.get_ENCODE(accession, self.connection,
+                                         "page").get("audit", {})
             passAudit = True
-            logger.info('%s' % "{}: {} Status: {}".format(obj, accession, objectStatus))
+            logger.info('%s' % "{}: {} Status: {}".format(obj, accession,
+                        objectStatus))
             if audit.get("ERROR", ""):
                 logger.warning('%s' % "WARNING: Audit status: ERROR")
                 passAudit = False
@@ -318,11 +359,20 @@ class Data_Release():
                 logger.warning('%s' % "WARNING: Audit status: NOT COMPLIANT")
                 passAudit = False
             self.statusDict = {}
-            self.get_status(expandedDict)
+            #print ('expanded dict: ' + str(expandedDict))
+            #print ('')
+            #print ('self before expantion :' + str(self.searched))
+            self.get_status(expandedDict) #the function to fix, it starts from the dictionary of the object to be released
             if self.FORCE:
                 passAudit = True
-
+            #print ("status :" + str(self.statusDict))
+            
+            for entry in self.searched:
+                if entry.split('/')[1] == 'experiments' or entry.split('/')[1] == 'reference-epigenomes':
+                    print ("searched: " + str(entry))
             named = []
+
+            #print (self.statusDict.keys())
             for key in sorted(self.statusDict.keys()):
                 name = self.statusDict[key][0]
                 status = self.statusDict[key][1]
