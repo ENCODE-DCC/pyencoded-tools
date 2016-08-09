@@ -18,7 +18,7 @@ level_4 = [
     'Replicate']
 
 level_3 = [
-    'Library']
+    'Library', 'AntibodyLot']
 
 level_2 = [
     'Biosample']
@@ -108,15 +108,6 @@ dictionary_of_lower_levels = {
     set(level_2),
     'level_2': set(level_0) |
     set(level_1),
-    'level_1': set(level_0)}
+    'level_1': set(level_0),
+    'level_0': set()}
 
-'''
-Antibody
-AntibodyCharacterization
-AntibodyApproval
-AnalysisStep
-AntibodyLot
-AnalysisStepRun
-Pipeline
-AnalysisStepVersion
-'''

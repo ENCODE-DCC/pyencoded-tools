@@ -132,22 +132,16 @@ class Data_Release():
         self.connection = connection
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
 
-        ignore = ["Lab", "Award", "AntibodyCharacterization", "Platform",
-                  "Publication", "Organism", "Reference", "AccessKey", "User",
-                  "Target"]
+        ignore = ["Lab", "Award", "Platform",
+                  "Organism", "Reference", "AccessKey", "User", "AnalysisStep",
+                  "AnalysisStepVersion", "AnalysisStepRun", "Pipeline",
+                  "Antibody", "AntibodyCharacterization", "AntibodyApproval"]
         self.profilesJSON = []
-        self.dontExpand = []
         self.date_released = []
         for profile in temp.keys():
             # get the names of things we DON'T expand
             # these things usually link to other experiments/objects
-            if "AnalysisStep" in profile:
-                self.dontExpand.append(self.helper(profile))
-            elif "QualityMetric" in profile:
-                self.dontExpand.append(self.helper(profile))
-            elif "Donor" in profile:
-                self.dontExpand.append(self.helper(profile))
-            elif profile in ignore:
+            if profile in ignore:
                 pass
             else:
                 self.profilesJSON.append(profile)
@@ -155,6 +149,7 @@ class Data_Release():
         for profile in self.profilesJSON:
             self.profiles_ref.append(self.helper(profile))
         for item in self.profilesJSON:
+            #print (item)
             profile = temp[item]  # getting the whole schema profile
             self.keysLink = []  # if a key is in this list, it points to a
             # link and will be embedded in the final product
@@ -234,7 +229,7 @@ class Data_Release():
         used in the PROFILES'''
         d = dictionary["properties"]
         for prop in d.keys():
-            if prop not in ['files']:
+            if prop not in ['files', 'derived_from', 'contributing_files']:
                 if d[prop].get("linkTo") or d[prop].get("linkFrom"):
                     self.keysLink.append(prop)
                 else:
@@ -243,59 +238,58 @@ class Data_Release():
                         if i.get("linkTo") or i.get("linkFrom"):
                             self.keysLink.append(prop)
 
-    def process_link(self, identifier_link, approved_for_update_types):
+    def process_link(self, identifier_link, approved_types):
+        #print ("entering process_link with " + identifier_link)
+        #print ('Replicate' in approved_types)
         item = identifier_link.split("/")[1].replace("-", "")
         subobj = encodedcc.get_ENCODE(identifier_link, self.connection)
         subobjname = subobj["@type"][0]
         restricted_flag = False
         if (subobjname == 'File') and (self.is_restricted(subobj) is True):
-            print ('restricted : name is ' + subobjname + ' ' + subobj['accession'])
+            print (subobj['@id'] + ' is restricted, ' +
+                   'therefore will not be released')
             restricted_flag = True
         if (item in self.profiles_ref) and \
            (identifier_link not in self.searched):
             # expand subobject
-            if (subobjname in approved_for_update_types) and \
+            if (subobjname in approved_types) and \
                (restricted_flag is False):
-                self.get_status(subobj)
-            else:
-                self.update_self(subobj, subobjname)
-        else:
-            if (item in self.dontExpand and
-               identifier_link not in self.searched):
-                # this is not one of the identifier_link we expand
-                # is it a identifier_link we just get status of
-                self.update_self(subobj, subobjname)
+                self.get_status(
+                    subobj,
+                    hi.dictionary_of_lower_levels.get(
+                        hi.levels_mapping.get(subobjname)))
 
-    def update_self(self, subobj, subobjname):
+    def update_self(self, subobj, subobjname, update_status_flag):
         self.searched.append(subobj["@id"])
-        self.statusDict[subobj["@id"]] = [subobjname,
-                                          subobj["status"]]
+        if update_status_flag is True:
+            self.statusDict[subobj["@id"]] = [subobjname,
+                                              subobj["status"]]
 
     def is_restricted(self, file_object):
         if 'restricted' in file_object and file_object['restricted'] is True:
             return True
         return False
 
-    def get_status(self, obj):
+    def get_status(self, obj, approved_for_update_types):
         '''take object get status, @type, @id, uuid
         {@id : [@type, status]}'''
         name = obj["@type"][0]
-        approved_for_update_types = hi.dictionary_of_lower_levels.get(
-            hi.levels_mapping.get(name))
-
         self.searched.append(obj["@id"])
 
         if self.PROFILES.get(name):
             self.statusDict[obj["@id"]] = [name, obj["status"]]
+            # print (obj.keys())
             for key in obj.keys():
                 # loop through object properties
                 if key in self.PROFILES[name]:
                     # if the key is in profiles it's a link
                     if type(obj[key]) is list:
                         for link in obj[key]:
-                            self.process_link(link, approved_for_update_types)
+                            self.process_link(
+                                link, approved_for_update_types)
                     else:
-                        self.process_link(obj[key], approved_for_update_types)
+                        self.process_link(
+                            obj[key], approved_for_update_types)
 
     def releasinator(self, name, identifier, status):
         '''releases objects into their equivalent released states'''
@@ -349,7 +343,7 @@ class Data_Release():
                   "Publication"]
 
         for accession in self.ACCESSIONS:
-            print ("entering run script " + accession)
+            print ("Processing accession: " + accession)
             self.searched = []
             expandedDict = encodedcc.get_ENCODE(accession, self.connection)
             objectStatus = expandedDict.get("status")
@@ -368,12 +362,16 @@ class Data_Release():
                 passAudit = False
             self.statusDict = {}
 
-            self.get_status(expandedDict)
+            self.get_status(
+                expandedDict,
+                hi.dictionary_of_lower_levels.get(
+                    hi.levels_mapping.get(obj)))
             if self.FORCE:
                 passAudit = True
 
             named = []
-
+            for k in self.statusDict.keys():
+                print (k + '  ' + str(self.statusDict[k]))
             for key in sorted(self.statusDict.keys()):
                 name = self.statusDict[key][0]
                 status = self.statusDict[key][1]
