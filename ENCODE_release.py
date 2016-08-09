@@ -234,20 +234,22 @@ class Data_Release():
         used in the PROFILES'''
         d = dictionary["properties"]
         for prop in d.keys():
-            if d[prop].get("linkTo") or d[prop].get("linkFrom"):
-                self.keysLink.append(prop)
-            else:
-                if d[prop].get("items"):
-                    i = d[prop].get("items")
-                    if i.get("linkTo") or i.get("linkFrom"):
-                        self.keysLink.append(prop)
+            if prop not in ['files']:
+                if d[prop].get("linkTo") or d[prop].get("linkFrom"):
+                    self.keysLink.append(prop)
+                else:
+                    if d[prop].get("items"):
+                        i = d[prop].get("items")
+                        if i.get("linkTo") or i.get("linkFrom"):
+                            self.keysLink.append(prop)
 
     def process_link(self, identifier_link, approved_for_update_types):
         item = identifier_link.split("/")[1].replace("-", "")
         subobj = encodedcc.get_ENCODE(identifier_link, self.connection)
         subobjname = subobj["@type"][0]
         restricted_flag = False
-        if subobjname == 'File' and is_restricted(self, subobj) is True:
+        if (subobjname == 'File') and (self.is_restricted(subobj) is True):
+            print ('restricted : name is ' + subobjname + ' ' + subobj['accession'])
             restricted_flag = True
         if (item in self.profiles_ref) and \
            (identifier_link not in self.searched):
@@ -270,9 +272,7 @@ class Data_Release():
                                           subobj["status"]]
 
     def is_restricted(self, file_object):
-        if 'restricted' not in file_object:
-            return False
-        elif file_object['restricted'] is True:
+        if 'restricted' in file_object and file_object['restricted'] is True:
             return True
         return False
 

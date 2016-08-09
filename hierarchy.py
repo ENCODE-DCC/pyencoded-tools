@@ -24,7 +24,7 @@ level_2 = [
     'Biosample']
 
 level_1 = [
-    'Software'
+    'Software',
     'File',
     'Treatment',
     'TALEN',
@@ -63,7 +63,7 @@ level_0 = [
     'MouseDonor',
     'WormDonor',
     'FlyDonor',
-    'HumanDonor'
+    'HumanDonor',
     'Organism',
     'Lab',
     'Award',
