@@ -370,8 +370,6 @@ class Data_Release():
                 passAudit = True
 
             named = []
-            for k in self.statusDict.keys():
-                print (k + '  ' + str(self.statusDict[k]))
             for key in sorted(self.statusDict.keys()):
                 name = self.statusDict[key][0]
                 status = self.statusDict[key][1]
