@@ -176,6 +176,7 @@ class Data_Release():
 
     def set_up(self):
         '''do some setup for script'''
+
         if self.UPDATE:
             print("WARNING: This run is an " +
                   "UPDATE run objects will be released.")
@@ -245,9 +246,14 @@ class Data_Release():
         item = identifier_link.split("/")[1].replace("-", "")
         subobj = encodedcc.get_ENCODE(identifier_link, self.connection)
         subobjname = subobj["@type"][0]
-        if item in self.profiles_ref and identifier_link not in self.searched:
+        restricted_flag = False
+        if subobjname == 'File' and is_restricted(self, subobj) is True:
+            restricted_flag = True
+        if (item in self.profiles_ref) and \
+           (identifier_link not in self.searched):
             # expand subobject
-            if subobjname in approved_for_update_types:
+            if (subobjname in approved_for_update_types) and \
+               (restricted_flag is False):
                 self.get_status(subobj)
             else:
                 self.update_self(subobj, subobjname)
@@ -263,12 +269,20 @@ class Data_Release():
         self.statusDict[subobj["@id"]] = [subobjname,
                                           subobj["status"]]
 
+    def is_restricted(self, file_object):
+        if 'restricted' not in file_object:
+            return False
+        elif file_object['restricted'] is True:
+            return True
+        return False
+
     def get_status(self, obj):
         '''take object get status, @type, @id, uuid
         {@id : [@type, status]}'''
         name = obj["@type"][0]
         approved_for_update_types = hi.dictionary_of_lower_levels.get(
             hi.levels_mapping.get(name))
+
         self.searched.append(obj["@id"])
 
         if self.PROFILES.get(name):
