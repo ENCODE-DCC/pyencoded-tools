@@ -119,6 +119,7 @@ def getArgs():
 class Data_Release():
     def __init__(self, args, connection):
         # renaming some things so I can be lazy and not pass them around
+        self.releasenator_version = 1
         self.infile = args.infile
         self.outfile = args.outfile
         self.QUERY = args.query
@@ -315,6 +316,7 @@ class Data_Release():
             patch_dict = {"date_released": str(now), "status": "released"}
             log += " with date {}".format(now)
         logger.info('%s' % log)
+        print (log)
         encodedcc.patch_ENCODE(identifier, self.connection, patch_dict)
 
     def run_script(self):
@@ -343,7 +345,8 @@ class Data_Release():
                   "Publication"]
 
         for accession in self.ACCESSIONS:
-            print ("Processing accession: " + accession)
+            print ("Releasenator version " + str(self.releasenator_version) +
+                   " processing accession: " + accession)
             self.searched = []
             expandedDict = encodedcc.get_ENCODE(accession, self.connection)
             objectStatus = expandedDict.get("status")
@@ -352,6 +355,7 @@ class Data_Release():
             audit = encodedcc.get_ENCODE(accession, self.connection,
                                          "page").get("audit", {})
             passAudit = True
+            logger.info('Releasenator version ' + str(self.releasenator_version))
             logger.info('%s' % "{}: {} Status: {}".format(obj, accession,
                         objectStatus))
             if audit.get("ERROR", ""):
@@ -378,14 +382,19 @@ class Data_Release():
                         logger.info('%s' % name.upper())
                     if status in good:
                         if self.LOGALL:
-                            logger.info('%s' % "{} has status {}".format(
-                                key, status))
+                            log = '%s' % "{} has status {}".format(
+                                key, status)
+                            logger.info(log)
+                            # print (log)
                     elif status in bad:
-                        logger.warning('%s' % "WARNING: {} ".format(key) +
-                                              "has status {}".format(status))
+                        log = '%s' % "WARNING: {} ".format(key) + "has status {}".format(status)
+                        # print (log)
+                        logger.warning(log)
                     else:
-                        logger.info('%s' % "{} has status {}".format(
-                            key, status))
+                        log = '%s' % "{} has status {}".format(
+                            key, status)
+                        # print (log)
+                        logger.info(log)
                         if self.UPDATE:
                             if passAudit:
                                 self.releasinator(name, key, status)
@@ -397,7 +406,7 @@ def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-    print("Running on", key.server)
+    print ("Running on", key.server)
     # build the PROFILES reference dictionary
     release = Data_Release(args, connection)
     release.run_script()
