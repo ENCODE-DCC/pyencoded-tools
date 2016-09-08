@@ -54,25 +54,26 @@ def make_rna_report(connection):
         'PolyA RNA': '&assay_title=polyA+mRNA+RNA-seq',
         'PolyA depleted RNA': '&assay_title=polyA+depleted+RNA-seq',
         'Small RNA': '&assay_title=small+RNA-seq',
-        'microRNA seq': '&assay_title=microRNA-seq',
-        'microRNA counts': '&assay_title=microRNA+counts',
         'single cell': '&assay_title=single+cell+RNA-seq',
         'total': '&assay_title=RNA-seq&assay_title=polyA+mRNA+RNA-seq&assay_title=small+RNA-seq&assay_title=RAMPAGE&assay_title=CAGE&assay_title=single+cell+RNA-seq&assay_title=microRNA-seq&assay_title=microRNA+counts&assay_title=polyA+depleted+RNA-seq'
+        }
+
+    micro_assays = {
+        'microRNA seq': '&assay_title=microRNA-seq',
+        'microRNA counts': '&assay_title=microRNA+counts',
         }
 
     total_query = '&status=released&status=submitted&status=started&status=proposed&status=ready+for+review'
     released_query = '&status=released'
     proposed_query = '&status=proposed'
     unreleased_query = '&status=submitted&status=ready+for+review&status=started'
-    read_depth_query = '&audit.NOT_COMPLIANT.category=insufficient+read+depth'
-    concordance_query = '&audit.NOT_COMPLIANT.category=insufficient+spearman+correlation'
     concerns_query = '&internal_status=no+available+pipeline&internal_status=requires+lab+review&internal_status=unrunnable'
-    unreplicated_query = '&replication_type=unreplicated'
-    grch38_query = '&assembly=GRCh38&&files.lab.name=encode-processing-pipeline'
-    hg19_query = '&files.genome_annotation=V19&files.lab.name=encode-processing-pipeline'
-    mm10_query = '&assembly=mm10&files.lab.name=encode-processing-pipeline'
+    grch38_query = '&assembly=GRCh38'
+    hg19_query = '&files.genome_annotation=V19'
+    mm10_query = '&assembly=mm10'
+    uniform_query = '&files.lab.name=encode-processing-pipeline'
     audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&assay_slims=Transcription&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
-
+    processing_query = '&internal_status=pipeline+ready&internal_status=processing'
 
     rows = {
         'Total': total_query,
@@ -80,11 +81,14 @@ def make_rna_report(connection):
         'Released with issues': released_query+audits_query,
         'Unreleased': unreleased_query,
         'Proposed': proposed_query,
-        'Processed on GRCh38': total_query + grch38_query,
-        'Uniformely Processed on hg19': total_query+hg19_query,
-        'Processed on mm10': total_query+mm9_query,
+        'Processed on GRCh38': total_query + grch38_query + uniform_query,
+        'Submitted on GRCh38': total_query + grch38_query,
+        'Uniformely Processed on hg19': total_query + hg19_query + uniform_query,
+        'Submitted on hg19': total_query + hg19_query,
+        'Processed on mm10': total_query + mm10_query + uniform_query,
+        'Submitted on mm10': total_query + mm10_query,
         'Cannot be currently processed': concerns_query,
-        'In processing queue': unreleased_query+unreplicated_query,
+        'In processing queue': processing_query
     }
 
     labels = [
@@ -99,6 +103,19 @@ def make_rna_report(connection):
         'Cannot be currently processed',
         'In processing queue'
     ]
+
+
+    micro_labels = [
+        'Total',
+        'Released',
+        'Released with issues',
+        'Unreleased',
+        'Proposed',
+        'Submitted on GRCh38',
+        #'Submitted on hg19',
+        'Submitted on mm10'
+    ]
+
 
     columns = {
         'ENCODE3': '&award.rfa=ENCODE3',
@@ -131,29 +148,30 @@ def make_rna_report(connection):
                 matrix[row].append(func)
 
             print ('\t'.join(matrix[row]))
+
         print (' ')
         print (' ')
 
-   # print ('Long RNA Breakdown by lab --------------------------------------')
-   # print ('\t'.join([''] + headers))
-   # for lab in labs.keys():
+    for assay in micro_assays.keys():
+        print (assay, '--------')
+        matrix = {}
+        print ('\t'.join([''] + headers))
+        for row in micro_labels:
 
-   #         matrix[lab] = [lab]
+            matrix[row] = [row]
 
-   #         for col in headers:
-   #             query = basic_query+labs[lab]+rows['Long RNA']+queries[col]
-   #             res = get_ENCODE(query, connection, frame='embedded')
-   #             link = connection.server + query
-   #             total = res['total']
-   #             if total == 'no audit':
-   #                 matrix[lab].append(total)
-   #             else:
-   #                func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
-   #                matrix[lab].append(func)
+            for col in headers:
+                query = basic_query+micro_assays[assay]+rows[row]+columns[col]
+                res = get_ENCODE(query, connection, frame='object')
+                link = connection.server + query
+                total = res['total']
+                func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
+                matrix[row].append(func)
 
-   #         print ('\t'.join(matrix[lab]))
-   # print (' ')
-   # print (' ')
+            print ('\t'.join(matrix[row]))
+
+        print (' ')
+        print (' ')
 
 
 def make_antibody_detail(graph):
