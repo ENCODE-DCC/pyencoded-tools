@@ -38,7 +38,7 @@ def getArgs():
 
 def make_rna_report(connection):
 
-    basic_query = 'search/?type=Experiment&award.rfa=ENCODE3'
+    basic_query = 'search/?type=Experiment'
 
     labs = {
         'Tom Gingeras': '&lab.title=Thomas+Gingeras%2C+CSHL',
@@ -47,6 +47,7 @@ def make_rna_report(connection):
         'Eric Lecuyer': '&lab.name=eric-lecuyer',
         'Brenton Graveley': '&lab.title=Brenton+Graveley%2C+UConn',
         }
+
     assays = {
         'RAMPAGE': '&assay_term_name=RAMPAGE',
         'Long RNA': '&assay_term_name=RNA-seq&replicates.library.size_range%21=<200&replicates.library.nucleic_acid_starting_quantity_units%21=pg',
@@ -60,53 +61,62 @@ def make_rna_report(connection):
         'total': '&assay_term_name=RAMPAGE&assay_term_name=RNA-seq&assay_term_name=microRNA-seq&assay_term_name=microRNA+profiling+by+array+assay&assay_term_name=shRNA+knockdown+followed+by+RNA-seq'
         }
 
+    total_query = '&status=released&status=submitted&status=started&status=archived'
     released_query = '&status=released'
     proposed_query = '&status=proposed'
     unreleased_query = '&status=submitted&status=in+progress&status=ready+for+review&status=started'
     read_depth_query = '&audit.NOT_COMPLIANT.category=insufficient+read+depth'
     concordance_query = '&audit.NOT_COMPLIANT.category=insufficient+spearman+correlation'
     concerns_query = '&internal_status=no+available+pipeline&internal_status=requires+lab+review&internal_status=unrunnable'
-    gtex_query = "searchTerm=GTEX"
     unreplicated_query = '&replication_type=unreplicated'
-    processing_query = '&internal_status=pipeline+ready&internal_status=processing'
+    grch38_query = '&internal_status=pipeline+ready&internal_status=processing'
 
     rows = {
-        'Total': '&status%21=replaced&status%21=deleted',
+        'Total': total_query,
         'Released': released_query,
-        'Released with issues': released_query+concerns_query,
+        #'Released with issues': released_query+concerns_query,
         'Unreleased': unreleased_query,
         'Proposed': proposed_query,
-        'Processed on GRCh38': unreleased_query + processing_query,
-        'Uniformely Processed on hg19': unreleased_query+read_depth_query,
-        'Processed on mm10': unreleased_query+concordance_query,
-        'Cannot be currently processed': unreleased_query+unreplicated_query,
-        'In processing queue': unreleased_query+unreplicated_query,
+        'Processed on GRCh38': total_query + grch38_query,
+        #'Uniformely Processed on hg19': unreleased_query+read_depth_query,
+        #'Processed on mm10': unreleased_query+concordance_query,
+        #'Cannot be currently processed': unreleased_query+unreplicated_query,
+        #'In processing queue': unreleased_query+unreplicated_query,
     }
 
     columns = {
         'ENCODE3': '&award.rfa=ENCODE3',
         'ENCODE2': '&award.rfa=ENCODE2',
         'ENCODE2-Mouse': '&award.rfa=ENCODE2-Mouse',
-        'Total': '&award.rfa=ENCODE3&award.rfa=ENCODE2&award.rfa=ENCODE2-Mouse',
+        'Total': '&award.rfa=ENCODE3&award.rfa=ENCODE2&award.rfa=ENCODE2-Mouse'
         }
 
-    matrix = {}
-    print ('\t'.join([''] + headers))
-    for row in rows.keys():
+    headers = [
+        'ENCODE3',
+        'ENCODE2',
+        'ENCODE2-Mouse',
+        'Total'
+        ]
 
-        matrix[row] = [row]
+    for assay in assays.keys():
+        print ('---------', assay, '--------')
+        matrix = {}
+        print ('\t'.join([''] + headers))
+        for row in rows.keys():
 
-        for col in columns.keys():
-            query = basic_query+rows[row]+queries[col]
-            res = get_ENCODE(query, connection, frame='embedded')
-            link = connection.server + query
-            total = res['total']
-            func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
-            matrix[row].append(func)
+            matrix[row] = [row]
 
-        print ('\t'.join(matrix[row]))
-    print (' ')
-    print (' ')
+            for col in headers:
+                query = basic_query+assays[assay]+rows[row]+columns[col]
+                res = get_ENCODE(query, connection, frame='object')
+                link = connection.server + query
+                total = res['total']
+                func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
+                matrix[row].append(func)
+
+            print ('\t'.join(matrix[row]))
+        print (' ')
+        print (' ')
 
    # print ('Long RNA Breakdown by lab --------------------------------------')
    # print ('\t'.join([''] + headers))
@@ -119,8 +129,6 @@ def make_rna_report(connection):
    #             res = get_ENCODE(query, connection, frame='embedded')
    #             link = connection.server + query
    #             total = res['total']
-                #if col == 'Released with metadata issues':
-                #    total = make_errors_detail(res['facets'], link)
    #             if total == 'no audit':
    #                 matrix[lab].append(total)
    #             else:
