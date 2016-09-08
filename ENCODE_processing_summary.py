@@ -69,19 +69,33 @@ def make_rna_report(connection):
     concerns_query = '&internal_status=no+available+pipeline&internal_status=requires+lab+review&internal_status=unrunnable'
     unreplicated_query = '&replication_type=unreplicated'
     grch38_query = '&internal_status=pipeline+ready&internal_status=processing'
+    audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&assay_slims=Transcription&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
 
     rows = {
         'Total': total_query,
         'Released': released_query,
-        #'Released with issues': released_query+concerns_query,
+        'Released with issues': released_query+audits_query,
         'Unreleased': unreleased_query,
         'Proposed': proposed_query,
         'Processed on GRCh38': total_query + grch38_query,
-        #'Uniformely Processed on hg19': unreleased_query+read_depth_query,
-        #'Processed on mm10': unreleased_query+concordance_query,
-        #'Cannot be currently processed': unreleased_query+unreplicated_query,
-        #'In processing queue': unreleased_query+unreplicated_query,
+        'Uniformely Processed on hg19': total_query+hg19_query,
+        'Processed on mm10': total_query+mm9_query,
+        'Cannot be currently processed': concerns_query,
+        'In processing queue': unreleased_query+unreplicated_query,
     }
+
+    labels = [
+        'Total',
+        'Released',
+        'Released with issues',
+        'Unreleased',
+        'Proposed',
+        'Processed on GRCh38',
+        'Uniformely Processed on hg19',
+        'Processed on mm10',
+        'Cannot be currently processed',
+        'In processing queue'
+    ]
 
     columns = {
         'ENCODE3': '&award.rfa=ENCODE3',
@@ -101,7 +115,7 @@ def make_rna_report(connection):
         print (assay, '--------')
         matrix = {}
         print ('\t'.join([''] + headers))
-        for row in rows.keys():
+        for row in labels:
 
             matrix[row] = [row]
 
