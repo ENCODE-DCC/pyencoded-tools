@@ -57,7 +57,7 @@ def make_rna_report(connection):
         'microRNA seq': '&assay_title=microRNA-seq',
         'microRNA counts': '&assay_title=microRNA+counts',
         'single cell': '&assay_title=single+cell+RNA-seq',
-        'total': 'https://www.encodeproject.org/search/?type=Experiment&assay_title=RNA-seq&assay_title=polyA+mRNA+RNA-seq&assay_title=small+RNA-seq&assay_title=RAMPAGE&assay_title=CAGE&assay_title=single+cell+RNA-seq&assay_title=microRNA-seq&assay_title=microRNA+counts&assay_title=polyA+depleted+RNA-seq'
+        'total': '&assay_title=RNA-seq&assay_title=polyA+mRNA+RNA-seq&assay_title=small+RNA-seq&assay_title=RAMPAGE&assay_title=CAGE&assay_title=single+cell+RNA-seq&assay_title=microRNA-seq&assay_title=microRNA+counts&assay_title=polyA+depleted+RNA-seq'
         }
 
     total_query = '&status=released&status=submitted&status=started&status=archived'
