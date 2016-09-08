@@ -48,16 +48,15 @@ def make_rna_report(connection):
         'Brenton Graveley': '&lab.title=Brenton+Graveley%2C+UConn',
         }
     assays = {
-        'RAMPAGE': '&assay_term_name=RAMPAGE',
-        'Long RNA': '&assay_term_name=RNA-seq&replicates.library.size_range%21=<200&replicates.library.nucleic_acid_starting_quantity_units%21=pg',
-        'Low input long RNA': '&assay_term_name=RNA-seq&replicates.library.size_range%21=<200&replicates.library.nucleic_acid_starting_quantity_units=pg',
-        'Small RNA': '&assay_term_name=RNA-seq&replicates.library.size_range=<200',
-        'micro RNA': '&assay_term_name=microRNA-seq',
-        'Nanostring': '&assay_term_name=microRNA+profiling+by+array+assay',
-        'shRNA knockdowns': '&assay_term_name=shRNA+knockdown+followed+by+RNA-seq&target.investigated_as%21=control',
-        'shRNA controls': '&assay_term_name=shRNA+knockdown+followed+by+RNA-seq&target.investigated_as=control',
-        'single cell': '&assay_term_name=single+cell+isolation+followed+by+RNA-seq',
-        'total': '&assay_term_name=RAMPAGE&assay_term_name=RNA-seq&assay_term_name=microRNA-seq&assay_term_name=microRNA+profiling+by+array+assay&assay_term_name=shRNA+knockdown+followed+by+RNA-seq'
+        'RAMPAGE and CAGE': '&assay_title=CAGE&assay_title=RAMPAGE',
+        'Total RNA': '&assay_title=RNA-seq',
+        'PolyA RNA': '&assay_title=polyA+mRNA+RNA-seq',
+        'PolyA depleted RNA': '&assay_title=polyA+depleted+RNA-seq',
+        'Small RNA': '&assay_title=small+RNA-seq',
+        'microRNA seq': '&assay_title=microRNA-seq',
+        'microRNA counts': '&assay_title=microRNA+counts',
+        'single cell': '&assay_title=single+cell+RNA-seq',
+        'total': 'https://www.encodeproject.org/search/?type=Experiment&assay_title=RNA-seq&assay_title=polyA+mRNA+RNA-seq&assay_title=small+RNA-seq&assay_title=RAMPAGE&assay_title=CAGE&assay_title=single+cell+RNA-seq&assay_title=microRNA-seq&assay_title=microRNA+counts&assay_title=polyA+depleted+RNA-seq'
         }
 
     released_query = '&status=released'
