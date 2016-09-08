@@ -98,7 +98,7 @@ def make_rna_report(connection):
         ]
 
     for assay in assays.keys():
-        print ('---------', assay, '--------')
+        print (assay, '--------')
         matrix = {}
         print ('\t'.join([''] + headers))
         for row in rows.keys():
