@@ -60,15 +60,17 @@ def make_rna_report(connection):
         'total': '&assay_title=RNA-seq&assay_title=polyA+mRNA+RNA-seq&assay_title=small+RNA-seq&assay_title=RAMPAGE&assay_title=CAGE&assay_title=single+cell+RNA-seq&assay_title=microRNA-seq&assay_title=microRNA+counts&assay_title=polyA+depleted+RNA-seq'
         }
 
-    total_query = '&status=released&status=submitted&status=started&status=archived'
+    total_query = '&status=released&status=submitted&status=started&status=proposed&status=ready+for+review'
     released_query = '&status=released'
     proposed_query = '&status=proposed'
-    unreleased_query = '&status=submitted&status=in+progress&status=ready+for+review&status=started'
+    unreleased_query = '&status=submitted&status=ready+for+review&status=started'
     read_depth_query = '&audit.NOT_COMPLIANT.category=insufficient+read+depth'
     concordance_query = '&audit.NOT_COMPLIANT.category=insufficient+spearman+correlation'
     concerns_query = '&internal_status=no+available+pipeline&internal_status=requires+lab+review&internal_status=unrunnable'
     unreplicated_query = '&replication_type=unreplicated'
-    grch38_query = '&internal_status=pipeline+ready&internal_status=processing'
+    grch38_query = '&assembly=GRCh38&&files.lab.name=encode-processing-pipeline'
+    hg19_query = '&files.genome_annotation=V19&files.lab.name=encode-processing-pipeline'
+    mm10_query = '&assembly=mm10&files.lab.name=encode-processing-pipeline'
 
     rows = {
         'Total': total_query,
