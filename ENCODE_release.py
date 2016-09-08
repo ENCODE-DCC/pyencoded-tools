@@ -83,6 +83,10 @@ def getArgs():
                         help="Run script and update the objects. Default is " +
                         "off",
                         action='store_true', default=False)
+    parser.add_argument('--printall',
+                        help="Prints to stdout objects that are being " +
+                        "released. Default is off",
+                        action='store_true', default=False)
     parser.add_argument('--force',
                         help="Forces release of experiments that did not " +
                         "pass audit. Default is off",
@@ -125,6 +129,7 @@ class Data_Release():
         self.QUERY = args.query
         self.LOGALL = args.logall
         self.FORCE = args.force
+        self.PRINTALL = args.printall
         self.UPDATE = args.update
         self.keysLink = []
         self.PROFILES = {}
@@ -150,7 +155,6 @@ class Data_Release():
         for profile in self.profilesJSON:
             self.profiles_ref.append(self.helper(profile))
         for item in self.profilesJSON:
-            #print (item)
             profile = temp[item]  # getting the whole schema profile
             self.keysLink = []  # if a key is in this list, it points to a
             # link and will be embedded in the final product
@@ -316,7 +320,8 @@ class Data_Release():
             patch_dict = {"date_released": str(now), "status": "released"}
             log += " with date {}".format(now)
         logger.info('%s' % log)
-        print (log)
+        if self.PRINTALL:
+            print (log)
         encodedcc.patch_ENCODE(identifier, self.connection, patch_dict)
 
     def run_script(self):
@@ -343,10 +348,9 @@ class Data_Release():
         ignore = ["User",
                   "AntibodyCharacterization",
                   "Publication"]
-
+        print ("Releasenator version " + str(self.releasenator_version))
         for accession in self.ACCESSIONS:
-            print ("Releasenator version " + str(self.releasenator_version) +
-                   " processing accession: " + accession)
+            print ("Processing accession: " + accession)
             self.searched = []
             expandedDict = encodedcc.get_ENCODE(accession, self.connection)
             objectStatus = expandedDict.get("status")
