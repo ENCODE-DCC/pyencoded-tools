@@ -18,7 +18,7 @@ def getArgs():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         )
     parser.add_argument('--datatype',
-                        help="The datatype of interest: CHIP, WGBS, DNASE, RNA")
+                        help="The datatype of interest: CHIP, WGBS, DNA, RNA")
     parser.add_argument('--status',
                         help="released or unreleased")
     parser.add_argument('--key',
@@ -59,7 +59,7 @@ def make_rna_report(connection):
     released_query = '&status=released'
     proposed_query = '&status=proposed'
     unreleased_query = '&status=submitted&status=ready+for+review&status=started'
-    concerns_query = '&internal_status=no+available+pipeline&internal_status=requires+lab+review&internal_status=unrunnable'
+    concerns_query = '&internal_status=no+available+pipeline&internal_status=requires+lab+review&internal_status=unrunnable&status!=deleted&status!=revoked'
     grch38_query = '&assembly=GRCh38'
     hg19_query = '&files.genome_annotation=V19'
     mm10_query = '&assembly=mm10'
@@ -90,7 +90,7 @@ def make_rna_report(connection):
         'Unreleased',
         'Proposed',
         'Processed on GRCh38',
-        'Uniformely Processed on hg19',
+        'Uniformly Processed on hg19',
         'Processed on mm10',
         'Cannot be currently processed',
         'In processing queue'
@@ -306,6 +306,101 @@ def make_chip_report(connection):
         print (' ')
         print (' ')
 
+def make_dna_report(connection):
+
+    basic_query = 'search/?type=Experiment&award.project=ENCODE'
+
+    labs = {
+        'John Stamatoyannopoulos': '&lab.title=John+Stamatoyannopoulos%2C+UW',
+        'Barbara Wold': '&lab.title=Barbara+Wold%2C+Caltech',
+        'Ross Hardison': '&lab.title=Ross+Hardison%2C+PennState',
+        'Michael Snyder': '&lab.title=Michael+Snyder%2C+Stanford',
+        'Gregory Crawford': '&lab.title=Gregory+Crawford%2C+Duke',
+        }
+
+    assays = {
+        'DNase': '&assay_title=DNase-seq',
+        'ATAC': '&assay_title=ATAC-seq',
+        'total': '&assay_title=DNase-seq&assay_title=ATAC-seq',
+        }
+
+    total_query = '&status=released&status=submitted&status=started&status=proposed&status=ready+for+review&status!=deleted&status!=revoked&status!=replaced'
+    released_query = '&status=released'
+    proposed_query = '&status=proposed'
+    unreleased_query = '&status=submitted&status=ready+for+review&status=started'
+    concerns_query = '&internal_status=no+available+pipeline&internal_status=requires+lab+review&internal_status=unrunnable&status!=deleted'
+    grch38_query = '&assembly=GRCh38'
+    hg19_query = '&files.genome_annotation=V19'
+    mm10_query = '&assembly=mm10'
+    uniform_query = '&files.lab.name=encode-processing-pipeline'
+    processing_query = '&internal_status=pipeline+ready&internal_status=processing'
+    red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample'
+    orange_audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
+
+    rows = {
+        'Total': total_query,
+        'Released': released_query,
+        'Released with ERROR': released_query+red_audits_query,
+        'Released with NOT COMPLIANT': released_query+orange_audits_query,
+        'Unreleased': unreleased_query,
+        'Proposed': proposed_query,
+        'Processed on GRCh38': total_query + grch38_query + uniform_query,
+        'Uniformly processed on hg19': total_query + hg19_query + uniform_query,
+        'Processed on mm10': total_query + mm10_query + uniform_query,
+        'Cannot be currently processed': concerns_query,
+        'In processing queue': processing_query,
+    }
+
+    labels = [
+        'Total',
+        'Released',
+        'Released with ERROR',
+        'Released with NOT COMPLIANT',
+        'Unreleased',
+        'Proposed',
+        'Processed on GRCh38',
+        'Uniformly processed on hg19',
+        'Processed on mm10',
+        'Cannot be currently processed',
+        'In processing queue'
+    ]
+
+
+    columns = {
+        'ENCODE3': '&award.rfa=ENCODE3',
+        'ENCODE2': '&award.rfa=ENCODE2',
+        'ENCODE2-Mouse': '&award.rfa=ENCODE2-Mouse',
+        'Total': '&award.rfa=ENCODE3&award.rfa=ENCODE2&award.rfa=ENCODE2-Mouse',
+        }
+
+    headers = [
+        'ENCODE3',
+        'ENCODE2',
+        'ENCODE2-Mouse',
+        'Total'
+        ]
+
+    for assay in assays.keys():
+        print (assay, '--------')
+        matrix = {}
+        print ('\t'.join([''] + headers))
+        for row in labels:
+
+            matrix[row] = [row]
+
+            for col in headers:
+                query = basic_query+assays[assay]+rows[row]+columns[col]
+                res = get_ENCODE(query, connection, frame='object')
+                link = connection.server + query
+                total = res['total']
+                func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
+                matrix[row].append(func)
+
+            print ('\t'.join(matrix[row]))
+
+        print (' ')
+        print (' ')
+
 
 def main():
     args = getArgs()
@@ -315,6 +410,8 @@ def main():
         make_chip_report(connection)
     elif args.datatype == 'RNA':
         make_rna_report(connection)
+    elif args.datatype == 'DNA':
+        make_dna_report(connection)
     else:
         print ('unimplimented')
 
