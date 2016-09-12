@@ -18,7 +18,7 @@ def getArgs():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         )
     parser.add_argument('--datatype',
-                        help="The datatype of interest: CHIP, WGBS, DNA, RNA")
+                        help="The datatype of interest: CHIP, WGBS, Accessibility, RNA, RBP")
     parser.add_argument('--status',
                         help="released or unreleased")
     parser.add_argument('--key',
@@ -382,7 +382,7 @@ def make_dna_report(connection):
     mm10_query = '&assembly=mm10'
     uniform_query = '&files.lab.name=encode-processing-pipeline'
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
-    red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample'
+    red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample&&audit.ERROR.category=missing+paired_with'
     orange_audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
 
     rows = {
