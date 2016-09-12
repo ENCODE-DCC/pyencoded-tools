@@ -40,14 +40,6 @@ def make_rna_report(connection):
 
     basic_query = 'search/?type=Experiment'
 
-    labs = {
-        'Tom Gingeras': '&lab.title=Thomas+Gingeras%2C+CSHL',
-        'Barbara Wold': '&lab.title=Barbara+Wold%2C+Caltech',
-        'Ross Hardsion': '&lab.title=Ross+Hardison%2C+PennState',
-        'Eric Lecuyer': '&lab.name=eric-lecuyer',
-        'Brenton Graveley': '&lab.title=Brenton+Graveley%2C+UConn',
-        }
-
     assays = {
         'RAMPAGE and CAGE': '&assay_title=CAGE&assay_title=RAMPAGE',
         'Total RNA': '&assay_title=RNA-seq',
@@ -188,51 +180,11 @@ def make_antibody_detail(graph):
                     ]
 
 
-def make_errors_detail(facets, link):
-
-    issues = {
-        "inconsistent biological replicate number",
-        "missing file in replicate",
-        "biological replicates with identical biosample",
-        "mismatched status",
-        "mismatched biosample_term_name",
-        "mismatched biosample_term_id",
-        "mismatched target",
-        "mismatched replicate",
-        "missing controlled_by",
-        "technical replicates with not identical biosample",
-    }
-
-    for f in facets:
-        if f['field'] == 'audit.ERROR.category':
-            errors = f
-            break
-        else:
-            errors = None
-    if errors is not None:
-        list_of_errs = []
-        total = 0
-    for term in errors['terms']:
-        count = term['doc_count']
-        key = term['key']
-        if key in issues and count > 0:
-            func2 = '=HYPERLINK(' + '"' + link + '",' + repr(count) + ')'
-            list_of_errs.append(func2)
-            total = total + count
-    return total
-
 
 def make_chip_report(connection):
 
     basic_query = 'search/?type=Experiment&award.rfa=ENCODE3&assay_term_name=ChIP-seq'
 
-    labs = {
-        'Michael Snyder': '&lab.title=Michael+Snyder%2C+Stanford',
-        'Bradley Bernstein': '&lab.title=Bradley+Bernstein%2C+Broad',
-        'Bing Ren': '&lab.title=Bing+Ren%2C+UCSD',
-        'Richard Myers': '&lab.title=Richard+Myers%2C+HAIB',
-        'Xiang-Dong': '&lab.title=Xiang-Dong+Fu%2C+UCSD'
-        }
     rows = {
         'controls': '&target.investigated_as=control',
         'experiments': '&target.investigated_as%21=control',
