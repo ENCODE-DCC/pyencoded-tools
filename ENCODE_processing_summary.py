@@ -378,7 +378,7 @@ def make_dna_report(connection):
     unreleased_query = '&status=submitted&status=ready+for+review&status=started'
     concerns_query = '&internal_status=no+available+pipeline&internal_status=requires+lab+review&internal_status=unrunnable&status!=deleted'
     grch38_query = '&assembly=GRCh38'
-    hg19_query = '&files.genome_annotation=V19'
+    hg19_query = '&assembly=hg19'
     mm10_query = '&assembly=mm10'
     uniform_query = '&files.lab.name=encode-processing-pipeline'
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
@@ -458,7 +458,7 @@ def main():
         make_chip_report(connection)
     elif args.datatype == 'RNA':
         make_rna_report(connection)
-    elif args.datatype == 'DNA':
+    elif args.datatype == 'Accessibility':
         make_dna_report(connection)
     else:
         print ('unimplimented')
