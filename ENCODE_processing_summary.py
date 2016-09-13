@@ -32,7 +32,7 @@ def getArgs():
                         default=False,
                         action='store_true',
                         help="Print debug messages.  Default is False.")
-    args = parser.parse_args()
+    args = parser.parse_args() 
     return args
 
 
@@ -74,6 +74,7 @@ def make_rna_report(connection):
     uniform_query = '&files.lab.name=encode-processing-pipeline'
     audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&assay_slims=Transcription&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
+    mismatched_file_query = '&audit.INTERNAL_ACTION.category=mismatched+file+status'
 
     rows = {
         'Total': total_query,
@@ -83,12 +84,13 @@ def make_rna_report(connection):
         'Proposed': proposed_query,
         'Processed on GRCh38': total_query + grch38_query + uniform_query,
         'Submitted on GRCh38': total_query + grch38_query,
-        'Uniformely Processed on hg19': total_query + hg19_query + uniform_query,
+        'Uniformly Processed on hg19': total_query + hg19_query + uniform_query,
         'Submitted on hg19': total_query + hg19_query,
         'Processed on mm10': total_query + mm10_query + uniform_query,
         'Submitted on mm10': total_query + mm10_query,
         'Cannot be currently processed': concerns_query,
-        'In processing queue': processing_query
+        'In processing queue': processing_query,
+        'Mismatched file status': mismatched_file_query
     }
 
     labels = [
@@ -101,7 +103,8 @@ def make_rna_report(connection):
         'Uniformly Processed on hg19',
         'Processed on mm10',
         'Cannot be currently processed',
-        'In processing queue'
+        'In processing queue',
+        'Mismatched file status'
     ]
 
 
@@ -384,6 +387,7 @@ def make_dna_report(connection):
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
     red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample&&audit.ERROR.category=missing+paired_with'
     orange_audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
+    mismatched_file_query = '&audit.INTERNAL_ACTION.category=mismatched+file+status'
 
     rows = {
         'Total': total_query,
@@ -397,6 +401,7 @@ def make_dna_report(connection):
         'Processed on mm10': total_query + mm10_query + uniform_query,
         'Cannot be currently processed': concerns_query,
         'In processing queue': processing_query,
+        'Mismatched file status': mismatched_file_query
     }
 
     labels = [
@@ -410,7 +415,8 @@ def make_dna_report(connection):
         'Uniformly processed on hg19',
         'Processed on mm10',
         'Cannot be currently processed',
-        'In processing queue'
+        'In processing queue',
+        'Mismatched file status'
     ]
 
 
