@@ -19,7 +19,7 @@ def getArgs():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         )
     parser.add_argument('--datatype',
-                        help="The datatype of interest: CHIP, WGBS, DNA, RNA")
+                        help="The datatype of interest: CHIP, WGBS, Accessibility, RNA, RBP")
     parser.add_argument('--status',
                         help="released or unreleased")
     parser.add_argument('--key',
@@ -33,7 +33,7 @@ def getArgs():
                         default=False,
                         action='store_true',
                         help="Print debug messages.  Default is False.")
-    args = parser.parse_args()
+    args = parser.parse_args() 
     return args
 
 
@@ -66,7 +66,8 @@ def make_rna_report(connection, columns, rows):
         'Uniformly Processed on hg19',
         'Processed on mm10',
         'Cannot be currently processed',
-        'In processing queue'
+        'In processing queue',
+        'Mismatched file status'
     ]
 
     micro_labels = [
@@ -233,12 +234,13 @@ def make_dna_report(connection):
     unreleased_query = '&status=submitted&status=ready+for+review&status=started'
     concerns_query = '&internal_status=no+available+pipeline&internal_status=requires+lab+review&internal_status=unrunnable&status!=deleted'
     grch38_query = '&assembly=GRCh38'
-    hg19_query = '&files.genome_annotation=V19'
+    hg19_query = '&assembly=hg19'
     mm10_query = '&assembly=mm10'
     uniform_query = '&files.lab.name=encode-processing-pipeline'
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
-    red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample'
+    red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample&&audit.ERROR.category=missing+paired_with'
     orange_audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
+    mismatched_file_query = '&audit.INTERNAL_ACTION.category=mismatched+file+status'
 
     rows = {
         'Total': total_query,
@@ -252,6 +254,7 @@ def make_dna_report(connection):
         'Processed on mm10': total_query + mm10_query + uniform_query,
         'Cannot be currently processed': concerns_query,
         'In processing queue': processing_query,
+        'Mismatched file status': mismatched_file_query
     }
 
     labels = [
@@ -265,7 +268,8 @@ def make_dna_report(connection):
         'Uniformly processed on hg19',
         'Processed on mm10',
         'Cannot be currently processed',
-        'In processing queue'
+        'In processing queue',
+        'Mismatched file status'
     ]
 
     columns = {
@@ -364,8 +368,13 @@ def main():
     if args.datatype == 'CHIP':
         make_chip_report(connection, columns)
     elif args.datatype == 'RNA':
+<<<<<<< HEAD
         make_rna_report(connection, columns, rows)
     elif args.datatype == 'DNA':
+=======
+        make_rna_report(connection)
+    elif args.datatype == 'Accessibility':
+>>>>>>> d0420bd073ed5e0b8efe221df429453a3fcc10bd
         make_dna_report(connection)
     else:
         print ('unimplimented')
