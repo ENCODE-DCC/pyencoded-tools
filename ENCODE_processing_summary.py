@@ -368,13 +368,8 @@ def main():
     if args.datatype == 'CHIP':
         make_chip_report(connection, columns)
     elif args.datatype == 'RNA':
-<<<<<<< HEAD
         make_rna_report(connection, columns, rows)
-    elif args.datatype == 'DNA':
-=======
-        make_rna_report(connection)
     elif args.datatype == 'Accessibility':
->>>>>>> d0420bd073ed5e0b8efe221df429453a3fcc10bd
         make_dna_report(connection)
     else:
         print ('unimplimented')
