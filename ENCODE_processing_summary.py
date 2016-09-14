@@ -218,7 +218,7 @@ def make_chip_report(connection, columns):
         print (' ')
 
 
-def make_dna_report(connection):
+def make_dna_report(connection, columns):
 
     basic_query = 'search/?type=Experiment&award.project=ENCODE'
 
@@ -272,19 +272,21 @@ def make_dna_report(connection):
         'Mismatched file status'
     ]
 
-    columns = {
-        'ENCODE3': '&award.rfa=ENCODE3',
-        'ENCODE2': '&award.rfa=ENCODE2',
-        'ENCODE2-Mouse': '&award.rfa=ENCODE2-Mouse',
-        'Total': '&award.rfa=ENCODE3&award.rfa=ENCODE2&award.rfa=ENCODE2-Mouse',
-        }
+    # columns = {
+    #     'ENCODE3': '&award.rfa=ENCODE3',
+    #     'ENCODE2': '&award.rfa=ENCODE2',
+    #     'ENCODE2-Mouse': '&award.rfa=ENCODE2-Mouse',
+    #     'Total': '&award.rfa=ENCODE3&award.rfa=ENCODE2&award.rfa=ENCODE2-Mouse',
+    #     }
 
-    headers = [
-        'ENCODE3',
-        'ENCODE2',
-        'ENCODE2-Mouse',
-        'Total'
-        ]
+    # headers = [
+    #     'ENCODE3',
+    #     'ENCODE2',
+    #     'ENCODE2-Mouse',
+    #     'Total'
+    #     ]
+
+    headers = list(columns.keys())
 
     for assay in assays.keys():
         print (assay, '--------')
@@ -370,7 +372,7 @@ def main():
     elif args.datatype == 'RNA':
         make_rna_report(connection, columns, rows)
     elif args.datatype == 'Accessibility':
-        make_dna_report(connection)
+        make_dna_report(connection, columns)
     else:
         print ('unimplimented')
 
