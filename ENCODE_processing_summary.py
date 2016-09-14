@@ -164,6 +164,7 @@ def make_chip_report(connection, columns):
     antibody_query = '&audit.NOT_COMPLIANT.category=not+eligible+antibody'
     red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample&&audit.ERROR.category=missing+paired_with'
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
+    unknown_org_query = '&replicates.library.biosample.donor.organism.scientific_name%21=Homo+sapiens&replicates.library.biosample.donor.organism.scientific_name%21=Mus+musculus'
 
     queries = {
         'Total': total_query,
@@ -242,6 +243,7 @@ def make_dna_report(connection, columns):
     red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample&&audit.ERROR.category=missing+paired_with'
     orange_audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
     mismatched_file_query = '&audit.INTERNAL_ACTION.category=mismatched+file+status'
+    unknown_org_query = '&replicates.library.biosample.donor.organism.scientific_name%21=Homo+sapiens&replicates.library.biosample.donor.organism.scientific_name%21=Mus+musculus'
 
     rows = {
         'Total': total_query,
@@ -332,6 +334,7 @@ def main():
     human_query = '&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens'
     mouse_query = '&replicates.library.biosample.donor.organism.scientific_name=Mus+musculus'
     ENCODE2_query = '&award.rfa=ENCODE2&award.rfa=ENCODE2-Mouse'
+    ENCODE3_query = '&award.rfa=ENCODE3'
     total_query = '&status=released&status=submitted&status=started&status=proposed&status=ready+for+review'
     released_query = '&status=released'
     proposed_query = '&status=proposed'
@@ -343,6 +346,8 @@ def main():
     uniform_query = '&files.lab.name=encode-processing-pipeline'
     audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&assay_slims=Transcription&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
+    unknown_org_query = '&replicates.library.biosample.donor.organism.scientific_name%21=Homo+sapiens&replicates.library.biosample.donor.organism.scientific_name%21=Mus+musculus'
+
 
     rows = {
         'Total': total_query,
@@ -365,6 +370,7 @@ def main():
         ('ENCODE3-mouse', '&award.rfa=ENCODE3' + mouse_query),
         ('ENCODE2-human', ENCODE2_query + human_query),
         ('ENCODE2-mouse', ENCODE2_query + mouse_query),
+        ('Organism Unknown', ENCODE3_query + unknown_org_query),
         ('Total', '&award.rfa=ENCODE3' + ENCODE2_query)
         ])
 
