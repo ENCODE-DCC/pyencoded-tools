@@ -160,7 +160,7 @@ def make_chip_report(connection, columns):
     mm10_query = '&assembly=mm10'
     uniform_query = '&files.lab.name=encode-processing-pipeline'
     orange_audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=control+insufficient+read+depth&audit.NOT_COMPLIANT.category=unreplicated+experiment&audit.NOT_COMPLIANT.category=poor+library+complexity&audit.NOT_COMPLIANT.category=severe+bottlenecking&audit.NOT_COMPLIANT.category=insufficient+replicate+concordance&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+input+control'   
-    concerns_query = '&internal_status=requires+lab+review&internal_status=unrunnable'
+    concerns_query = '&internal_status=requires+lab+review&internal_status=unrunnable*internal_status=no+available+pipeline'
     antibody_query = '&audit.NOT_COMPLIANT.category=not+eligible+antibody'
     red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample&&audit.ERROR.category=missing+paired_with&audit.ERROR.category=missing+possible_controls&audit.ERROR.category=inconsistent+control&audit.ERROR.category=missing+antibody'
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
