@@ -159,18 +159,19 @@ def make_chip_report(connection, columns):
     hg19_query = '&assembly=hg19'
     mm10_query = '&assembly=mm10'
     uniform_query = '&files.lab.name=encode-processing-pipeline'
-    audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=control+insufficient+read+depth&audit.NOT_COMPLIANT.category=unreplicated+experiment&audit.NOT_COMPLIANT.category=poor+library+complexity&audit.NOT_COMPLIANT.category=severe+bottlenecking&audit.NOT_COMPLIANT.category=insufficient+replicate+concordance&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+input+control'   
+    orange_audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=control+insufficient+read+depth&audit.NOT_COMPLIANT.category=unreplicated+experiment&audit.NOT_COMPLIANT.category=poor+library+complexity&audit.NOT_COMPLIANT.category=severe+bottlenecking&audit.NOT_COMPLIANT.category=insufficient+replicate+concordance&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+input+control'   
     concerns_query = '&internal_status=requires+lab+review&internal_status=unrunnable'
     antibody_query = '&audit.NOT_COMPLIANT.category=not+eligible+antibody'
-    red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample&&audit.ERROR.category=missing+paired_with'
+    red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample&&audit.ERROR.category=missing+paired_with&audit.ERROR.category=missing+possible_controls&audit.ERROR.category=inconsistent+control&audit.ERROR.category=missing+antibody'
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
     unknown_org_query = '&replicates.library.biosample.donor.organism.scientific_name%21=Homo+sapiens&replicates.library.biosample.donor.organism.scientific_name%21=Mus+musculus'
 
     queries = {
         'Total': total_query,
         'Released': released_query,
-        'Released with antibody issues': released_query + audits_query,
-        'Released with other issues': released_query + antibody_query,
+        'Released with antibody issues': released_query + antibody_query,
+        'Released with NOT COMPLIANT issues': released_query + orange_audits_query,
+        'Released with ERROR issues': released_query + red_audits_query,
         'Unreleased': unreleased_query,
         'Proposed': proposed_query,
         'Processed on GRCh38': total_query + grch38_query + uniform_query,
@@ -366,8 +367,8 @@ def main():
     }
 
     columns = collections.OrderedDict([
-        ('ENCODE3-human', '&award.rfa=ENCODE3' + human_query),
-        ('ENCODE3-mouse', '&award.rfa=ENCODE3' + mouse_query),
+        ('ENCODE3-human', ENCODE3_query + human_query),
+        ('ENCODE3-mouse', ENCODE3_query + mouse_query),
         ('ENCODE2-human', ENCODE2_query + human_query),
         ('ENCODE2-mouse', ENCODE2_query + mouse_query),
         ('Organism Unknown', ENCODE3_query + unknown_org_query),
