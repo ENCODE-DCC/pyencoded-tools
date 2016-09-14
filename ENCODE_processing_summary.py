@@ -147,7 +147,7 @@ def make_chip_report(connection, columns):
     catagories = collections.OrderedDict([
         ('controls', '&target.investigated_as=control'),
         ('histone mods', '&target.investigated_as=histone'),
-        ('other targets', '&target.investigated_as%21=control&target.investigated_as=histone')
+        ('other targets', '&target.investigated_as%21=control&target.investigated_as%21=histone')
         ])
 
     total_query = '&status=released&status=submitted&status=started&status=proposed&status=ready+for+review'
@@ -165,6 +165,7 @@ def make_chip_report(connection, columns):
     red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample&&audit.ERROR.category=missing+paired_with&audit.ERROR.category=missing+possible_controls&audit.ERROR.category=inconsistent+control&audit.ERROR.category=missing+antibody'
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
     unknown_org_query = '&replicates.library.biosample.donor.organism.scientific_name%21=Homo+sapiens&replicates.library.biosample.donor.organism.scientific_name%21=Mus+musculus'
+    mismatched_file_query = '&audit.INTERNAL_ACTION.category=mismatched+file+status'
 
     queries = {
         'Total': total_query,
@@ -175,26 +176,28 @@ def make_chip_report(connection, columns):
         'Unreleased': unreleased_query,
         'Proposed': proposed_query,
         'Processed on GRCh38': total_query + grch38_query + uniform_query,
-        'Submitted on GRCh38': total_query + grch38_query,
         'Uniformly Processed on hg19': total_query + hg19_query + uniform_query,
         'Processed on mm10': total_query + mm10_query + uniform_query,
         'Released in pipeline': released_query+processing_query,
         'Cannot be currently processed': concerns_query,
-        'In processing queue': processing_query
+        'In processing queue': processing_query,
+        'Mismatched file status': mismatched_file_query
     }
 
     rows = [
         'Total',
         'Released',
         'Released with antibody issues',
-        'Released with other issues',
+        'Released with NOT COMPLIANT issues',
+        'Released with ERROR issues',
         'Unreleased',
         'Proposed',
         'Processed on GRCh38',
         'Uniformly Processed on hg19',
         'Processed on mm10',
         'Cannot be currently processed',
-        'In processing queue'
+        'In processing queue',
+        'Mismatched file status'
         ]
 
     headers = list(columns.keys())
@@ -331,6 +334,7 @@ def main():
     complexity_query = '&audit.NOT_COMPLIANT.category=insufficient+library+complexity'
     read_length_query = '&files.read_length=271272&files.read_length=657265&files.read_length=25&files.read_length=31&files.read_length=30'
     no_concerns_query = '&internal_status%21=requires+lab+review&internal_status%21=unrunnable'
+    mismatched_file_query = '&audit.INTERNAL_ACTION.category=mismatched+file+status'
 
     human_query = '&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens'
     mouse_query = '&replicates.library.biosample.donor.organism.scientific_name=Mus+musculus'
@@ -363,7 +367,8 @@ def main():
         'Processed on mm10': total_query + mm10_query + uniform_query,
         'Submitted on mm10': total_query + mm10_query,
         'Cannot be currently processed': concerns_query,
-        'In processing queue': processing_query
+        'In processing queue': processing_query,
+        'Mismatched file status': mismatched_file_query
     }
 
     columns = collections.OrderedDict([
