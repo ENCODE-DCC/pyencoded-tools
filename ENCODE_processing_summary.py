@@ -265,7 +265,7 @@ def make_dna_report(connection, columns):
         'Uniformly processed on hg19': total_query + hg19_query + uniform_query,
         'Processed on mm10': total_query + mm10_query + uniform_query,
         'Cannot be currently processed': concerns_query,
-        'In processing queue': processing_query,
+        'In processing queue': total_query + processing_query,
         'Mismatched file status': mismatched_file_query
     }
 
@@ -326,7 +326,7 @@ def make_rbp_report(connection):
         'CRISPR': '&assay_title=CRISPR+RNA-seq',
         }
 
-    total_query = '&status=released&status=submitted&status=started&status=proposed&status=ready+for+review&status!=deleted&status!=revoked&status!=replaced'
+    total_query = '&status=released&status=submitted&status=started&status=proposed&status=ready+for+review&status!=deleted&status!=revoked&status!=replaced&status!=archived'
     released_query = '&status=released'
     proposed_query = '&status=proposed'
     unreleased_query = '&status=submitted&status=ready+for+review&status=started'
@@ -349,10 +349,11 @@ def make_rbp_report(connection):
         'Released with ERROR': released_query+red_audits_query,
         'Released with NOT COMPLIANT': released_query+orange_audits_query,
         'Antibody issues': antibody_query,
-        'Processed on GRCh38': grch38_query + uniform_query,
-        'Processed on hg19': hg19_query + uniform_query,
-        'Submitted on GRCh38': grch38_query + submitted_query,
-        'Submitted on hg19': hg19_query + submitted_query,
+        'Processed on GRCh38': total_query + grch38_query + uniform_query,
+        'Processed on hg19': total_query + hg19_query + uniform_query,
+        'Submitted on GRCh38': total_query + grch38_query + submitted_query,
+        'Submitted on hg19': total_query + hg19_query + submitted_query,
+        'In processing queue': total_query + processing_query,
         'Unreleased': unreleased_query,
         'Proposed': proposed_query,
         'Mismatched file status': mismatched_file_query,
@@ -382,6 +383,7 @@ def make_rbp_report(connection):
         'Proposed',
         'Processed on GRCh38',
         'Processed on hg19',
+        'In processing queue',
         'Mismatched file status',
     ]
 
