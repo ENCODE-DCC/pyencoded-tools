@@ -284,21 +284,9 @@ def make_dna_report(connection, columns):
         'Mismatched file status'
     ]
 
-    # columns = {
-    #     'ENCODE3': '&award.rfa=ENCODE3',
-    #     'ENCODE2': '&award.rfa=ENCODE2',
-    #     'ENCODE2-Mouse': '&award.rfa=ENCODE2-Mouse',
-    #     'Total': '&award.rfa=ENCODE3&award.rfa=ENCODE2&award.rfa=ENCODE2-Mouse',
-    #     }
-
-    # headers = [
-    #     'ENCODE3',
-    #     'ENCODE2',
-    #     'ENCODE2-Mouse',
-    #     'Total'
-    #     ]
-
     headers = list(columns.keys())
+
+    #make_matrix(catagories, rows, columns, headers, queries, basic_query, connection)
 
     for assay in assays.keys():
         print (assay, '--------')
@@ -321,7 +309,7 @@ def make_dna_report(connection, columns):
         print (' ')
         print (' ')
 
-def make_rbp_report(connection, columns):
+def make_rbp_report(connection):
 
     basic_query = 'search/?type=Experiment&award.project=ENCODE'
 
@@ -329,11 +317,13 @@ def make_rbp_report(connection, columns):
         'eCLIP': '&assay_title=eCLIP',
         'iCLIP': '&assay_title=iCLIP',
         'RIP-seq': '&assay_title=RIP-seq',
-        'total': '&assay_title=eCLIP&assay_title=RIP-seq&assay_title=iCLIP&assay_title=RNA+Bind-n-Seq',
+        'Bind-n-Seq': '&assay_title=RNA+Bind-n-Seq',
+        'total': '&assay_title=eCLIP&assay_title=RIP-seq&assay_title=iCLIP&assay_title=RNA+Bind-n-Seq&assay_title=shRNA+RNA-seq&assay_title=CRISPR+RNA-seq&assay_title=RNA+Bind-n-Seq',
         }
 
-    bind_assay = {
-        'Bind-n-Seq': '&assay_title=RNA+Bind-n-Seq',
+    seq_assays = {
+        'shRNA knockdown': '&assay_title=shRNA+RNA-seq',
+        'CRISPR': '&assay_title=CRISPR+RNA-seq',
         }
 
     total_query = '&status=released&status=submitted&status=started&status=proposed&status=ready+for+review&status!=deleted&status!=revoked&status!=replaced'
@@ -341,29 +331,30 @@ def make_rbp_report(connection, columns):
     proposed_query = '&status=proposed'
     unreleased_query = '&status=submitted&status=ready+for+review&status=started'
     concerns_query = '&internal_status=no+available+pipeline&internal_status=requires+lab+review&internal_status=unrunnable&status!=deleted'
-    grch38_query = '&assembly=GRCh38'
-    hg19_query = '&assembly=hg19'
-    mm10_query = '&assembly=mm10'
+    grch38_query = '&files.assembly=GRCh38'
+    hg19_query = '&files.assembly=hg19'
     uniform_query = '&files.lab.name=encode-processing-pipeline'
+    submitted_query = '&files.lab.name!=encode-processing-pipeline'
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
     red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample&&audit.ERROR.category=missing+paired_with'
     orange_audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
     mismatched_file_query = '&audit.INTERNAL_ACTION.category=mismatched+file+status'
     unknown_org_query = '&replicates.library.biosample.donor.organism.scientific_name%21=Homo+sapiens&replicates.library.biosample.donor.organism.scientific_name%21=Mus+musculus'
     tsv_query = '&files.file_type=tsv'
+    antibody_query = '&audit.NOT_COMPLIANT.category=not+eligible+antibody'
 
     rows = {
         'Total': total_query,
         'Released': released_query,
         'Released with ERROR': released_query+red_audits_query,
         'Released with NOT COMPLIANT': released_query+orange_audits_query,
+        'Antibody issues': antibody_query,
+        'Processed on GRCh38': grch38_query + uniform_query,
+        'Processed on hg19': hg19_query + uniform_query,
+        'Submitted on GRCh38': grch38_query + submitted_query,
+        'Submitted on hg19': hg19_query + submitted_query,
         'Unreleased': unreleased_query,
         'Proposed': proposed_query,
-        'Processed on GRCh38': total_query + grch38_query + uniform_query,
-        'Uniformly processed on hg19': total_query + hg19_query + uniform_query,
-        'Processed on mm10': total_query + mm10_query + uniform_query,
-        'Cannot be currently processed': concerns_query,
-        'In processing queue': processing_query,
         'Mismatched file status': mismatched_file_query,
         'Contains tsvs': tsv_query
     }
@@ -373,42 +364,43 @@ def make_rbp_report(connection, columns):
         'Released',
         'Released with ERROR',
         'Released with NOT COMPLIANT',
+        'Antibody issues',
         'Unreleased',
         'Proposed',
-        'Processed on GRCh38',
-        'Uniformly processed on hg19',
-        'Processed on mm10',
-        'Cannot be currently processed',
-        'In processing queue',
-        'Mismatched file status'
+        'Submitted on GRCh38',
+        'Submitted on hg19',
+        'Mismatched file status',
+        'Contains tsvs'
     ]
 
-    bind_labels = [
+    seq_labels = [
         'Total',
         'Released',
         'Released with ERROR',
         'Released with NOT COMPLIANT',
         'Unreleased',
         'Proposed',
-        'Contains tsvs'
+        'Processed on GRCh38',
+        'Processed on hg19',
+        'Mismatched file status',
     ]
 
-    headers = list(columns.keys())
-
-    bind_columns = {
-        'ENCODE3': '&award.rfa=ENCODE3',
-        'ENCODE2': '&award.rfa=ENCODE2',
-        'ENCODE2-Mouse': '&award.rfa=ENCODE2-Mouse',
-        'Total': '&award.rfa=ENCODE3&award.rfa=ENCODE2&award.rfa=ENCODE2-Mouse',
+    columns = {
+        'ENCODE3-experiments': '&award.rfa=ENCODE3&target.investigated_as!=control',
+        'ENCODE3-controls': '&award.rfa=ENCODE3&target.investigated_as=control',
+        'ENCODE2-experiments': '&award.rfa=ENCODE2&target.investigated_as!=control',
+        'ENCODE2-controls': '&award.rfa=ENCODE2&target.investigated_as=control',
+        'Total': '&award.rfa=ENCODE3&award.rfa=ENCODE2',
         }
 
-    bind_headers = [
-        'ENCODE3',
-        'ENCODE2',
-        'ENCODE2-Mouse',
+    headers = [
+        'ENCODE3-experiments',
+        'ENCODE3-controls',
+        'ENCODE2-experiments',
+        'ENCODE2-controls',
         'Total'
         ]
-
+    
     for assay in assays.keys():
         print (assay, '--------')
         matrix = {}
@@ -430,16 +422,16 @@ def make_rbp_report(connection, columns):
         print (' ')
         print (' ')
 
-    for assay in bind_assay.keys():
+    for assay in seq_assays.keys():
         print (assay, '--------')
         matrix = {}
-        print ('\t'.join([''] + bind_headers))
-        for row in bind_labels:
+        print ('\t'.join([''] + headers))
+        for row in seq_labels:
 
             matrix[row] = [row]
 
-            for col in bind_headers:
-                query = basic_query+bind_assay[assay]+rows[row]+bind_columns[col]
+            for col in headers:
+                query = basic_query+seq_assays[assay]+rows[row]+columns[col]
                 res = get_ENCODE(query, connection, frame='object')
                 link = connection.server + query
                 total = res['total']
@@ -450,8 +442,6 @@ def make_rbp_report(connection, columns):
 
         print (' ')
         print (' ')
-
-
 
 def main():
     args = getArgs()
@@ -522,7 +512,7 @@ def main():
     elif args.datatype == 'Accessibility':
         make_dna_report(connection, columns)
     elif args.datatype == 'RBP':
-        make_rbp_report(connection, columns)
+        make_rbp_report(connection)
     else:
         print ('unimplemented')
 
