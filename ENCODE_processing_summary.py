@@ -275,28 +275,12 @@ def make_dna_report(connection, columns):
 
     headers = list(columns.keys())
 
-    #make_matrix(catagories, rows, columns, headers, queries, basic_query, connection)
-
     for assay in assays.keys():
         print (assay, '--------')
-        matrix = {}
         print ('\t'.join([''] + headers))
-        for row in labels:
 
-            matrix[row] = [row]
-
-            for col in headers:
-                query = basic_query+assays[assay]+rows[row]+columns[col]
-                res = get_ENCODE(query, connection, frame='object')
-                link = connection.server + query
-                total = res['total']
-                func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
-                matrix[row].append(func)
-
-            print ('\t'.join(matrix[row]))
-
-        print (' ')
-        print (' ')
+        new_basic_query = basic_query + assays[assay]
+        make_matrix(labels, columns, headers, rows, new_basic_query, connection)
 
 def make_rbp_report(connection):
 
@@ -506,7 +490,7 @@ def main():
     elif args.datatype == 'METHYL':
         make_rna_report(connection, columns, row_queries)
     elif args.datatype == 'Accessibility':
-        make_dna_report(connection, columns, row_queries)
+        make_dna_report(connection, columns)
     elif args.datatype == 'RBP':
         make_rbp_report(connection)
     else:
