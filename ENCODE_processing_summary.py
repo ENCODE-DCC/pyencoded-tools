@@ -22,6 +22,8 @@ def getArgs():
                         help="The datatype of interest: CHIP, WGBS, Accessibility, RNA, RBP")
     parser.add_argument('--status',
                         help="released or unreleased")
+    parser.add_argument('--grant',
+                        help="specify the PI last name of the grant of interest, ENCODE2 will mimic ENCODE3")
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  \
@@ -33,15 +35,11 @@ def getArgs():
                         default=False,
                         action='store_true',
                         help="Print debug messages.  Default is False.")
-    args = parser.parse_args() 
+    args = parser.parse_args()
     return args
 
 
-def make_matrix(catagories, rows, columns, headers, queries, basic_query, connection):
-
-    for catagory in catagories.keys():
-        print (catagory, '--------------------------------------')
-        print ('\t'.join([''] + headers))
+def make_matrix(rows, columns, headers, queries, basic_query, connection):
 
         matrix = {}
 
@@ -50,7 +48,7 @@ def make_matrix(catagories, rows, columns, headers, queries, basic_query, connec
             matrix[row] = [row]
 
             for col in headers:
-                query = basic_query+catagories[catagory]+queries[row]+columns[col]
+                query = basic_query+queries[row]+columns[col]
                 res = get_ENCODE(query, connection, frame='embedded')
                 link = connection.server + query
                 total = res['total']
@@ -189,6 +187,7 @@ def make_chip_report(connection, columns):
     red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample&&audit.ERROR.category=missing+paired_with&audit.ERROR.category=missing+possible_controls&audit.ERROR.category=inconsistent+control&audit.ERROR.category=missing+antibody'
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
     mismatched_file_query = '&audit.INTERNAL_ACTION.category=mismatched+file+status'
+    peaks_query = '&files.file_type=bigBed+narrowPeak'
 
     queries = {
         'Total': total_query,
@@ -198,10 +197,10 @@ def make_chip_report(connection, columns):
         'Released with ERROR issues': released_query + red_audits_query,
         'Unreleased': unreleased_query,
         'Proposed': proposed_query,
-        'Processed on GRCh38': total_query + grch38_query + uniform_query,
+        'Processed on GRCh38 or mm10': total_query + grch38_query + mm10_query + uniform_query,
         'Uniformly Processed on hg19': total_query + hg19_query + uniform_query,
-        'Processed on mm10': total_query + mm10_query + uniform_query,
-        'Released in pipeline': released_query+processing_query,
+        'Has hg19 Peaks': total_query + hg19_query + uniform_query + peaks_query,
+        'Released in pipeline': released_query + processing_query,
         'Cannot be currently processed': concerns_query,
         'In processing queue': processing_query,
         'Mismatched file status': mismatched_file_query
@@ -215,9 +214,9 @@ def make_chip_report(connection, columns):
         'Released with ERROR issues',
         'Unreleased',
         'Proposed',
-        'Processed on GRCh38',
+        'Processed on GRCh38 or mm10',
         'Uniformly Processed on hg19',
-        'Processed on mm10',
+        'Has hg19 Peaks',
         'Cannot be currently processed',
         'In processing queue',
         'Mismatched file status'
@@ -225,8 +224,12 @@ def make_chip_report(connection, columns):
 
     headers = list(columns.keys())
 
-    make_matrix(catagories, rows, columns, headers, queries, basic_query, connection)
+    for catagory in catagories.keys():
 
+        print (catagory, '--------------------------------------')
+        print ('\t'.join([''] + headers))
+        new_basic_query = basic_query + catagories[catagory]
+        make_matrix(rows, columns, headers, queries, new_basic_query, connection)
 
 
 def make_dna_report(connection, columns):
@@ -458,6 +461,12 @@ def main():
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
 
+    labs = {
+        'stam': '&lab.title=John+Stamatoyannopoulos%2C+UW&lab.title=Job+Dekker%2C+UMass',
+        'gingeras': '&lab.title=Yijun+Ruan%2C+GIS&lab.title=Thomas+Gingeras%2C+CSHL&lab.title=Piero+Carninci%2C+RIKEN '
+    }
+
+
     # ----------- QUERIES ----------------------------------------------------
     unreplicated_query = '&replication_type=unreplicated'
     not_pipeline_query = '&files.analysis_step_version.analysis_step.pipelines.title%21=Transcription+factor+ChIP-seq'
@@ -488,6 +497,7 @@ def main():
     audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&assay_slims=Transcription&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
     unknown_org_query = '&replicates.library.biosample.donor.organism.scientific_name%21=Homo+sapiens&replicates.library.biosample.donor.organism.scientific_name%21=Mus+musculus'
+    lab_query = labs.get(args.grant)
 
     rows = {
         'Total': total_query,
