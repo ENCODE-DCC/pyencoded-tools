@@ -49,7 +49,7 @@ def make_matrix(rows, columns, headers, queries, basic_query, connection):
 
             for col in headers:
                 query = basic_query+queries[row]+columns[col]
-                res = get_ENCODE(query, connection, frame='embedded')
+                res = get_ENCODE(query, connection, frame='object')
                 link = connection.server + query
                 total = res['total']
                 func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
@@ -83,10 +83,8 @@ def make_rna_report(connection, columns, rows):
         'Released',
         'Released with issues',
         'Unreleased',
-        'Proposed',
-        'Processed on GRCh38',
+        'Processed on GRCh38 or mm10',
         'Uniformly Processed on hg19',
-        'Processed on mm10',
         'Cannot be currently processed',
         'In processing queue',
         'Mismatched file status'
@@ -97,7 +95,6 @@ def make_rna_report(connection, columns, rows):
         'Released',
         'Released with issues',
         'Unreleased',
-        'Proposed',
         'Submitted on GRCh38',
         #'Submitted on hg19',
         'Submitted on mm10'
@@ -107,59 +104,50 @@ def make_rna_report(connection, columns, rows):
 
     for assay in assays.keys():
         print (assay, '--------')
-        matrix = {}
         print ('\t'.join([''] + headers))
-        for row in labels:
 
-            matrix[row] = [row]
-
-            for col in headers:
-                query = basic_query+assays[assay]+rows[row]+columns[col]
-                res = get_ENCODE(query, connection, frame='object')
-                link = connection.server + query
-                total = res['total']
-                func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
-                matrix[row].append(func)
-
-            print ('\t'.join(matrix[row]))
-
-        print (' ')
-        print (' ')
+        new_basic_query = basic_query + assays[assay]
+        make_matrix(labels, columns, headers, rows, new_basic_query, connection)
 
     for assay in micro_assays.keys():
         print (assay, '--------')
-        matrix = {}
         print ('\t'.join([''] + headers))
-        for row in micro_labels:
 
-            matrix[row] = [row]
-
-            for col in headers:
-                query = basic_query+micro_assays[assay]+rows[row]+columns[col]
-                res = get_ENCODE(query, connection, frame='object')
-                link = connection.server + query
-                total = res['total']
-                func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
-                matrix[row].append(func)
-
-            print ('\t'.join(matrix[row]))
-
-        print (' ')
-        print (' ')
+        new_basic_query = basic_query + micro_assays[assay]
+        make_matrix(micro_labels, columns, headers, rows, new_basic_query, connection)
 
 
-def make_antibody_detail(graph):
+def make_methyl_report(connection, columns, rows):
 
-    antibodies = {}
-    for item in (graph):
-        for rep in item['replicates']:
-            ab = rep['antibody']['accession']
-            target = rep['antibody']['targets'][0]['label']
-            if ab not in antibodies:
-                antibodies[ab] = [
-                    target,
-                    repr(len(rep['antibody']['characterizations']))
-                    ]
+    basic_query = 'search/?type=Experiment'
+
+    assays = {
+        'WGBS': '&assay_title=WGBS',
+        'RRBS': '&assay_title=RRBS',
+        'Array': '&assay_title=DNAme+array',
+        'total': '&assay_title=WGBS&assay_title=RRBS&assay_title=DNAme+array'
+        }
+
+    labels = [
+        'Total',
+        'Released',
+        'Released with issues',
+        'Unreleased',
+        'Processed on GRCh38 or mm10',
+        'Uniformly Processed on hg19',
+        'Cannot be currently processed',
+        'In processing queue',
+        'Mismatched file status'
+    ]
+
+    headers = list(columns.keys())
+
+    for assay in assays.keys():
+        print (assay, '--------')
+        print ('\t'.join([''] + headers))
+
+        new_basic_query = basic_query + assays[assay]
+        make_matrix(labels, columns, headers, rows, new_basic_query, connection)
 
 
 def make_chip_report(connection, columns):
@@ -172,7 +160,7 @@ def make_chip_report(connection, columns):
         ('other targets', '&target.investigated_as%21=control&target.investigated_as%21=histone')
         ])
 
-    total_query = '&status=released&status=submitted&status=started&status=proposed&status=ready+for+review'
+    total_query = '&status=released&status=submitted&status=started&status=ready+for+review'
     released_query = '&status=released'
     proposed_query = '&status=proposed'
     unreleased_query = '&status=submitted&status=ready+for+review&status=started'
@@ -213,7 +201,6 @@ def make_chip_report(connection, columns):
         'Released with NOT COMPLIANT issues',
         'Released with ERROR issues',
         'Unreleased',
-        'Proposed',
         'Processed on GRCh38 or mm10',
         'Uniformly Processed on hg19',
         'Has hg19 Peaks',
@@ -242,7 +229,7 @@ def make_dna_report(connection, columns):
         'total': '&assay_title=DNase-seq&assay_title=ATAC-seq',
         }
 
-    total_query = '&status=released&status=submitted&status=started&status=proposed&status=ready+for+review&status!=deleted&status!=revoked&status!=replaced'
+    total_query = '&status=released&status=submitted&status=started&status=ready+for+review&status!=deleted&status!=revoked&status!=replaced'
     released_query = '&status=released'
     proposed_query = '&status=proposed'
     unreleased_query = '&status=submitted&status=ready+for+review&status=started'
@@ -278,7 +265,6 @@ def make_dna_report(connection, columns):
         'Released with ERROR',
         'Released with NOT COMPLIANT',
         'Unreleased',
-        'Proposed',
         'Processed on GRCh38',
         'Uniformly processed on hg19',
         'Processed on mm10',
@@ -373,7 +359,6 @@ def make_rbp_report(connection):
         'Released with NOT COMPLIANT',
         'Antibody issues',
         'Unreleased',
-        'Proposed',
         'Submitted on GRCh38',
         'Submitted on hg19',
         'Mismatched file status',
@@ -386,7 +371,6 @@ def make_rbp_report(connection):
         'Released with ERROR',
         'Released with NOT COMPLIANT',
         'Unreleased',
-        'Proposed',
         'Processed on GRCh38',
         'Processed on hg19',
         'In processing queue',
@@ -400,7 +384,6 @@ def make_rbp_report(connection):
         'Released with NOT COMPLIANT',
         'Antibody issues',
         'Unreleased',
-        'Proposed',
         'Submitted on GRCh38',
         'Submitted on hg19',
         'Processed on GRCh38',
@@ -488,6 +471,7 @@ def make_rbp_report(connection):
         print (' ')
         print (' ')
 
+
 def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
@@ -517,7 +501,7 @@ def main():
     mouse_query = '&replicates.library.biosample.donor.organism.scientific_name=Mus+musculus'
     ENCODE2_query = '&award.rfa=ENCODE2&award.rfa=ENCODE2-Mouse'
     ENCODE3_query = '&award.rfa=ENCODE3'
-    total_query = '&status=released&status=submitted&status=started&status=proposed&status=ready+for+review'
+    total_query = '&status=released&status=submitted&status=started&status=ready+for+review'
     released_query = '&status=released'
     proposed_query = '&status=proposed'
     unreleased_query = '&status=submitted&status=ready+for+review&status=started'
@@ -531,13 +515,14 @@ def main():
     unknown_org_query = '&replicates.library.biosample.donor.organism.scientific_name%21=Homo+sapiens&replicates.library.biosample.donor.organism.scientific_name%21=Mus+musculus'
     lab_query = labs.get(args.grant)
 
-    rows = {
+    row_queries = {
         'Total': total_query,
         'Released': released_query,
         'Released with issues': released_query+audits_query,
         'Unreleased': unreleased_query,
         'Proposed': proposed_query,
         'Processed on GRCh38': total_query + grch38_query + uniform_query,
+        'Processed on GRCh38 or mm10': total_query + grch38_query + mm10_query + uniform_query,
         'Submitted on GRCh38': total_query + grch38_query,
         'Uniformly Processed on hg19': total_query + hg19_query + uniform_query,
         'Submitted on hg19': total_query + hg19_query,
@@ -553,16 +538,18 @@ def main():
         ('ENCODE3-mouse', ENCODE3_query + mouse_query),
         ('ENCODE2-human', ENCODE2_query + human_query),
         ('ENCODE2-mouse', ENCODE2_query + mouse_query),
-        ('Organism Unknown', ENCODE3_query + unknown_org_query),
+        # ('Organism Unknown', ENCODE3_query + unknown_org_query),
         ('Total', '&award.rfa=ENCODE3' + ENCODE2_query)
         ])
 
     if args.datatype == 'CHIP':
-        make_chip_report(connection, columns)
+        make_chip_report(connection, columns, row_queries)
     elif args.datatype == 'RNA':
-        make_rna_report(connection, columns, rows)
+        make_rna_report(connection, columns, row_queries)
+    elif args.datatype == 'METHYL':
+        make_rna_report(connection, columns, row_queries)
     elif args.datatype == 'Accessibility':
-        make_dna_report(connection, columns)
+        make_dna_report(connection, columns, row_queries)
     elif args.datatype == 'RBP':
         make_rbp_report(connection)
     else:
