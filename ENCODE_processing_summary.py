@@ -318,12 +318,15 @@ def make_rbp_report(connection):
         'iCLIP': '&assay_title=iCLIP',
         'RIP-seq': '&assay_title=RIP-seq',
         'Bind-n-Seq': '&assay_title=RNA+Bind-n-Seq',
-        'total': '&assay_title=eCLIP&assay_title=RIP-seq&assay_title=iCLIP&assay_title=RNA+Bind-n-Seq&assay_title=shRNA+RNA-seq&assay_title=CRISPR+RNA-seq&assay_title=RNA+Bind-n-Seq',
         }
 
     seq_assays = {
         'shRNA knockdown': '&assay_title=shRNA+RNA-seq',
         'CRISPR': '&assay_title=CRISPR+RNA-seq',
+        }
+
+    total_assays = {
+        'total': '&assay_title=eCLIP&assay_title=RIP-seq&assay_title=iCLIP&assay_title=RNA+Bind-n-Seq&assay_title=shRNA+RNA-seq&assay_title=CRISPR+RNA-seq&assay_title=RNA+Bind-n-Seq',
         }
 
     total_query = '&status=released&status=submitted&status=started&status=proposed&status=ready+for+review&status!=deleted&status!=revoked&status!=replaced&status!=archived'
@@ -340,7 +343,7 @@ def make_rbp_report(connection):
     orange_audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
     mismatched_file_query = '&audit.INTERNAL_ACTION.category=mismatched+file+status'
     unknown_org_query = '&replicates.library.biosample.donor.organism.scientific_name%21=Homo+sapiens&replicates.library.biosample.donor.organism.scientific_name%21=Mus+musculus'
-    tsv_query = '&files.file_type=tsv'
+    missing_signal_query = '&files.file_type!=bigWig&target.investigated_as!=control'
     antibody_query = '&audit.NOT_COMPLIANT.category=not+eligible+antibody'
 
     rows = {
@@ -357,7 +360,7 @@ def make_rbp_report(connection):
         'Unreleased': unreleased_query,
         'Proposed': proposed_query,
         'Mismatched file status': mismatched_file_query,
-        'Contains tsvs': tsv_query
+        'Missing signal files': total_query + missing_signal_query
     }
 
     labels = [
@@ -371,7 +374,7 @@ def make_rbp_report(connection):
         'Submitted on GRCh38',
         'Submitted on hg19',
         'Mismatched file status',
-        'Contains tsvs'
+        'Missing signal files'
     ]
 
     seq_labels = [
@@ -385,6 +388,22 @@ def make_rbp_report(connection):
         'Processed on hg19',
         'In processing queue',
         'Mismatched file status',
+    ]
+
+    total_labels = [
+        'Total',
+        'Released',
+        'Released with ERROR',
+        'Released with NOT COMPLIANT',
+        'Antibody issues',
+        'Unreleased',
+        'Proposed',
+        'Submitted on GRCh38',
+        'Submitted on hg19',
+        'Processed on GRCh38',
+        'Processed on hg19',
+        'Mismatched file status',
+        'Missing signal files',
     ]
 
     columns = {
@@ -434,6 +453,27 @@ def make_rbp_report(connection):
 
             for col in headers:
                 query = basic_query+seq_assays[assay]+rows[row]+columns[col]
+                res = get_ENCODE(query, connection, frame='object')
+                link = connection.server + query
+                total = res['total']
+                func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
+                matrix[row].append(func)
+
+            print ('\t'.join(matrix[row]))
+
+        print (' ')
+        print (' ')
+
+    for assay in total_assays.keys():
+        print (assay, '--------')
+        matrix = {}
+        print ('\t'.join([''] + headers))
+        for row in total_labels:
+
+            matrix[row] = [row]
+
+            for col in headers:
+                query = basic_query+total_assays[assay]+rows[row]+columns[col]
                 res = get_ENCODE(query, connection, frame='object')
                 link = connection.server + query
                 total = res['total']
