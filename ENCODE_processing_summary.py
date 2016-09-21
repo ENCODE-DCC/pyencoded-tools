@@ -150,6 +150,37 @@ def make_methyl_report(connection, columns, rows):
         make_matrix(labels, columns, headers, rows, new_basic_query, connection)
 
 
+def make_3d_report(connection, columns, rows):
+
+    basic_query = 'search/?type=Experiment'
+
+    assays = {
+        'HIC': '&assay_title=WGBS',
+        'Chia-PET': '&assay_title=RRBS'
+        }
+
+    labels = [
+        'Total',
+        'Released',
+        'Released with issues',
+        'Unreleased',
+        'Processed on GRCh38 or mm10',
+        'Uniformly Processed on hg19',
+        'Cannot be currently processed',
+        'In processing queue',
+        'Mismatched file status'
+    ]
+
+    headers = list(columns.keys())
+
+    for assay in assays.keys():
+        print (assay, '--------')
+        print ('\t'.join([''] + headers))
+
+        new_basic_query = basic_query + assays[assay]
+        make_matrix(labels, columns, headers, rows, new_basic_query, connection)
+
+
 def make_chip_report(connection, columns):
 
     basic_query = 'search/?type=Experiment&assay_term_name=ChIP-seq'
@@ -547,9 +578,11 @@ def main():
     elif args.datatype == 'RNA':
         make_rna_report(connection, columns, row_queries)
     elif args.datatype == 'METHYL':
-        make_rna_report(connection, columns, row_queries)
+        make_methyl_report(connection, columns, row_queries)
+    elif args.datatype == '3D':
+        make_3d_report(connection, columns, row_queries)
     elif args.datatype == 'Accessibility':
-        make_dna_report(connection, columns, row_queries)
+        make_dna_report(connection, columns)
     elif args.datatype == 'RBP':
         make_rbp_report(connection)
     else:
