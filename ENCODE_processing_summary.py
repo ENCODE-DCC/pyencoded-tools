@@ -306,28 +306,12 @@ def make_dna_report(connection, columns):
 
     headers = list(columns.keys())
 
-    #make_matrix(catagories, rows, columns, headers, queries, basic_query, connection)
-
     for assay in assays.keys():
         print (assay, '--------')
-        matrix = {}
         print ('\t'.join([''] + headers))
-        for row in labels:
 
-            matrix[row] = [row]
-
-            for col in headers:
-                query = basic_query+assays[assay]+rows[row]+columns[col]
-                res = get_ENCODE(query, connection, frame='object')
-                link = connection.server + query
-                total = res['total']
-                func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
-                matrix[row].append(func)
-
-            print ('\t'.join(matrix[row]))
-
-        print (' ')
-        print (' ')
+        new_basic_query = basic_query + assays[assay]
+        make_matrix(labels, columns, headers, rows, new_basic_query, connection)
 
 def make_rbp_report(connection):
 
@@ -438,70 +422,27 @@ def make_rbp_report(connection):
         'ENCODE2-controls',
         'Total'
         ]
-    
+
     for assay in assays.keys():
         print (assay, '--------')
-        matrix = {}
         print ('\t'.join([''] + headers))
-        for row in labels:
 
-            matrix[row] = [row]
-
-            for col in headers:
-                query = basic_query+assays[assay]+rows[row]+columns[col]
-                res = get_ENCODE(query, connection, frame='object')
-                link = connection.server + query
-                total = res['total']
-                func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
-                matrix[row].append(func)
-
-            print ('\t'.join(matrix[row]))
-
-        print (' ')
-        print (' ')
+        new_basic_query = basic_query + assays[assay]
+        make_matrix(labels, columns, headers, rows, new_basic_query, connection)
 
     for assay in seq_assays.keys():
         print (assay, '--------')
-        matrix = {}
         print ('\t'.join([''] + headers))
-        for row in seq_labels:
 
-            matrix[row] = [row]
-
-            for col in headers:
-                query = basic_query+seq_assays[assay]+rows[row]+columns[col]
-                res = get_ENCODE(query, connection, frame='object')
-                link = connection.server + query
-                total = res['total']
-                func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
-                matrix[row].append(func)
-
-            print ('\t'.join(matrix[row]))
-
-        print (' ')
-        print (' ')
+        new_basic_query = basic_query + seq_assays[assay]
+        make_matrix(seq_labels, columns, headers, rows, new_basic_query, connection)
 
     for assay in total_assays.keys():
         print (assay, '--------')
-        matrix = {}
         print ('\t'.join([''] + headers))
-        for row in total_labels:
 
-            matrix[row] = [row]
-
-            for col in headers:
-                query = basic_query+total_assays[assay]+rows[row]+columns[col]
-                res = get_ENCODE(query, connection, frame='object')
-                link = connection.server + query
-                total = res['total']
-                func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
-                matrix[row].append(func)
-
-            print ('\t'.join(matrix[row]))
-
-        print (' ')
-        print (' ')
-
+        new_basic_query = basic_query + total_assays[assay]
+        make_matrix(total_labels, columns, headers, rows, new_basic_query, connection)
 
 def main():
     args = getArgs()
