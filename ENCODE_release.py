@@ -123,7 +123,7 @@ def getArgs():
 class Data_Release():
     def __init__(self, args, connection):
         # renaming some things so I can be lazy and not pass them around
-        self.releasenator_version = 1
+        self.releasenator_version = 1.1
         self.infile = args.infile
         self.outfile = args.outfile
         self.QUERY = args.query
@@ -235,13 +235,18 @@ class Data_Release():
         d = dictionary["properties"]
         for prop in d.keys():
             if prop not in ['files', 'derived_from', 'contributing_files']:
-                if d[prop].get("linkTo") or d[prop].get("linkFrom"):
+                if d[prop].get("linkTo"):
                     self.keysLink.append(prop)
                 else:
                     if d[prop].get("items"):
-                        i = d[prop].get("items")
-                        if i.get("linkTo") or i.get("linkFrom"):
-                            self.keysLink.append(prop)
+                        if prop in ['replicates', 'original_files', 'quality_metrics']:
+                            i = d[prop].get("items")
+                            if i.get("linkFrom"):
+                                self.keysLink.append(prop)
+                        else:
+                            i = d[prop].get("items")
+                            if i.get("linkTo"):
+                                self.keysLink.append(prop)
 
     def process_link(self, identifier_link, approved_types):
         #print ("entering process_link with " + identifier_link)
