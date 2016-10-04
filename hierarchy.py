@@ -18,12 +18,11 @@ level_4 = [
     'Replicate']
 
 level_3 = [
-    'Library', 'AntibodyLot']
+    'Library']
 
 level_2 = [
-    'Biosample']
-
-level_1 = [
+    'AntibodyLot',
+    'Biosample',
     'Software',
     'File',
     'Treatment',
@@ -33,9 +32,10 @@ level_1 = [
     'Target',
     'Document',
     'Publication',
-    'Reference']
-
-level_0 = [
+    'Reference',
+    'GeneticModification',
+    'Crispr',
+    'Tale',
     'SoftwareVersion',
     'DonorCharacterization',
     'ConstructCharacterization',
@@ -72,10 +72,6 @@ level_0 = [
     'Image']
 
 levels_mapping = {}
-for entry in level_0:
-    levels_mapping[entry] = 'level_0'
-for entry in level_1:
-    levels_mapping[entry] = 'level_1'
 for entry in level_2:
     levels_mapping[entry] = 'level_2'
 for entry in level_3:
@@ -88,26 +84,19 @@ for entry in level_6:
     levels_mapping[entry] = 'level_6'
 
 dictionary_of_lower_levels = {
-    'level_6': set(level_0) |
-    set(level_1) |
+    'level_6':
     set(level_2) |
     set(level_3) |
     set(level_4) |
     set(level_5),
-    'level_5': set(level_0) |
-    set(level_1) |
+    'level_5':
     set(level_2) |
     set(level_3) |
     set(level_4),
-    'level_4': set(level_0) |
-    set(level_1) |
+    'level_4':
     set(level_2) |
     set(level_3),
-    'level_3': set(level_0) |
-    set(level_1) |
+    'level_3':
     set(level_2),
-    'level_2': set(level_0) |
-    set(level_1),
-    'level_1': set(level_0),
-    'level_0': set()}
-
+    'level_2':
+    set(level_2)}

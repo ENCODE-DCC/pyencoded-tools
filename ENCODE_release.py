@@ -123,7 +123,7 @@ def getArgs():
 class Data_Release():
     def __init__(self, args, connection):
         # renaming some things so I can be lazy and not pass them around
-        self.releasenator_version = 1
+        self.releasenator_version = 1.1
         self.infile = args.infile
         self.outfile = args.outfile
         self.QUERY = args.query
@@ -158,7 +158,24 @@ class Data_Release():
             profile = temp[item]  # getting the whole schema profile
             self.keysLink = []  # if a key is in this list, it points to a
             # link and will be embedded in the final product
-            self.make_profile(profile)
+            object_type = item
+            if item in ['PublicationData',
+                        'Reference',
+                        'Series',
+                        'UcscBrowserComposite',
+                        'ReferenceEpigenome',
+                        'MatchedSet',
+                        'TreatmentTimeSeries',
+                        'ReplicationTimingSeries',
+                        'OrganismDevelopmentSeries',
+                        'TreatmentConcentrationSeries',
+                        'Annotation',
+                        'Project',
+                        'Experiment',
+                        'Dataset',
+                        'FileSet']:
+                object_type = 'Dataset'
+            self.make_profile(profile, object_type)
             self.PROFILES[item] = self.keysLink
             # lets get the list of things that actually get a date released
             for value in profile["properties"].keys():
@@ -228,23 +245,35 @@ class Data_Release():
             item = item + "s"
         return item.lower()
 
-    def make_profile(self, dictionary):
+    def make_profile(self, dictionary, object_type):
         '''builds the PROFILES reference dictionary
         keysLink is the list of keys that point to links,
         used in the PROFILES'''
         d = dictionary["properties"]
         for prop in d.keys():
-            if prop not in ['files', 'derived_from', 'contributing_files']:
-                if d[prop].get("linkTo") or d[prop].get("linkFrom"):
+            if (object_type == 'Dataset' and
+                prop not in ['files', 'contributing_files']) or \
+               (object_type == 'File' and
+                prop != 'derived_from') or \
+               (object_type not in ['Dataset', 'File']):
+
+                if d[prop].get("linkTo"):
                     self.keysLink.append(prop)
                 else:
                     if d[prop].get("items"):
-                        i = d[prop].get("items")
-                        if i.get("linkTo") or i.get("linkFrom"):
-                            self.keysLink.append(prop)
+                        if (object_type == 'File' and prop == 'quality_metrics') or \
+                           (object_type == 'Dataset' and
+                           prop in ['replicates', 'original_files']):
+                            i = d[prop].get("items")
+                            if i.get("linkFrom"):
+                                self.keysLink.append(prop)
+                        else:
+                            i = d[prop].get("items")
+                            if i.get("linkTo"):
+                                self.keysLink.append(prop)
 
     def process_link(self, identifier_link, approved_types):
-        #print ("entering process_link with " + identifier_link)
+        # print ("entering process_link with " + identifier_link)
         #print ('Replicate' in approved_types)
         item = identifier_link.split("/")[1].replace("-", "")
         subobj = encodedcc.get_ENCODE(identifier_link, self.connection)
