@@ -71,12 +71,11 @@ def getArgs():
 
 class Data_Extract():
     def __init__(self, args, connection):
-        self.extractor_version = 1.0
         self.infile = args.infile
         self.outfile = args.outfile
         self.keysLink = []
         self.PROFILES = {}
-        #self.ACCESSIONS = []
+        self.ACCESSIONS = []
         self.connection = connection
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
 
@@ -97,6 +96,7 @@ class Data_Extract():
             #print (self.keysLink)
             self.PROFILES[item] = self.keysLink
             #print ('--------------')
+
 
     def helper(self, item):
         '''feed this back to making references between official object name \
@@ -139,11 +139,59 @@ class Data_Extract():
             print("ERROR: object has no identifier", file=sys.stderr)
             sys.exit(1)
 
+    def get_status(self, obj):
+        '''take object get status, @type, @id, uuid
+        {@id : [@type, status]}'''
+        name = obj["@type"][0]
+        self.searched.append(obj["@id"])
+
+        if self.PROFILES.get(name):
+            for key in obj.keys():
+                # loop through object properties
+                if key in self.PROFILES[name]:
+                    # if the key is in profiles it's a link
+                    if type(obj[key]) is list:
+                        for link in obj[key]:
+                            self.process_link(
+                                link)
+                    else:
+                        self.process_link(
+                            obj[key])
+
+    def process_link(self, identifier_link):
+        #print ("entering process_link with " + identifier_link)
+        item = identifier_link.split("/")[1].replace("-", "")
+        
+        subobj = encodedcc.get_ENCODE(identifier_link, self.connection)
+        subobjname = subobj["@type"][0]
+        if (item in self.profiles_ref) and \
+           (identifier_link not in self.searched):
+            # expand subobject
+            self.get_status(subobj)
+
     def run_script(self):
         # set_up() gets all the command line arguments and validates them
         # also makes the list of accessions to run from
         self.set_up()
-
+        for accession in self.ACCESSIONS:
+            print ("Processing accession: " + accession)
+            self.searched = []
+            expandedDict = encodedcc.get_ENCODE(accession, self.connection)
+            self.get_status(expandedDict)
+            for id_link in sorted(self.searched):
+                id_dict = encodedcc.get_ENCODE(id_link, self.connection)
+                if (id_dict.get('accession')):
+                    print (id_dict['@type'][0] + '\t' + id_dict['uuid'] + '\t' + id_dict['accession'])
+                else:
+                    print (id_dict['@type'][0] + '\t' + id_dict['uuid'])
+            '''
+            for key in sorted(self.statusDict.keys()):
+                
+                if name not in named:
+                    logger.info('%s' % name.upper())
+                    self.releasinator(name, key, status)
+            '''
+        print("Data written to file", self.outfile)
 
 def main():
     args = getArgs()
