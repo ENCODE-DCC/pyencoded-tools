@@ -230,8 +230,8 @@ def make_dna_report(connection, columns, rows):
         'Released',
         'With ERROR issues',
         'With NOT COMPLIANT issues',
-        'Mapped on GRCh38 or mm10',
-        'Uniformly Processed on hg19',
+        'Processed on Dnase Grch38 or mm10',
+        'Processed on Dnase hg19',
         'Cannot be currently processed',
         'In processing queue',
         'Mismatched file status',
@@ -388,6 +388,7 @@ def main():
     audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&assay_slims=Transcription&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
     mismatched_file_query = '&audit.INTERNAL_ACTION.category=mismatched+file+status'
+    dnase_pipeline = "&files.analysis_step_version.analysis_step.pipelines.title=DNase-HS+pipeline+%28paired-end%29&files.analysis_step_version.analysis_step.pipelines.title=DNase-HS+pipeline+%28single-end%29&files.file_type=bigBed+broadPeak"
     lab_query = labs.get(args.grant)
 
     filters = {
@@ -408,11 +409,13 @@ def main():
         'Unreleased': unreleased_query,
         'Proposed': proposed_query,
         'Processed on GRCh38': grch38_query + uniform_query + filters[args.status],
+        'Processed on Dnase Grch38 or mm10': dnase_pipeline +grch38_query + uniform_query + mm10_query + filters[args.status],
         'Mapped on GRCh38 or mm10': grch38_query + mm10_query + uniform_query + filters[args.status],
         'Submitted on GRCh38': grch38_query + filters[args.status],
         'Submitted on GRCh38 or mm10': grch38_query + mm10_query + filters[args.status],
         'Uniformly Processed on hg19-v19': v19_query + uniform_query + filters[args.status],
         'Uniformly Processed on hg19': hg19_query + uniform_query + filters[args.status],
+        'Processed on Dnase hg19': dnase_pipeline + hg19_query + uniform_query + filters[args.status],
         'Has hg19 Peaks': hg19_query + uniform_query + peaks_query + filters[args.status],
         'Submitted on hg19': hg19_query + filters[args.status],
         'Processed on mm10': mm10_query + uniform_query + filters[args.status],
