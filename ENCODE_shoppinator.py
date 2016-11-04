@@ -72,7 +72,7 @@ def main():
                 is_valid = False
             if len(acc) != 11:
                 print ('ERROR - Accession ' + acc +
-                       ' does not match ENCODE acession format ' +
+                       ' does not match ENCODE accession format ' +
                        '(ENCXY123ABC) length')
                 is_valid = False
             attach += '&accession=' + acc
