@@ -4,6 +4,7 @@ import encodedcc
 import logging
 import sys
 
+
 EPILOG = '''
 %(prog)s is a script that will extract uuid(s) of all the objects
 that are linked to the dataset accession given as input
@@ -45,7 +46,7 @@ def getArgs():
                         "or a single accession or comma separated list " +
                         "of accessions")
     parser.add_argument('--outfile',
-                        help="Output file name", default='Release_report.txt')
+                        help="Output file name", default='uuids_list.txt')
     parser.add_argument('--key',
                         help="The keypair identifier from the keyfile.",
                         default='default')
@@ -172,6 +173,7 @@ class Data_Extract():
     def run_script(self):
         # set_up() gets all the command line arguments and validates them
         # also makes the list of accessions to run from
+        uuids = set()
         self.set_up()
         for accession in self.ACCESSIONS:
             print ("Processing accession: " + accession)
@@ -180,20 +182,17 @@ class Data_Extract():
             self.get_status(expandedDict)
             for id_link in sorted(self.searched):
                 id_dict = encodedcc.get_ENCODE(id_link, self.connection)
-                if (id_dict.get('accession')):
-                    print (id_dict['@type'][0] + '\t' + id_dict['uuid'] + '\t' + id_dict['accession'])
-                else:
-                    print (id_dict['@type'][0] + '\t' + id_dict['uuid'])
-            '''
-            for key in sorted(self.statusDict.keys()):
-                
-                if name not in named:
-                    logger.info('%s' % name.upper())
-                    self.releasinator(name, key, status)
-            '''
+                uuids.add((id_dict['@type'][0], id_dict['uuid']))
+        
+        for (t, uuid) in sorted(list(uuids)):
+            log = '%s' % "{}\t{}".format(
+                t, uuid)
+            logger.info(log)
+            
         print("Data written to file", self.outfile)
 
 def main():
+
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
