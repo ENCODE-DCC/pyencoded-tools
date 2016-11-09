@@ -275,7 +275,8 @@ def make_rbp_report(connection, rows):
     seq_assays = collections.OrderedDict([
         ('shRNA knockdown', '&assay_title=shRNA+RNA-seq'),
         ('CRISPR', '&assay_title=CRISPR+RNA-seq'),
-        ('total knockdowns', '&assay_title=CRISPR+RNA-seq&assay_title=shRNA+RNA-seq')
+        ('siRNA knockdown', '&assay_title=siRNA+RNA-seq'),
+        ('total knockdowns', '&assay_title=CRISPR+RNA-seq&assay_title=shRNA+RNA-seq&assay_title=siRNA+RNA-seq')
         ])
 
     labels = [
