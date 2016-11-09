@@ -675,6 +675,11 @@ def patch_set(args, connection):
                         # this is a dictionary that is being PATCHed
                         temp_data[key] = temp_data[key].replace("'", '"')
                         patch_data[k[0]] = json.loads(temp_data[key])
+                    elif k[1] in ["bool", "Boolean", "boolean", "BOOLEAN"]:
+                        if temp_data[key] in ["True", "true", "TRUE"]:
+                            patch_data[k[0]] = True
+                        elif temp_data[key] in ["False", "false", "FALSE"]:
+                            patch_input[k[0]] = False
                 else:
                     patch_data[k[0]] = temp_data[key]
                 old_data = {}
