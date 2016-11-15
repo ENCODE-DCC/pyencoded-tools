@@ -123,7 +123,7 @@ def getArgs():
 class Data_Release():
     def __init__(self, args, connection):
         # renaming some things so I can be lazy and not pass them around
-        self.releasenator_version = 1.1
+        self.releasenator_version = 1.2
         self.infile = args.infile
         self.outfile = args.outfile
         self.QUERY = args.query
