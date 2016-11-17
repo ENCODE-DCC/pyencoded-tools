@@ -87,9 +87,9 @@ def make_rna_report(connection, columns, rows):
         'Uniformly Processed on hg19-v19',
         'Cannot be currently processed',
         'In processing queue',
-        'Mismatched file status',
+        'Unreleased files in a released experiment',
         'Missing GRCh38',
-        'has fastqs'
+        'missing fastqs'
     ]
 
     micro_labels = [
@@ -134,10 +134,10 @@ def make_methyl_report(connection, columns, rows):
         'Released with issues',
         'Unreleased',
         'Mapped on GRCh38 or mm10',
-        'Uniformly Processed on hg19',
+        'Mapped on hg19',
         'Cannot be currently processed',
         'In processing queue',
-        'Mismatched file status'
+        'Unreleased files in a released experiment'
     ]
 
     headers = list(columns.keys())
@@ -166,7 +166,7 @@ def make_3d_report(connection, columns, rows):
         'Unreleased',
         'Submitted on GRCh38 or mm10',
         'Submitted on hg19',
-        'Mismatched file status'
+        'Unreleased files in a released experiment'
     ]
 
     headers = list(columns.keys())
@@ -186,6 +186,7 @@ def make_chip_report(connection, columns, queries):
     catagories = collections.OrderedDict([
         ('controls', '&target.investigated_as=control'),
         ('histone mods', '&target.investigated_as=histone'),
+        ('H3K27ac and H3K4me3', '&target.label=H3K4me3&target.label=H3K27ac'),
         ('other targets', '&target.investigated_as%21=control&target.investigated_as%21=histone')
         ])
 
@@ -196,14 +197,16 @@ def make_chip_report(connection, columns, queries):
         'Released with NOT COMPLIANT issues',
         'Released with ERROR issues',
         'Unreleased',
+        'Unreplicated',
         'Mapped on GRCh38 or mm10',
-        'Uniformly Processed on hg19',
-        'Has hg19 Peaks',
+        'Peaks called on GRCh38 or mm10',
+        'Mapped on hg19',
+        'Peaks called on hg19',
         'Cannot be currently processed',
         'In processing queue',
-        'Mismatched file status',
+        'Unreleased files in a released experiment',
         'Missing GRCh38',
-        'has fastqs'
+        'missing fastqs'
         ]
 
     headers = list(columns.keys())
@@ -227,6 +230,7 @@ def make_dna_report(connection, columns, rows):
 
     labels = [
         'Total',
+        'Unreleased',
         'Released',
         'With ERROR issues',
         'With NOT COMPLIANT issues',
@@ -234,8 +238,8 @@ def make_dna_report(connection, columns, rows):
         'Processed on Dnase hg19',
         'Cannot be currently processed',
         'In processing queue',
-        'Mismatched file status',
-        'has fastqs'
+        'Unreleased files in a released experiment',
+        'missing fastqs'
     ]
 
     unreleased_labels = [
@@ -244,11 +248,11 @@ def make_dna_report(connection, columns, rows):
         'Unreleased with ERROR issues',
         'Unreleased with NOT COMPLIANT issues',
         'Mapped on GRCh38 or mm10',
-        'Uniformly Processed on hg19',
+        'Mapped on hg19',
         'Cannot be currently processed',
         'In processing queue',
-        'Mismatched file status',
-        'has fastqs'
+        'Unreleased files in a released experiment',
+        'missing fastqs'
     ]
 
     headers = list(columns.keys())
@@ -287,7 +291,7 @@ def make_rbp_report(connection, rows):
         'Unreleased',
         'Submitted on GRCh38',
         'Submitted on hg19',
-        'Mismatched file status',
+        'Unreleased files in a released experiment',
         'Missing signal files'
     ]
 
@@ -298,9 +302,9 @@ def make_rbp_report(connection, rows):
         'Released with NOT COMPLIANT',
         'Unreleased',
         'Processed on GRCh38',
-        'Uniformly Processed on hg19',
+        'Mapped on hg19',
         'In processing queue',
-        'Mismatched file status',
+        'Unreleased files in a released experiment',
     ]
 
     columns = {
@@ -380,6 +384,9 @@ def main():
     not_v19_query = '&files.genome_annotation!=V19'
     hg19_query = '&files.assembly=hg19'
     mm10_query = '&files.assembly=mm10'
+    hg19_vis_query = '&assembly=hg19'
+    grch38_vis_query = '&assembly=GRCh38'
+    mm10_vis_query = '&assembly=mm10'
     not_grch38_query = '&files.assembly!=GRCh38'
     not_hg19_query = '&files.assembly!=hg19'
     not_mm10_query = '&files.assembly!=mm10'
@@ -409,25 +416,27 @@ def main():
         'Unreleased': unreleased_query,
         'Proposed': proposed_query,
         'Processed on GRCh38': grch38_query + uniform_query + filters[args.status],
-        'Processed on Dnase Grch38 or mm10': dnase_pipeline +grch38_query + uniform_query + mm10_query + filters[args.status],
+        'Processed on Dnase Grch38 or mm10': dnase_pipeline + grch38_vis_query + uniform_query + mm10_vis_query + filters[args.status],
         'Mapped on GRCh38 or mm10': grch38_query + mm10_query + uniform_query + filters[args.status],
         'Submitted on GRCh38': grch38_query + filters[args.status],
         'Submitted on GRCh38 or mm10': grch38_query + mm10_query + filters[args.status],
         'Uniformly Processed on hg19-v19': v19_query + uniform_query + filters[args.status],
-        'Uniformly Processed on hg19': hg19_query + uniform_query + filters[args.status],
-        'Processed on Dnase hg19': dnase_pipeline + hg19_query + uniform_query + filters[args.status],
-        'Has hg19 Peaks': hg19_query + uniform_query + peaks_query + filters[args.status],
+        'Mapped on hg19': hg19_query + uniform_query + filters[args.status],
+        'Processed on Dnase hg19': dnase_pipeline + hg19_vis_query + uniform_query + filters[args.status],
+        'Peaks called on hg19': hg19_vis_query + uniform_query + peaks_query + filters[args.status],
+        'Peaks called on GRCh38 or mm10': grch38_vis_query + mm10_vis_query + uniform_query + peaks_query + filters[args.status],
         'Submitted on hg19': hg19_query + filters[args.status],
         'Processed on mm10': mm10_query + uniform_query + filters[args.status],
         'Submitted on mm10': mm10_query + filters[args.status],
         'Cannot be currently processed': concerns_query + filters[args.status],
         'In processing queue': processing_query + filters[args.status],
-        'Mismatched file status': mismatched_file_query,
+        'Unreleased files in a released experiment': mismatched_file_query,
         'Missing GRCh38': not_grch38_query + not_mm10_query + filters[args.status],
         'Missing hg19': not_hg19_query + not_mm10_query + filters[args.status],
         'Missing hg19-v19': not_v19_query + not_mm10_query + filters[args.status],
         'Missing signal files': total_query + missing_signal_query,
-        'has fastqs': '&files.file_format=fastq'
+        'missing fastqs': '&files.file_format!=fastq' + total_query,
+        'Unreplicated': unreplicated_query + filters[args.status]
     }
 
     columns = collections.OrderedDict([
