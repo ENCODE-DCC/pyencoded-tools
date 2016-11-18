@@ -10,6 +10,7 @@ import mimetypes
 import requests
 from PIL import Image
 from base64 import b64encode
+from urllib.parse import quote
 import magic  # install me with 'pip install python-magic'
 # https://github.com/ahupp/python-magic
 # this is the site for python-magic in case we need it
@@ -314,7 +315,9 @@ def excel_reader(datafile, sheet, update, connection, patchall):
         if post_json.get("uuid"):
             temp = encodedcc.get_ENCODE(post_json["uuid"], connection)
         elif post_json.get("alias"):
-            temp = encodedcc.get_ENCODE(post_json["alias"], connection)
+            temp = encodedcc.get_ENCODE(quote(post_json["alias"]), connection)
+        elif post_json.get("aliases"):
+            temp = encodedcc.get_ENCODE(quote(post_json["aliases"][0]), connection)
         elif post_json.get("accession"):
             temp = encodedcc.get_ENCODE(post_json["accession"], connection)
         elif post_json.get("@id"):
