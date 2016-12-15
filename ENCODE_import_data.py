@@ -8,10 +8,10 @@ import datetime
 import sys
 import mimetypes
 import requests
-from PIL import Image
+from PIL import Image # install me with 'pip3 install Pillow'
 from urllib.parse import quote
 from base64 import b64encode
-import magic  # install me with 'pip install python-magic'
+import magic  # install me with 'pip3 install python-magic'
 # https://github.com/ahupp/python-magic
 # this is the site for python-magic in case we need it
 
