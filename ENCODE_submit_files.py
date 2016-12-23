@@ -46,7 +46,6 @@ def get_args():
     parser = argparse.ArgumentParser(
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-
     parser.add_argument('infile',
                         help='CSV file metadata to POST',
                         nargs='?',
@@ -54,7 +53,7 @@ def get_args():
                         default=sys.stdin)
     parser.add_argument('--outfile',
                         help='CSV output report',
-                        type=argparse.FileType(mode='wb', bufsize=0),
+                        type=argparse.FileType(mode='w'),
                         default=sys.stdout)
     parser.add_argument('--debug',
                         help="Print debug messages",
@@ -146,6 +145,8 @@ def validate_file(f_obj, encValData, assembly=None, as_path=None):
     file_format_type = f_obj.get('file_format_type')
     output_type = f_obj.get('output_type')
 
+    if not file_format_type: file_format_type = None
+
     gzip_types = [
         "CEL",
         "bam",
@@ -158,6 +159,7 @@ def validate_file(f_obj, encValData, assembly=None, as_path=None):
         "gtf",
         "tar",
         "sam",
+        "tagAlign",
         "wig"
     ]
 
@@ -234,6 +236,7 @@ def validate_file(f_obj, encValData, assembly=None, as_path=None):
         ('sam', None): None,
         ('wig', None): None,
         ('hdf5', None): None,
+        ('tagAlign', 'bed6'): ['-type=bed6', chromInfo],
         ('gff', None): None
     }
 
@@ -304,7 +307,7 @@ def process_row(row, connection):
                 if k[1] in ["int", "integer"]:
                     value = int(row[key])
                 elif k[1] in ["list", "array"]:
-                    value = row[key].strip("[]").split(",")
+                    value = row[key].strip("[]").split(";")
             else:
                 value = row[key]
             if not k[0]:
@@ -328,6 +331,8 @@ def process_row(row, connection):
             json_payload.pop("paired_with", None)
         json_payload["paired_end"] = str(json_payload["paired_end"])
     print(json_payload)
+    if 'file_format_type' in json_payload.keys() and not json_payload['file_format_type']:
+        json_payload.pop('file_format_type', None)
     return json_payload
 
 
