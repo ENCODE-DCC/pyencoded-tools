@@ -377,6 +377,7 @@ class Data_Release():
                "upload failed",
                "archived",
                "format check failed",
+               "content error",
                "uploading",
                "error"]
 
