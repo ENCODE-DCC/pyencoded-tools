@@ -70,3 +70,5 @@ examples/LV35_library_protocol.txt
 *.json
 
 *.report
+
+*.pdf

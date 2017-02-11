@@ -3,7 +3,7 @@ import os
 import encodedcc
 import logging
 import sys
-
+import urllib.request
 
 EPILOG = '''
 %(prog)s is a script that will extract uuid(s) of all the objects
@@ -70,7 +70,8 @@ def create_inserts(args, connection):
         files_dict[obj_type].write(str(object_dict)+'\n')
         files_dict[obj_type].flush()
         if 'attachment' in object_dict:
-            print (object_dict['attachment'])
+            #print (object_dict['attachment'])
+            urllib.request.urlretrieve("https://www.encodeproject.org/"+uuid+'/'+object_dict['attachment']['href'], 'documents/' + object_dict['attachment']['download'])
 
 def main():
     args = getArgs()
