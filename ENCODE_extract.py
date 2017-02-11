@@ -185,11 +185,9 @@ class Data_Extract():
                 uuids.add((id_dict['@type'][0], id_dict['uuid']))
         
         for (t, uuid) in sorted(list(uuids)):
-            #print (encodedcc.get_ENCODE(uuid, self.connection))
-            log = '%s' % "{}\n{}".format(
-                t,  encodedcc.get_ENCODE(uuid, self.connection))
+            log = '%s' % "{}\t{}".format(
+                t, uuid)
             logger.info(log)
-            #print (t)
             
         print("Data written to file", self.outfile)
 
