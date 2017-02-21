@@ -6,6 +6,7 @@ import datetime
 import encodedcc
 import logging
 import sys
+import time
 import hierarchy as hi
 
 EPILOG = '''
@@ -103,6 +104,9 @@ def getArgs():
     parser.add_argument('--keyfile',
                         help="The keyfile",
                         default=os.path.expanduser('~/keypairs.json'))
+    parser.add_argument('--timing',
+                        help="Time the script execution.  Default is off",
+                        action='store_true', default=False)
     parser.add_argument('--debug',
                         help="Run script in debug mode.  Default is off",
                         action='store_true', default=False)
@@ -123,7 +127,7 @@ def getArgs():
 class Data_Release():
     def __init__(self, args, connection):
         # renaming some things so I can be lazy and not pass them around
-        self.releasenator_version = 1.1
+        self.releasenator_version = 1.2
         self.infile = args.infile
         self.outfile = args.outfile
         self.QUERY = args.query
@@ -131,6 +135,7 @@ class Data_Release():
         self.FORCE = args.force
         self.PRINTALL = args.printall
         self.UPDATE = args.update
+        self.TIMING = args.timing
         self.keysLink = []
         self.PROFILES = {}
         self.ACCESSIONS = []
@@ -356,6 +361,7 @@ class Data_Release():
     def run_script(self):
         # set_up() gets all the command line arguments and validates them
         # also makes the list of accessions to run from
+        t0 = time.time()
         self.set_up()
 
         good = ["released",
@@ -371,6 +377,7 @@ class Data_Release():
                "upload failed",
                "archived",
                "format check failed",
+               "content error",
                "uploading",
                "error"]
 
@@ -433,7 +440,9 @@ class Data_Release():
                                 self.releasinator(name, key, status)
                     named.append(name)
         print("Data written to file", self.outfile)
-
+        if self.TIMING:
+            timing = int(time.time() - t0)
+            print ("Execution of releasenator script took " + str(timing) + " seconds")
 
 def main():
     args = getArgs()
