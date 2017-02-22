@@ -361,7 +361,7 @@ def main():
     read_depth_query_3 = '&audit.WARNING.category=low+read+depth'
     complexity_query = '&audit.NOT_COMPLIANT.category=insufficient+library+complexity'
     read_length_query = '&files.read_length=271272&files.read_length=657265&files.read_length=25&files.read_length=31&files.read_length=30'
-    no_concerns_query = '&internal_status%21=requires+lab+review&internal_status%21=unrunnable'
+    no_concerns_query = '&internal_status%21=requires+lab+review&internal_status%21=unrunnable&internal_status%21=pipeline+error'
 
     human_query = '&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens'
     mouse_query = '&replicates.library.biosample.donor.organism.scientific_name=Mus+musculus'
@@ -373,7 +373,7 @@ def main():
     released_query = '&status=released'
     proposed_query = '&status=proposed'
     unreleased_query = '&status=submitted&status=ready+for+review&status=started'
-    concerns_query = '&internal_status=no+available+pipeline&internal_status=requires+lab+review&internal_status=unrunnable&status!=deleted&status!=revoked'
+    concerns_query = '&internal_status=no+available+pipeline&internal_status=requires+lab+review&internal_status=unrunnable&internal_status=pipeline+error&status!=deleted&status!=revoked'
     antibody_query = '&audit.NOT_COMPLIANT.category=not+characterized+antibody'
     orange_audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=control+insufficient+read+depth&audit.NOT_COMPLIANT.category=unreplicated+experiment&audit.NOT_COMPLIANT.category=poor+library+complexity&audit.NOT_COMPLIANT.category=severe+bottlenecking&audit.NOT_COMPLIANT.category=insufficient+replicate+concordance&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+input+control'
     red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample&&audit.ERROR.category=missing+paired_with&audit.ERROR.category=missing+possible_controls&audit.ERROR.category=inconsistent+control&audit.ERROR.category=missing+antibody'
