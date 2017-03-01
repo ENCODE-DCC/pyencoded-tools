@@ -4,6 +4,7 @@ import encodedcc
 import logging
 import sys
 import urllib.request
+import json
 
 EPILOG = '''
 %(prog)s is a script that will extract uuid(s) of all the objects
@@ -61,18 +62,29 @@ def create_inserts(args, connection):
         print("ERROR: object has no identifier")
         sys.exit(1)
     files_dict = {}
+    strings_dict = {}
     for (obj_type, uuid) in sorted(uuids):
         if obj_type not in files_dict:
-            files_dict[obj_type] = open('inserts/' + obj_type + '.json', 'a')
+            files_dict[obj_type] = open('inserts/' + obj_type + '.json', 'w')
+            strings_dict[obj_type] = []
 
     for (obj_type, uuid) in sorted(uuids):
         object_dict = encodedcc.get_ENCODE(uuid, connection, frame='edit')
-        files_dict[obj_type].write(str(object_dict)+'\n')
-        files_dict[obj_type].flush()
+        x = json.dumps(object_dict, indent=4, sort_keys=True)
+        strings_dict[obj_type].append(x)
         if 'attachment' in object_dict:
-            #print (object_dict['attachment'])
             urllib.request.urlretrieve("https://www.encodeproject.org/"+uuid+'/'+object_dict['attachment']['href'], 'documents/' + object_dict['attachment']['download'])
+        
+    
+    for obj_type in strings_dict.keys():
+        final_output = '['
+        for x in strings_dict[obj_type]:
+            final_output += '\n' + x + ','
+        final_output = final_output[:-1] + '\n]'
 
+        
+        files_dict[obj_type].write(final_output)
+        files_dict[obj_type].flush()
 def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
