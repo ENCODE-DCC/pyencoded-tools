@@ -70,21 +70,26 @@ def create_inserts(args, connection):
 
     for (obj_type, uuid) in sorted(uuids):
         object_dict = encodedcc.get_ENCODE(uuid, connection, frame='edit')
+
+        if 'attachment' in object_dict:
+            urllib.request.urlretrieve("https://www.encodeproject.org/" +
+                                       uuid +
+                                       '/' + object_dict['attachment']['href'],
+                                       'documents/' +
+                                       object_dict['attachment']['download'])
+            object_dict['attachment'] = object_dict['attachment']['download']
         x = json.dumps(object_dict, indent=4, sort_keys=True)
         strings_dict[obj_type].append(x)
-        if 'attachment' in object_dict:
-            urllib.request.urlretrieve("https://www.encodeproject.org/"+uuid+'/'+object_dict['attachment']['href'], 'documents/' + object_dict['attachment']['download'])
-        
-    
+
     for obj_type in strings_dict.keys():
         final_output = '['
         for x in strings_dict[obj_type]:
             final_output += '\n' + x + ','
         final_output = final_output[:-1] + '\n]'
-
-        
         files_dict[obj_type].write(final_output)
         files_dict[obj_type].flush()
+
+
 def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
