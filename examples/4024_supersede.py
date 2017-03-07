@@ -21,7 +21,7 @@ EPILOG = """
 logger = logging.getLogger(__name__)
 
 ACCESSIONED_OUTPUTS = {
-    "tf_chip_seq": [
+    "tf": [
         "ENCODE Peaks.rep1_pvalue_signal",
         "ENCODE Peaks.rep1_fc_signal",
         "ENCODE Peaks.rep2_pvalue_signal",
@@ -88,6 +88,31 @@ def enc_obj(o, connection):
         return o
 
 
+def infer_pipeline(analysis):
+    if (any(name == 'histone_chip_seq'
+            for name in [analysis.get('executableName'), analysis.get('name')])
+        or (analysis.get('workflow').get('description') == "ENCODE histone ChIP-seq Analysis Pipeline")):
+        return "histone"
+    elif (any(name == 'tf_chip_seq'
+              for name in [analysis.get('executableName'), analysis.get('name')])
+          or (analysis.get('workflow').get('description') == "ENCODE TF ChIP-Seq Pipeline")):
+        return "tf"
+    elif (analysis.get('executableName') == 'ENCODE mapping pipeline'
+          or analysis.get('workflow').get('name') == "ENCODE mapping pipeline"
+          or (any([re.match("Map", stage['name'])
+                   for stage in analysis['workflow']['stages']]) and
+              any([re.match("Filter", stage['name'])
+                   for stage in analysis['workflow']['stages']]))):
+        return "mapping"
+    elif (any([re.match("Map", stage['name'])
+               for stage in analysis['workflow']['stages']]) and
+          not any([re.match("Filter", stage['name'])
+                   for stage in analysis['workflow']['stages']])):
+        return "raw"
+    else:
+        return None
+
+
 def parent_analysis(file, connection):
     file_obj = enc_obj(file, connection)
     step_run = enc_obj(file_obj.get('step_run'), connection)
@@ -96,12 +121,14 @@ def parent_analysis(file, connection):
     for alias in job_aliases:
         jobid = alias.partition(':')[2]
         parentAnalysis_id = dxpy.describe(jobid, fields={'parentAnalysis': True}).get('parentAnalysis')
-        parentAnalysis = dxpy.describe(parentAnalysis_id, fields={'name': True, 'created': True, 'executableName': True})
+        parentAnalysis = dxpy.describe(parentAnalysis_id, 
+            fields={'name': True, 'created': True, 'executableName': True, 'workflow': True, 'stages': True})
         parent_analyses.append({
             'id': parentAnalysis_id,
             'created': parentAnalysis.get('created'),
             'executableName': parentAnalysis.get('executableName'),
             'name': parentAnalysis.get('name'),
+            'inferred_pipeline': infer_pipeline(parentAnalysis)
         })
     parent_analysis_ids = set([parent_analysis.get('id') for parent_analysis in parent_analyses])
     if len(parent_analysis_ids) != 1:
@@ -146,7 +173,12 @@ def get_experiments(args, connection):
     return experiments
 
 
+def dot():
+    sys.stdout.write(".")
+    sys.stdout.flush()
+
 def get_files(experiment, assembly, connection):
+    print("%s: searching for files and analyses" % (experiment.get('accession')), end="")
     DEPRECATED_FILE_STATUSES = ['deleted', 'revoked', 'replaced']
     uri = (
         "search/?type=File&dataset=/experiments/%s/&assembly=%s&lab.name=encode-processing-pipeline"
@@ -156,7 +188,7 @@ def get_files(experiment, assembly, connection):
     files = encodedcc.get_ENCODE(uri, connection).get('@graph', [])
     for f in files:
         f.update({'dx_analysis': parent_analysis(f, connection)})
-
+        dot()
     reads_uri = (
         "search/?type=File&dataset=/experiments/%s/&output_type=reads"
         % (experiment.get('accession')))
@@ -166,6 +198,7 @@ def get_files(experiment, assembly, connection):
     logger.debug(
         "get_files:Found %s %s files in %s with statuses %s"
         % (len(files), assembly, experiment.get('accession'), set([f.get('status') for f in files])))
+    print()
     return files
 
 
@@ -234,72 +267,104 @@ def get_md5(dxfileh):
         return None
 
 
-def get_enc(output_key, analysis, connection):
+def get_encs(output_key, analysis, experiment, connection):
     dx_output = get_dx_output(output_key, analysis)
-    md5 = get_md5(dx_output)
-    if md5:
-        return encodedcc.get_ENCODE('/files/md5:%s' % (md5), connection)
-    else:
-        possible_tag_matches = [re.findall("ENCFF.{6}", tag)[0] for tag in dx_output.tags]
-        if not possible_tag_matches:
-            print("%s: Cannot find md5 or accession in tag" % (dx_output.get_id()))
-            return None
-        elif len(possible_tag_matches) > 1:
-            print("%s: Has multiple ENCFF in tags: %s" % (dx_output.get_id(), possible_tag_matches))
-            return None
+    matched_files = []
+    try:
+        md5 = get_md5(dx_output)
+    except dxpy.exceptions.ResourceNotFound:  # the file on dx has been deleted
+        all_files = encodedcc.get_ENCODE("search/?type=File&dataset=%s" % (experiment.get('@id')), connection)['@graph']
+        for file in all_files:
+            notes_json = file.get('notes')
+            if not notes_json or file.get('output_category') == 'alignment':
+                continue
+            notes = json.loads(notes_json)  # the dx file ID should be in notes
+            if notes.get('dx-id') == dx_output.get_id():
+                matched_files.append(file)
+        if matched_files:
+            return matched_files
         else:
-            return encodedcc.get_ENCODE('/files/%s/' % (possible_tag_matches[0]), connection)
+            logger.debug("%s: DX file is not found and no corresponding ENCFF can be found.  Skipping." % (dx_output.get_id()))
+            return []
+    except:
+        raise
+    else:
+        if md5:
+            md5_matching_file = encodedcc.get_ENCODE('/files/md5:%s' % (md5), connection)
+            logger.debug("%s: found md5 mattching file %s" % (dx_output.get_id(), md5_matching_file.get('accession')))
+            matched_files = [md5_matching_file]
+            return matched_files
+        else:
+            possible_tag_matches = [re.findall("ENCFF.{6}", tag)[0] for tag in dx_output.tags]
+            if not possible_tag_matches:
+                logger.debug("%s: Cannot find md5 or accession in tag.  Skipping." % (dx_output.get_id()))
+                return []
+            else:
+                tagged_files = [encodedcc.get_ENCODE('/files/%s/' % (tag), connection) for tag in possible_tag_matches]
+                matched_files = [f for f in tagged_files if f]
+                return matched_files
 
 
-def patch(batch, connection):
+def patch(batch, connection, do_supersede):
     for patch_job in batch:
         accession, payload = next(patch_job.iteritems())
-        response = encodedcc.patch_ENCODE(accession, connection, payload)
-        # response = {'status': 'skipped'}
+        if do_supersede:
+            response = encodedcc.patch_ENCODE(accession, connection, payload)
+        else:
+            response = {'status': 'dryrun..skipped'}
         print("%s\t%s\t%s" % (accession, payload, response.get('status')))
 
 
-def supersede(analyses, connection, do_supersede):
+def supersede(analyses, connection, experiment, do_supersede):
     if len(analyses) == 1:
         print("Only one analysis found, nothing to supersede")
         return
-    assert len(set([analysis.get('executableName') for analysis in analyses])) == 1, "Cannot supersede different analysis types"
+    assert len(set([analysis.get('inferred_pipeline') for analysis in analyses])) == 1, "Cannot supersede different pipeline types"
     analyses.sort(key=itemgetter('created'), reverse=True)
-    executable_name = analyses[0].get('executableName')
+    print("Newest analysis: %s %s" % (analyses[0].get('id'), analyses[0].get('name')))
+    print("Older analyses: %s" % [a.get('id')+" "+a.get('name') for a in analyses[1:]])
+    inferred_pipeline = analyses[0].get('inferred_pipeline')
     patch_batch = []
-    for output_key in ACCESSIONED_OUTPUTS[executable_name]:
-        enc_files = [get_enc(output_key, analysis, connection) for analysis in analyses]
-        print(("%s\t%s->%s" % (output_key, enc_files[0].get('accession'), [f.get('accession') for f in enc_files[1:]])), end='')
+    for output_key in ACCESSIONED_OUTPUTS[inferred_pipeline]:
+        enc_files = []
+        for analysis in analyses:
+            enc_files.extend(get_encs(output_key, analysis, experiment, connection))
+        print(("%s\t%s->%s" % (output_key, enc_files[0].get('@id'), [f.get('@id') for f in enc_files[1:] if f])), end='')
         new_file = enc_files[0]
-        new_file_accession = new_file.get('accession')
-        supersedes_files = [f.get('accession') for f in enc_files[1:] if f.get('accession')]
-        if new_file_accession in supersedes_files:
-            supersedes_files.remove(new_file_accession)
-        if supersedes_files:
-            supersedes_metadata = {'supersedes': list(set(["/files/%s/" % (acc) for acc in supersedes_files] + (new_file.get('supersedes') or [])))}
-            patch_batch.append({new_file_accession: supersedes_metadata})
-            for old_file_accession in supersedes_files:
-                patch_batch.append({old_file_accession: {'status': 'revoked'}})
-            print("\tqueued to patch %s" % (json.dumps(supersedes_metadata)))
+        new_file_id = new_file.get('@id')
+        supersedes_file_ids = [f.get('@id') for f in enc_files[1:] if (f and f.get('@id') != new_file_id)]
+        # if new_file_accession in supersedes_files:
+        #     supersedes_files.remove(new_file_accession)
+        if supersedes_file_ids:
+            supersedes_metadata = {'supersedes': list(set([fid for fid in supersedes_file_ids if fid] + (new_file.get('supersedes') or [])))}
+            patch_batch.append({new_file_id: supersedes_metadata})
+            for old_file_id in [fid for fid in supersedes_file_ids if fid]:
+                patch_batch.append({old_file_id: {'status': 'revoked'}})
+            print("\tqueued to patch %s" % (json.dumps(patch_batch)))
         else:
             print("\tnothing to patch")
-    if do_supersede:
-        patch(patch_batch, connection)
-    else:
-        print("\tdryrun so no change")
+    patch(patch_batch, connection, do_supersede)
 
 
 def run(args, connection):
     experiments = get_experiments(args, connection)
+    print("Found %s experiments" % (len(experiments)))
     for experiment in experiments:
         files = get_files(experiment, args.assembly, connection)
+        print("%s: found %d files" % (experiment.get('accession'), len(files)))
         peaks_analyses = []
         for f in files:
             analysis = f.get('dx_analysis')
-            if analysis and analysis.get('executableName') == "tf_chip_seq" and analysis not in peaks_analyses:
+            logger.debug("%s\t%s" % (f.get('accession'), analysis))
+            if (analysis
+                and analysis.get('inferred_pipeline') == "tf"
+                and analysis not in peaks_analyses):
                 peaks_analyses.append(analysis)
+        print("%s: found %d peaks analyses" % (experiment.get('accession'), len(peaks_analyses)))
         if len(peaks_analyses) > 1:
-            supersede(peaks_analyses, connection, args.supersede)
+            supersede(peaks_analyses, connection, experiment, args.supersede)
+        else:
+            print('%s: no extra analyses to supersede' % (experiment.get('accession')))
 
         # analyses = {}
         # for f in files:
