@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: latin-1 -*-
 
+from __future__ import print_function
+import six.moves.urllib as urllib
+from urlparse import urljoin
+from urllib import quote
 import requests
 import json
 import sys
 import logging
-from urllib.parse import urljoin
-from urllib.parse import quote
 import os.path
 import hashlib
 import copy
