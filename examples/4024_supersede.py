@@ -12,13 +12,15 @@ from operator import itemgetter, attrgetter, methodcaller
 
 EPILOG = """
     for each experiment
-    build graphs based on derived_from
-    validate graphs
-    optionally replace one graph with another
+    find files and the analyses they come from
+    supersede files from older analyses by files from the newest
+    set older files' statuses to "revoked"
 """
 
 logger = logging.getLogger(__name__)
 
+# this is in the format DNAnexus stage name:DNAnexus output name
+# stage name can be a regex as in "Map .*$" to match "Map ENCSRxxxyyy"
 ACCESSIONED_OUTPUTS = {
     "tf": [
         "ENCODE Peaks:rep1_pvalue_signal",
@@ -85,6 +87,7 @@ def uri_to_accession(uri):
         return None
 
 
+# allows to use objects and uri's +/- interchangeably
 def enc_obj(o, connection):
     if isinstance(o, (str, unicode)):
         return encodedcc.get_ENCODE(o, connection)
@@ -92,6 +95,7 @@ def enc_obj(o, connection):
         return o
 
 
+# all the different ways to identify what pipeline an analysis represents
 def infer_pipeline(analysis):
     if (any(name == 'histone_chip_seq'
             for name in [analysis.get('executableName'), analysis.get('name')])
@@ -117,6 +121,7 @@ def infer_pipeline(analysis):
         return None
 
 
+# given an encoded file object, find the DX analysis that created it
 def get_parent_analysis(file, connection):
     file_obj = enc_obj(file, connection)
     step_run = enc_obj(file_obj.get('step_run'), connection)
@@ -153,6 +158,7 @@ def experiment_bioreps(experiment, connection):
 
 
 def get_experiments_by_accession(accession_list, connection):
+    # this is faster but returns experiments in a different order
     # if len(accession_list) < 100:
     #     uri = "search/?type=Experiment"
     #     for acc in accession_list:
@@ -185,6 +191,7 @@ def dot():
     sys.stdout.flush()
 
 
+# find the files and analyses accessioned to the experiment
 def get_files(experiment, assembly, connection):
     print("%s:Searching for files and analyses" % (experiment.get('accession')), end="")
     DEPRECATED_FILE_STATUSES = ['deleted', 'revoked', 'replaced']
@@ -215,6 +222,7 @@ def get_files(experiment, assembly, connection):
     return files
 
 
+# build a DAG based on derived_from
 def get_graph(experiment, assembly, connection):
     files = get_files(experiment, assembly, connection)
     logger.debug(
@@ -264,6 +272,7 @@ def find_all_paths(graph, start, end, path=[]):
     return paths
 
 
+# parse the output key and get a DX file handler to the DX file
 def get_dx_output(output_key, analysis):
     dx_analysis = dxpy.describe(analysis['id'])
     stages = [stage['execution'] for stage in dx_analysis['stages']]
@@ -272,6 +281,7 @@ def get_dx_output(output_key, analysis):
     return dxpy.get_handler(stage_outputs[output_name])
 
 
+# the ChIP pipeline accessioning code saves the md5 in DNAnexus properties
 def get_md5(dxfileh):
     property_md5 = dxfileh.get_properties().get('md5sum')
     if property_md5:
@@ -280,6 +290,8 @@ def get_md5(dxfileh):
         return None
 
 
+# pull DNAnexus file ID out of encoded file object notes
+# there are two encoded file object notes formats supported
 def matched_files_from_notes(dx_output, analysis, experiment, connection):
     matched_files = []
     all_files = encodedcc.get_ENCODE("search/?type=File&dataset=%s" % (experiment.get('@id')), connection)['@graph']
@@ -300,6 +312,12 @@ def matched_files_from_notes(dx_output, analysis, experiment, connection):
         return []
 
 
+# return encoded file object(s) that match a given file on DNAnexus
+# match can be by different criteria in the following order of precedence
+# 1. by matching md5 (depends on md5 being stored in DX file property)
+# 2. by accession number in DX file object tag(s)
+# 3. by matching dx file ID from encoded file object notes
+# if the dx file has been deleted, always match by notes (it's all we have)
 def get_encs(output_key, analysis, experiment, connection):
     experiment_accession = experiment.get('accession')
     dx_output = get_dx_output(output_key, analysis)
@@ -340,6 +358,7 @@ def get_encs(output_key, analysis, experiment, connection):
                     return matched_files
 
 
+# takes a batch of json and patches it if do_supersede is true
 def patch(batch, connection, experiment, do_supersede):
     experiment_accession = experiment.get('accession')
     for patch_job in batch:
@@ -351,17 +370,22 @@ def patch(batch, connection, experiment, do_supersede):
         print("%s:%s\t%s\t%s" % (experiment_accession, accession, payload, response.get('status')))
 
 
+# newer/older files are matched by virtue of being produced as the same outputs
+# of the same pipeline type.
 def supersede(analyses, connection, experiment, do_supersede):
     experiment_accession = experiment.get('accession')
     if len(analyses) == 1:
         print("%s:Only one analysis found, nothing to supersede" % (experiment_accession))
         return
     assert len(set([analysis.get('inferred_pipeline') for analysis in analyses])) == 1, "Cannot supersede different pipeline types"
+    # order the analyses by date created, assume newest analysis is canonical
     analyses.sort(key=itemgetter('created'), reverse=True)
     print("%s:Newest analysis: %s %s" % (experiment_accession, analyses[0].get('id'), analyses[0].get('name')))
     print("%s:Older analyses: %s" % (experiment_accession, [a.get('id')+" "+a.get('name') for a in analyses[1:]]))
     inferred_pipeline = analyses[0].get('inferred_pipeline')
     patch_batch = []
+    # for each accessioned output as defined by ACCESSIONED_OUTPUTS find the canonical file
+    #  and any older files produced as the same output of older analysis runs
     for output_key in ACCESSIONED_OUTPUTS[inferred_pipeline]:
         enc_files = []
         for analysis in analyses:
@@ -373,8 +397,7 @@ def supersede(analyses, connection, experiment, do_supersede):
         new_file = enc_files[0]
         new_file_id = new_file.get('@id')
         supersedes_file_ids = [f.get('@id') for f in enc_files[1:] if (f and f.get('@id') != new_file_id)]
-        # if new_file_accession in supersedes_files:
-        #     supersedes_files.remove(new_file_accession)
+        # if a file is being superseded, set it to revoked
         if supersedes_file_ids:
             supersedes_metadata = {'supersedes': list(set([fid for fid in supersedes_file_ids if fid] + (new_file.get('supersedes') or [])))}
             patch_batch.append({new_file_id: supersedes_metadata})
@@ -391,6 +414,9 @@ def biorepns(experiment, connection):
     return list(set([r.get('biological_replicate_number') for r in replicates]))
 
 
+# handle each pipeline type separately because some are specific to just one
+# replicate (like mapping) and some span replicates (like peak calling)
+# after mustering the files, call supersede to do the work
 def run(args, connection):
     if args.pipeline == 'mapping':
         print("WARNING! Revoking mapping files, especially controls, may invalidate files that derive from them.")
@@ -429,48 +455,6 @@ def run(args, connection):
                     supersede(mapping_analyses, connection, experiment, args.supersede)
                 else:
                     print('%s:No extra analyses to supersede for biorep %s' % (experiment.get('accession'), repn))
-
-        # analyses = {}
-        # for f in files:
-        #     analysis = f.get('dx_analysis')
-        #     if not analysis:
-        #         continue
-        #     if analysis.get('id') in analyses:
-        #         analyses[analysis.get('id')]['files'].append(f.get('accession'))
-        #     else:
-        #         analyses.update({analysis.get('id'): {
-        #             'files': [f.get('accession')],
-        #             'name': analysis.get('name')
-        #             }
-        #         })
-        # pprint(analyses)
-        # graph = get_graph(experiment, args.assembly, connection)
-        # biorepns = experiment_bioreps(experiment, connection)
-        # for repn in biorepns:
-        #     alignments = [f for f in files if f.get('output_category') == 'alignment' and repn in f.get('biological_replicates')]
-        #     print("rep%d has %d alignments/analysis: %s" % (repn, len(alignments), [(a.get('accession'), parent_analysis(a, connection)) for a in alignments]))
-
-        # leaves = {
-        #     'peak_bbs': {
-        #         'pool': [],
-        #         'reps': {},
-        #     },
-        #     'signal_fcs': {
-        #         'pool': [],
-        #         'reps': {},
-        #     },
-        #     'signal_pvs': {
-        #         'pool': [],
-        #         'reps': {},
-        #     },
-        #     'idr_conservative_bb': [],
-        #     'idr_optimal_bb': []
-        # }
-        # A = 'ENCFF001RUL'
-        # B = 'ENCFF079EFI'
-        # paths = find_all_paths(graph, A, B)
-        # print("%d paths from %s to %s: %s" % (len(paths), A, B, paths))
-    return True
 
 
 def main():
