@@ -5,7 +5,6 @@ import encodedcc
 import logging
 import re
 import sys
-import subprocess
 import json
 import dxpy
 from pprint import pprint
@@ -22,22 +21,26 @@ logger = logging.getLogger(__name__)
 
 ACCESSIONED_OUTPUTS = {
     "tf": [
-        "ENCODE Peaks.rep1_pvalue_signal",
-        "ENCODE Peaks.rep1_fc_signal",
-        "ENCODE Peaks.rep2_pvalue_signal",
-        "ENCODE Peaks.rep2_fc_signal",
-        "ENCODE Peaks.pooled_pvalue_signal",
-        "ENCODE Peaks.pooled_fc_signal",
-        "SPP Peaks.rep1_peaks",
-        "SPP Peaks.rep2_peaks",
-        "SPP Peaks.pooled_peaks",
-        "SPP Peaks.rep1_peaks_bb",
-        "SPP Peaks.rep2_peaks_bb",
-        "SPP Peaks.pooled_peaks_bb",
-        "Final IDR peak calls.optimal_set",
-        "Final IDR peak calls.conservative_set",
-        "Final IDR peak calls.optimal_set_bb",
-        "Final IDR peak calls.conservative_set_bb"
+        "ENCODE Peaks:rep1_pvalue_signal",
+        "ENCODE Peaks:rep1_fc_signal",
+        "ENCODE Peaks:rep2_pvalue_signal",
+        "ENCODE Peaks:rep2_fc_signal",
+        "ENCODE Peaks:pooled_pvalue_signal",
+        "ENCODE Peaks:pooled_fc_signal",
+        "SPP Peaks:rep1_peaks",
+        "SPP Peaks:rep2_peaks",
+        "SPP Peaks:pooled_peaks",
+        "SPP Peaks:rep1_peaks_bb",
+        "SPP Peaks:rep2_peaks_bb",
+        "SPP Peaks:pooled_peaks_bb",
+        "Final IDR peak calls:optimal_set",
+        "Final IDR peak calls:conservative_set",
+        "Final IDR peak calls:optimal_set_bb",
+        "Final IDR peak calls:conservative_set_bb"
+    ],
+    "mapping": [
+        "Map .*$:mapped_reads",
+        "Filter and QC .*$:filtered_bam"
     ]
 }
 
@@ -59,6 +62,7 @@ def get_args():
             assert not (True or False), "Cannot parse %s to boolean" % (arg)
 
     parser.add_argument('experiments', help='List of ENCSR accessions to report on', nargs='*', default=None)
+    parser.add_argument('--pipeline', help='Pipeline', choices=["tf", "mapping"])
     parser.add_argument('--infile', help='File containing ENCSR accessions', type=argparse.FileType('r'), default=None)
     parser.add_argument('--key', help="The keypair identifier from the keyfile.", default='www')
     parser.add_argument('--keyfile', help="The keyfile.", default=os.path.expanduser("~/keypairs.json"))
@@ -263,8 +267,8 @@ def find_all_paths(graph, start, end, path=[]):
 def get_dx_output(output_key, analysis):
     dx_analysis = dxpy.describe(analysis['id'])
     stages = [stage['execution'] for stage in dx_analysis['stages']]
-    stage_name, dot, output_name = output_key.partition(".")
-    stage_outputs = next(s.get('output') for s in stages if s['name'] == stage_name)
+    stage_pattern, colon, output_name = output_key.partition(":")
+    stage_outputs = next(s.get('output') for s in stages if re.match(stage_pattern, s.get('name')))
     return dxpy.get_handler(stage_outputs[output_name])
 
 
@@ -362,6 +366,9 @@ def supersede(analyses, connection, experiment, do_supersede):
         enc_files = []
         for analysis in analyses:
             enc_files.extend(get_encs(output_key, analysis, experiment, connection))
+        if not enc_files:
+            print("%s:%s resolves no files, skipping" % (experiment_accession, output_key))
+            continue
         print(("%s:%s\t%s->%s" % (experiment_accession, output_key, enc_files[0].get('@id'), [f.get('@id') for f in enc_files[1:] if f])), end='')
         new_file = enc_files[0]
         new_file_id = new_file.get('@id')
@@ -379,25 +386,49 @@ def supersede(analyses, connection, experiment, do_supersede):
     patch(patch_batch, connection, experiment, do_supersede)
 
 
+def biorepns(experiment, connection):
+    replicates = [enc_obj(r, connection) for r in experiment.get('replicates')]
+    return list(set([r.get('biological_replicate_number') for r in replicates]))
+
+
 def run(args, connection):
+    if args.pipeline == 'mapping':
+        print("WARNING! Revoking mapping files, especially controls, may invalidate files that derive from them.")
     experiments = get_experiments(args, connection)
     logger.debug("Found %s experiments" % (len(experiments)))
     for experiment in experiments:
         files = get_files(experiment, args.assembly, connection)
         print("%s:Found %d files" % (experiment.get('accession'), len(files)))
-        peaks_analyses = []
-        for f in files:
-            analysis = f.get('dx_analysis')
-            logger.debug("%s\t%s" % (f.get('accession'), analysis))
-            if (analysis
-                and analysis.get('inferred_pipeline') == "tf"
-                and analysis not in peaks_analyses):
-                peaks_analyses.append(analysis)
-        print("%s:Found %d peaks analyses" % (experiment.get('accession'), len(peaks_analyses)))
-        if len(peaks_analyses) > 1:
-            supersede(peaks_analyses, connection, experiment, args.supersede)
-        else:
-            print('%s:No extra analyses to supersede' % (experiment.get('accession')))
+        if args.pipeline == 'tf':
+            peaks_analyses = []
+            for f in files:
+                analysis = f.get('dx_analysis')
+                logger.debug("%s\t%s" % (f.get('accession'), analysis))
+                if (analysis
+                    and analysis.get('inferred_pipeline') == "tf"
+                    and analysis not in peaks_analyses):
+                    peaks_analyses.append(analysis)
+            print("%s:Found %d peaks analyses" % (experiment.get('accession'), len(peaks_analyses)))
+            if len(peaks_analyses) > 1:
+                supersede(peaks_analyses, connection, experiment, args.supersede)
+            else:
+                print('%s:No extra analyses to supersede' % (experiment.get('accession')))
+        elif args.pipeline == 'mapping':
+            for repn in biorepns(experiment, connection):
+                mapping_files = [f for f in files if f.get('output_category') == 'alignment' and repn in f.get('biological_replicates')]
+                mapping_analyses = []
+                for f in mapping_files:
+                    analysis = f.get('dx_analysis')
+                    logger.debug("%s\t%s" % (f.get('accession'), analysis))
+                    if (analysis
+                        and analysis.get('inferred_pipeline') == "mapping"
+                        and analysis not in mapping_analyses):
+                        mapping_analyses.append(analysis)
+                print("%s:Found %d mapping analyses for biorep %s" % (experiment.get('accession'), len(mapping_analyses), repn))
+                if len(mapping_analyses) > 1:
+                    supersede(mapping_analyses, connection, experiment, args.supersede)
+                else:
+                    print('%s:No extra analyses to supersede for biorep %s' % (experiment.get('accession'), repn))
 
         # analyses = {}
         # for f in files:
