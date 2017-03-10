@@ -1,10 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: latin-1 -*-
 
 from __future__ import print_function
-import six.moves.urllib as urllib
-from urlparse import urljoin
-from urllib import quote
+from six.moves.urllib.parse import urljoin, quote
 import requests
 import json
 import sys
@@ -13,6 +11,7 @@ import os.path
 import hashlib
 import copy
 import subprocess
+
 
 class dict_diff(object):
     """
