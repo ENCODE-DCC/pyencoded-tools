@@ -86,8 +86,12 @@ def process_links_list(list_of_links, keypair, server):
                                         entry,
                                         keypair)
             if replaced_file['uuid'] == entry.split('/')[2]:
-                new_entry = '/files/' + replaced_file['accession'] + '/'
-                # print (entry)
+                check_for_existance = encoded_get(
+                    server + replaced_file['accession'], keypair)
+                if check_for_existance.get('status') != 'error':
+                    new_entry = '/files/' + replaced_file['accession'] + '/'
+                else:
+                    new_entry = entry
             else:
                 new_entry = entry
             to_return_list.add(new_entry)
@@ -132,7 +136,6 @@ def main():
                     patching_data['controlled_by'] = new_controlled_by_list
             if patching_data:
                 print ('Patching file ' + f['accession'])
-                # print (patching_data)
                 encodedcc.patch_ENCODE(f['accession'],
                                        connection, patching_data)
 
