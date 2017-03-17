@@ -16,7 +16,7 @@ For more details:
 '''
 '''
 Example command:
-python3 ENCODE_replaced_fixer.py --keyfile keypairs.json --key test 
+python3 ENCODE_replaced_fixer.py --keyfile keypairs.json --key test  --query 'accession=ENCFF123ABC'
 '''
 
 
@@ -25,6 +25,8 @@ def getArgs():
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    parser.add_argument('--query', default='',
+                        help="override the file search query, e.g. 'accession=ENCFF000ABC'")
     parser.add_argument('--key',
                         default='default',
                         help="The keypair identifier from the keyfile.  \
@@ -108,10 +110,11 @@ def main():
     connection = encodedcc.ENC_Connection(key)
     keypair = (key.authid, key.authpw)
     server = key.server
+    query = args.query
 
     files = encoded_get(server +
                         'search/?type=File&format=json&' +
-                        'frame=object&limit=all',
+                        'frame=object&limit=all&' + query,
                         keypair)['@graph']
     print ('There are ' + str(len(files)) + ' files on the portal')
     counter = 0
@@ -127,6 +130,13 @@ def main():
                     derived_from_list, keypair, server)
                 if new_derived_from_list:
                     patching_data['derived_from'] = new_derived_from_list
+
+            paired_with_file = f.get('paired_with')
+            if paired_with_file:
+                new_paired_with = process_links_list(
+                    [paired_with_file], keypair, server)
+                if new_paired_with:
+                    patching_data['paired_with'] = new_paired_with[0]
 
             controlled_by_list = f.get('controlled_by')
             if controlled_by_list:
