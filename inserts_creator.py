@@ -5,6 +5,7 @@ import logging
 import sys
 import urllib.request
 import json
+import re
 
 EPILOG = '''
 %(prog)s is a script that will extract uuid(s) of all the objects
@@ -52,7 +53,31 @@ def getArgs():
     return args
 
 
+def convert_links(link_to, reg_ex):
+    if isinstance(link_to, str):
+        if reg_ex.match(str(link_to)) is not None:
+            return link_to.split('/')[2]
+        else:
+            return link_to
+    elif isinstance(link_to, list):
+        to_return_list = []
+        for entry in link_to:
+            to_return_list.append(convert_links(entry, reg_ex))
+        return to_return_list
+    elif isinstance(link_to, dict):
+        for k in link_to.keys():
+            link_to[k] = convert_links(link_to[k], reg_ex)
+        return link_to
+    return link_to
+   
+
+>>>>>>>>>>>* in experiment we should remove original files and replicates
+>>>> in Extrcat script we have to deal not only with uuids and accessions but also weird names like jim kent lab that was not created despite the fact Mike cherry submits for them
+
+
 def create_inserts(args, connection):
+    link_to_regex = re.compile('^/.+/.+/$')
+
     if args.infile:
         if os.path.isfile(args.infile):
             uuids = [(line.rstrip('\n').split()[0],line.rstrip('\n').split()[1]) for line in open(
@@ -65,12 +90,18 @@ def create_inserts(args, connection):
     strings_dict = {}
     for (obj_type, uuid) in sorted(uuids):
         if obj_type not in files_dict:
-            files_dict[obj_type] = open('inserts/' + obj_type + '.json', 'w')
+            file_name = re.sub('(?<!^)(?=[A-Z])', '_', obj_type).lower()
+            files_dict[obj_type] = open('inserts/' + file_name + '.json', 'w')
             strings_dict[obj_type] = []
 
     for (obj_type, uuid) in sorted(uuids):
         object_dict = encodedcc.get_ENCODE(uuid, connection, frame='edit')
-
+        object_dict['uuid'] = uuid
+        for key in object_dict.keys():
+            #print (object_dict[key])
+            object_dict[key] = convert_links(object_dict[key], link_to_regex)
+            #print (object_dict[key])
+            #print ('-----')
         if 'attachment' in object_dict:
             urllib.request.urlretrieve("https://www.encodeproject.org/" +
                                        uuid +

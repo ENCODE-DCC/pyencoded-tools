@@ -97,7 +97,8 @@ class Data_Extract():
             #print (self.keysLink)
             self.PROFILES[item] = self.keysLink
             #print ('--------------')
-
+>>>>>>>>>>>>> may be replace class variable keyslink by local variable, I am afraid we rewriting
+or may be take the initial list out of the loop - I am not sure
 
     def helper(self, item):
         '''feed this back to making references between official object name \
@@ -123,9 +124,9 @@ class Data_Extract():
                     self.keysLink.append(prop)
                 else:
                     if d[prop].get("items"):
-                            i = d[prop].get("items")
-                            if i.get("linkFrom") or i.get("linkTo"):
-                                self.keysLink.append(prop)
+                        i = d[prop].get("items")
+                        if i.get("linkFrom") or i.get("linkTo"):
+                            self.keysLink.append(prop)
 
     def set_up(self):
         '''do some setup for script'''
@@ -153,18 +154,30 @@ class Data_Extract():
                     # if the key is in profiles it's a link
                     if type(obj[key]) is list:
                         for link in obj[key]:
+                            print ('key - ' + key)
                             self.process_link(
                                 link)
                     else:
                         self.process_link(
                             obj[key])
 
+>>> we have to introduce ierarchy here. actually I have to check why we didn't get continuous looping through the user
+>>> what is a connectivity hub in our systen. analysis step run I think and, it goes to many files and many files poijnt to it
+>>> we will have to introduce object types that would not be expandable.
+>>> similar to releasenator
+
+
+>>> anyway the fact some user submits for two labs was not recognized remains unsolved
+
+
     def process_link(self, identifier_link):
-        #print ("entering process_link with " + identifier_link)
+        print ("entering process_link with " + identifier_link)
         item = identifier_link.split("/")[1].replace("-", "")
         
         subobj = encodedcc.get_ENCODE(identifier_link, self.connection)
         subobjname = subobj["@type"][0]
+        >>>>>>> check if user has submits_for list checked here...
+
         if (item in self.profiles_ref) and \
            (identifier_link not in self.searched):
             # expand subobject
@@ -178,6 +191,7 @@ class Data_Extract():
         for accession in self.ACCESSIONS:
             print ("Processing accession: " + accession)
             self.searched = []
+            >>>>>>>> why we nullify the list for evry accseccion????
             expandedDict = encodedcc.get_ENCODE(accession, self.connection)
             self.get_status(expandedDict)
             for id_link in sorted(self.searched):
