@@ -148,6 +148,21 @@ def main():
                 print ('Patching file ' + f['accession'])
                 encodedcc.patch_ENCODE(f['accession'],
                                        connection, patching_data)
+                file_to_validate = encoded_get(server +
+                                               f['accession'] +
+                                               '?format=json&frame=object',
+                                               keypair)
+                repatch_data = {}
+                for k in patching_data:
+                    if sorted(patching_data[k]) != sorted(file_to_validate[k]):
+                        repatch_data[k] = list(set(file_to_validate[k]))
+                if repatch_data:
+                    print ('Patching again file ' + f['accession'])
+                    encodedcc.patch_ENCODE(f['accession'],
+                                           connection, repatch_data)
+
+
+
 
 if __name__ == '__main__':
     main()
