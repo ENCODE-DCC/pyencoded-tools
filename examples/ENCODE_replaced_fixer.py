@@ -91,7 +91,8 @@ def process_links_list(list_of_links, keypair, server):
                 check_for_existance = encoded_get(
                     server + replaced_file['accession'], keypair)
                 if check_for_existance.get('status') != 'error':
-                    new_entry = '/files/' + replaced_file['accession'] + '/'
+                    new_entry = '/files/' + \
+                                check_for_existance['accession'] + '/'
                 else:
                     new_entry = entry
             else:
@@ -148,19 +149,7 @@ def main():
                 print ('Patching file ' + f['accession'])
                 encodedcc.patch_ENCODE(f['accession'],
                                        connection, patching_data)
-                file_to_validate = encoded_get(server +
-                                               f['accession'] +
-                                               '?format=json&frame=object',
-                                               keypair)
-                repatch_data = {}
-                for k in patching_data:
-                    if sorted(patching_data[k]) != sorted(file_to_validate[k]):
-                        repatch_data[k] = list(set(file_to_validate[k]))
-                if repatch_data:
-                    print ('Patching again file ' + f['accession'])
-                    encodedcc.patch_ENCODE(f['accession'],
-                                           connection, repatch_data)
-
+                
 
 
 
