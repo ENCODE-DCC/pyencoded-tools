@@ -77,15 +77,46 @@ class Data_Extract():
         self.keysLink = []
         self.PROFILES = {}
         self.ACCESSIONS = []
+        '''
+         'Software',
+            'Organism',
+            'Image',
+            'Pipeline',
+            'Award',
+            'Source',
+            'AnalysisStepVersion',
+            'SoftwareVersion',
+            'Lab',
+            'Platform',
+            'User',
+            'Page',
+            'AnalysisStep']
+        '''
+        self.EXCLUDED = [
+            
+            'Organism',
+            
+            
+            'Award',
+            'Source',
+            
+            
+            'Lab',
+            
+            'User'
+            
+            ]
         self.connection = connection
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
 
         self.profilesJSON = []
         for profile in temp.keys():
-            self.profilesJSON.append(profile)
+            if profile not in self.EXCLUDED:
+                self.profilesJSON.append(profile)
         self.profiles_ref = []
         for profile in self.profilesJSON:
             self.profiles_ref.append(self.helper(profile))
+        #print (self.profiles_ref)
         for item in self.profilesJSON:
             profile = temp[item]  # getting the whole schema profile
             self.keysLink = []  # if a key is in this list, it points to a
@@ -97,8 +128,9 @@ class Data_Extract():
             #print (self.keysLink)
             self.PROFILES[item] = self.keysLink
             #print ('--------------')
->>>>>>>>>>>>> may be replace class variable keyslink by local variable, I am afraid we rewriting
-or may be take the initial list out of the loop - I am not sure
+        #print (self.PROFILES['User'])
+    #>>>>>>>>>>>>> may be replace class variable keyslink by local variable, I am afraid we rewriting
+    #or may be take the initial list out of the loop - I am not sure
 
     def helper(self, item):
         '''feed this back to making references between official object name \
@@ -161,22 +193,22 @@ or may be take the initial list out of the loop - I am not sure
                         self.process_link(
                             obj[key])
 
->>> we have to introduce ierarchy here. actually I have to check why we didn't get continuous looping through the user
->>> what is a connectivity hub in our systen. analysis step run I think and, it goes to many files and many files poijnt to it
->>> we will have to introduce object types that would not be expandable.
->>> similar to releasenator
+    #>>> we have to introduce ierarchy here. actually I have to check why we didn't get continuous looping through the user
+    #>>> what is a connectivity hub in our systen. analysis step run I think and, it goes to many files and many files poijnt to it
+    #>>> we will have to introduce object types that would not be expandable.
+    #>>> similar to releasenator
 
 
->>> anyway the fact some user submits for two labs was not recognized remains unsolved
+    #>>> anyway the fact some user submits for two labs was not recognized remains unsolved
 
 
     def process_link(self, identifier_link):
         print ("entering process_link with " + identifier_link)
         item = identifier_link.split("/")[1].replace("-", "")
-        
+
         subobj = encodedcc.get_ENCODE(identifier_link, self.connection)
         subobjname = subobj["@type"][0]
-        >>>>>>> check if user has submits_for list checked here...
+        # >>>>>>> check if user has submits_for list checked here...
 
         if (item in self.profiles_ref) and \
            (identifier_link not in self.searched):
@@ -188,25 +220,36 @@ or may be take the initial list out of the loop - I am not sure
         # also makes the list of accessions to run from
         uuids = set()
         self.set_up()
+
+
+    #>>> after some more thinking I guess we need to introduce a new list of already examined objects, and check everything against its
+
         for accession in self.ACCESSIONS:
-            print ("Processing accession: " + accession)
             self.searched = []
-            >>>>>>>> why we nullify the list for evry accseccion????
+            print ("Processing accession: " + accession)
             expandedDict = encodedcc.get_ENCODE(accession, self.connection)
             self.get_status(expandedDict)
             for id_link in sorted(self.searched):
                 id_dict = encodedcc.get_ENCODE(id_link, self.connection)
                 uuids.add((id_dict['@type'][0], id_dict['uuid']))
-        
+
         for (t, uuid) in sorted(list(uuids)):
             log = '%s' % "{}\t{}".format(
                 t, uuid)
             logger.info(log)
-            
+
+        # adding groups of widelu used objects:
+        for prof in self.EXCLUDED:
+            objects = encodedcc.get_ENCODE('/search/?type=' + prof, self.connection)['@graph']
+            for o in objects:
+                log = '%s' % "{}\t{}".format(
+                    o['@type'][0], o['uuid'])
+                logger.info(log)
+
         print("Data written to file", self.outfile)
 
-def main():
 
+def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)

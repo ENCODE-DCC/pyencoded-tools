@@ -71,11 +71,40 @@ def convert_links(link_to, reg_ex):
     return link_to
    
 
->>>>>>>>>>>* in experiment we should remove original files and replicates
->>>> in Extrcat script we have to deal not only with uuids and accessions but also weird names like jim kent lab that was not created despite the fact Mike cherry submits for them
+    #>>>>>>>>>>>* in experiment we should remove original files and replicates
+    #S>>>> in Extrcat script we have to deal not only with uuids and accessions but also weird names like jim kent lab that was not created despite the fact Mike cherry submits for them
 
+def make_profile(dictionary, object_type):
+    '''builds the PROFILES reference dictionary
+    keysLink is the list of keys that point to links,
+    used in the PROFILES'''
+    to_return = []
+    d = dictionary["properties"]
+    for prop in d.keys():
+            if d[prop].get("linkFrom"):
+                to_return.append(prop)
+            else:
+                if d[prop].get("items"):
+                    i = d[prop].get("items")
+                    if i.get("linkFrom"):
+                        to_return.append(prop)
+    return to_return
 
 def create_inserts(args, connection):
+    PROFILES = {}
+    temp = encodedcc.get_ENCODE("/profiles/", connection)
+    profilesJSON = []
+    for profile in temp.keys():
+        profilesJSON.append(profile)
+
+    for item in profilesJSON:
+        profile = temp[item]
+        object_type = item
+        PROFILES[item] = make_profile(profile, object_type)
+
+        #print (item)
+        #print (PROFILES[item])
+        #print ()
     link_to_regex = re.compile('^/.+/.+/$')
 
     if args.infile:
@@ -93,24 +122,32 @@ def create_inserts(args, connection):
             file_name = re.sub('(?<!^)(?=[A-Z])', '_', obj_type).lower()
             files_dict[obj_type] = open('inserts/' + file_name + '.json', 'w')
             strings_dict[obj_type] = []
-
+    new_object_dict = {}
     for (obj_type, uuid) in sorted(uuids):
         object_dict = encodedcc.get_ENCODE(uuid, connection, frame='edit')
-        object_dict['uuid'] = uuid
+        new_object_dict['uuid'] = uuid
+        #print (obj_type, uuid)
         for key in object_dict.keys():
-            #print (object_dict[key])
-            object_dict[key] = convert_links(object_dict[key], link_to_regex)
-            #print (object_dict[key])
-            #print ('-----')
+            #print (obj_type)
+            #print ('ECXCLUDING : ' + str(PROFILES[obj_type]))
+            if key not in PROFILES[obj_type]:
+                #print (str(key) + '\t' + str(object_dict[key]))
+                new_object_dict[key] = convert_links(object_dict[key], link_to_regex)
         if 'attachment' in object_dict:
-            urllib.request.urlretrieve("https://www.encodeproject.org/" +
-                                       uuid +
-                                       '/' + object_dict['attachment']['href'],
-                                       'documents/' +
-                                       object_dict['attachment']['download'])
-            object_dict['attachment'] = object_dict['attachment']['download']
-        x = json.dumps(object_dict, indent=4, sort_keys=True)
+            #print (uuid)
+            try:
+                urllib.request.urlretrieve("https://www.encodeproject.org/" +
+                                           uuid +
+                                           '/' + object_dict['attachment']['href'],
+                                           'documents/' +
+                                           object_dict['attachment']['download'])
+            except urllib.error.HTTPError:
+                print ('non exsting attachment?')
+            else:
+                new_object_dict['attachment'] = object_dict['attachment']['download']
+        x = json.dumps(new_object_dict, indent=4, sort_keys=True)
         strings_dict[obj_type].append(x)
+        new_object_dict = {}
 
     for obj_type in strings_dict.keys():
         final_output = '['
