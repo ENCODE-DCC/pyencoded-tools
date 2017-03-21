@@ -69,10 +69,7 @@ def convert_links(link_to, reg_ex):
             link_to[k] = convert_links(link_to[k], reg_ex)
         return link_to
     return link_to
-   
 
-    #>>>>>>>>>>>* in experiment we should remove original files and replicates
-    #S>>>> in Extrcat script we have to deal not only with uuids and accessions but also weird names like jim kent lab that was not created despite the fact Mike cherry submits for them
 
 def make_profile(dictionary, object_type):
     '''builds the PROFILES reference dictionary
@@ -90,6 +87,7 @@ def make_profile(dictionary, object_type):
                         to_return.append(prop)
     return to_return
 
+
 def create_inserts(args, connection):
     PROFILES = {}
     temp = encodedcc.get_ENCODE("/profiles/", connection)
@@ -102,9 +100,6 @@ def create_inserts(args, connection):
         object_type = item
         PROFILES[item] = make_profile(profile, object_type)
 
-        #print (item)
-        #print (PROFILES[item])
-        #print ()
     link_to_regex = re.compile('^/.+/.+/$')
 
     if args.infile:
@@ -126,25 +121,24 @@ def create_inserts(args, connection):
     for (obj_type, uuid) in sorted(uuids):
         object_dict = encodedcc.get_ENCODE(uuid, connection, frame='edit')
         new_object_dict['uuid'] = uuid
-        #print (obj_type, uuid)
         for key in object_dict.keys():
-            #print (obj_type)
-            #print ('ECXCLUDING : ' + str(PROFILES[obj_type]))
             if key not in PROFILES[obj_type]:
-                #print (str(key) + '\t' + str(object_dict[key]))
-                new_object_dict[key] = convert_links(object_dict[key], link_to_regex)
+                new_object_dict[key] = convert_links(object_dict[key],
+                                                     link_to_regex)
         if 'attachment' in object_dict:
-            #print (uuid)
             try:
                 urllib.request.urlretrieve("https://www.encodeproject.org/" +
                                            uuid +
-                                           '/' + object_dict['attachment']['href'],
+                                           '/' +
+                                           object_dict['attachment']['href'],
                                            'documents/' +
-                                           object_dict['attachment']['download'])
+                                           object_dict[
+                                               'attachment']['download'])
             except urllib.error.HTTPError:
                 print ('non exsting attachment?')
             else:
-                new_object_dict['attachment'] = object_dict['attachment']['download']
+                new_object_dict['attachment'] = object_dict[
+                    'attachment']['download']
         x = json.dumps(new_object_dict, indent=4, sort_keys=True)
         strings_dict[obj_type].append(x)
         new_object_dict = {}
