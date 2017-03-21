@@ -3,6 +3,7 @@
 ''' Prepare a summary for different datatypes for ENCODE3
 '''
 import os.path
+import copy
 import argparse
 import encodedcc
 import collections
@@ -190,22 +191,24 @@ def make_chip_report(connection, columns, queries):
         ('other targets', '&target.investigated_as%21=control&target.investigated_as%21=histone')
         ])
 
-    rows = [
+    rows_basic = [
         'Total',
         'Released',
+        'Unreleased',
         'Released with antibody issues',
         'Released with NOT COMPLIANT issues',
         'Released with ERROR issues',
-        'Unreleased',
         'Unreplicated',
         'Mapped on GRCh38 or mm10',
+        'Unmapped on GRCh38 or mm10',
         'Peaks called on GRCh38 or mm10',
+        'Missing GRCh38 or mm10 peaks',
         'Mapped on hg19',
+        'Unmapped on hg19',
         'Peaks called on hg19',
         'Cannot be currently processed',
         'In processing queue',
         'Unreleased files in a released experiment',
-        'Missing GRCh38',
         'missing fastqs'
         ]
 
@@ -216,6 +219,12 @@ def make_chip_report(connection, columns, queries):
         print (catagory, '--------------------------------------')
         print ('\t'.join([''] + headers))
         new_basic_query = basic_query + catagories[catagory]
+        rows = copy.copy(rows_basic)
+        if catagory == 'controls':
+            rows.remove('Unreplicated')
+            rows.remove('Peaks called on GRCh38 or mm10')
+            rows.remove('Released with antibody issues')
+            rows.remove('Missing GRCh38 or mm10 peaks')
         make_matrix(rows, columns, headers, queries, new_basic_query, connection)
 
 
@@ -279,7 +288,8 @@ def make_rbp_report(connection, rows):
     seq_assays = collections.OrderedDict([
         ('shRNA knockdown', '&assay_title=shRNA+RNA-seq'),
         ('CRISPR', '&assay_title=CRISPR+RNA-seq'),
-        ('total knockdowns', '&assay_title=CRISPR+RNA-seq&assay_title=shRNA+RNA-seq')
+        ('siRNA knockdown', '&assay_title=siRNA+RNA-seq'),
+        ('total knockdowns', '&assay_title=CRISPR+RNA-seq&assay_title=shRNA+RNA-seq&assay_title=siRNA+RNA-seq')
         ])
 
     labels = [
@@ -345,12 +355,14 @@ def main():
 
     labs = {
         'stam': '&lab.title=John+Stamatoyannopoulos%2C+UW&lab.title=Job+Dekker%2C+UMass',
+        'bernstein': '&lab.title=Bradley+Bernstein%2C+Broad',
         'gingeras': '&lab.title=Yijun+Ruan%2C+GIS&lab.title=Thomas+Gingeras%2C+CSHL&lab.title=Piero+Carninci%2C+RIKEN',
         'snyder': '&lab.title=Michael+Snyder%2C+Stanford&lab.title=Sherman+Weissman%2C+Yale&lab.title=Kevin+White%2C+UChicago&lab.title=Peggy+Farnham%2C+USC'
     }
 
     # ----------- QUERIES ----------------------------------------------------
     unreplicated_query = '&replication_type=unreplicated'
+    replicated_query = '&replication_type!=unreplicated'
     not_pipeline_query = '&files.analysis_step_version.analysis_step.pipelines.title%21=Transcription+factor+ChIP-seq'
     no_peaks_query = '&files.file_type!=bigBed+narrowPeak'
     concordance_query = '&searchTerm=IDR%3Afail'  #'&searchTerm=IDR%3Afail'
@@ -360,7 +372,7 @@ def main():
     read_depth_query_3 = '&audit.WARNING.category=low+read+depth'
     complexity_query = '&audit.NOT_COMPLIANT.category=insufficient+library+complexity'
     read_length_query = '&files.read_length=271272&files.read_length=657265&files.read_length=25&files.read_length=31&files.read_length=30'
-    no_concerns_query = '&internal_status%21=requires+lab+review&internal_status%21=unrunnable'
+    no_concerns_query = '&internal_status%21=requires+lab+review&internal_status%21=unrunnable&internal_status%21=pipeline+error'
 
     human_query = '&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens'
     mouse_query = '&replicates.library.biosample.donor.organism.scientific_name=Mus+musculus'
@@ -372,11 +384,11 @@ def main():
     released_query = '&status=released'
     proposed_query = '&status=proposed'
     unreleased_query = '&status=submitted&status=ready+for+review&status=started'
-    concerns_query = '&internal_status=no+available+pipeline&internal_status=requires+lab+review&internal_status=unrunnable&status!=deleted&status!=revoked'
+    concerns_query = '&internal_status=requires+lab+review&internal_status=unrunnable&internal_status=pipeline+error&status!=deleted&status!=revoked'
     antibody_query = '&audit.NOT_COMPLIANT.category=not+characterized+antibody'
     orange_audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=control+insufficient+read+depth&audit.NOT_COMPLIANT.category=unreplicated+experiment&audit.NOT_COMPLIANT.category=poor+library+complexity&audit.NOT_COMPLIANT.category=severe+bottlenecking&audit.NOT_COMPLIANT.category=insufficient+replicate+concordance&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+input+control'
-    red_audits_query = '&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample&&audit.ERROR.category=missing+paired_with&audit.ERROR.category=missing+possible_controls&audit.ERROR.category=inconsistent+control&audit.ERROR.category=missing+antibody'
-    orange_audits_query2 = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
+    red_audits_query = '&audit.ERROR.category=control+extremely+low+read+depth&audit.ERROR.category=missing+raw+data+in+replicate&audit.ERROR.category=missing+donor&audit.ERROR.category=inconsistent+library+biosample&audit.ERROR.category=inconsistent+replicate&audit.ERROR.category=replicate+with+no+library&audit.ERROR.category=technical+replicates+with+not+identical+biosample&&audit.ERROR.category=missing+paired_with&audit.ERROR.category=missing+possible_controls&audit.ERROR.category=inconsistent+control&audit.ERROR.category=missing+antibody'
+    orange_audits_query2 = '&audit.NOT_COMPLIANT.category=insufficient+read+length&audit.NOT_COMPLIANT.category=control+low+read+depth&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
     peaks_query = '&files.file_type=bigBed+narrowPeak'
     missing_signal_query = '&files.file_type!=bigWig&target.investigated_as!=control'
     grch38_query = '&files.assembly=GRCh38'
@@ -386,11 +398,14 @@ def main():
     mm10_query = '&files.assembly=mm10'
     hg19_vis_query = '&assembly=hg19'
     grch38_vis_query = '&assembly=GRCh38'
+    not_grch38_vis_query = '&assembly!=GRCh38'
     mm10_vis_query = '&assembly=mm10'
+    not_mm10_vis_query = '&assembly!=mm10'
     not_grch38_query = '&files.assembly!=GRCh38'
     not_hg19_query = '&files.assembly!=hg19'
     not_mm10_query = '&files.assembly!=mm10'
     uniform_query = '&files.lab.name=encode-processing-pipeline'
+    requires_query = '&internal_status=requires+lab+review'
     submitted_query = '&files.lab.name!=encode-processing-pipeline'
     audits_query = '&audit.NOT_COMPLIANT.category=missing+controlled_by&audit.NOT_COMPLIANT.category=insufficient+read+depth&audit.NOT_COMPLIANT.category=missing+documents&audit.NOT_COMPLIANT.category=unreplicated+experiment&assay_slims=Transcription&audit.NOT_COMPLIANT.category=missing+possible_controls&audit.NOT_COMPLIANT.category=missing+spikeins&audit.NOT_COMPLIANT.category=missing+RNA+fragment+size'
     processing_query = '&internal_status=pipeline+ready&internal_status=processing'
@@ -415,23 +430,25 @@ def main():
         'With NOT COMPLIANT issues': orange_audits_query + filters[args.status],
         'Unreleased': unreleased_query,
         'Proposed': proposed_query,
-        'Processed on GRCh38': grch38_query + uniform_query + filters[args.status],
-        'Processed on Dnase Grch38 or mm10': dnase_pipeline + grch38_vis_query + uniform_query + mm10_vis_query + filters[args.status],
-        'Mapped on GRCh38 or mm10': grch38_query + mm10_query + uniform_query + filters[args.status],
+        'Processed on GRCh38': grch38_query + filters[args.status],
+        'Processed on Dnase Grch38 or mm10': dnase_pipeline + grch38_vis_query + mm10_vis_query + filters[args.status],
+        'Mapped on GRCh38 or mm10': grch38_query + mm10_query + filters[args.status],
+        'Unmapped on GRCh38 or mm10': not_grch38_query + not_mm10_query + filters[args.status],
         'Submitted on GRCh38': grch38_query + filters[args.status],
         'Submitted on GRCh38 or mm10': grch38_query + mm10_query + filters[args.status],
-        'Uniformly Processed on hg19-v19': v19_query + uniform_query + filters[args.status],
+        'Uniformly Processed on hg19-v19': v19_query + filters[args.status],
         'Mapped on hg19': hg19_query + uniform_query + filters[args.status],
-        'Processed on Dnase hg19': dnase_pipeline + hg19_vis_query + uniform_query + filters[args.status],
-        'Peaks called on hg19': hg19_vis_query + uniform_query + peaks_query + filters[args.status],
-        'Peaks called on GRCh38 or mm10': grch38_vis_query + mm10_vis_query + uniform_query + peaks_query + filters[args.status],
+        'Unmapped on hg19': not_hg19_query + filters[args.status],
+        'Processed on Dnase hg19': dnase_pipeline + hg19_vis_query + filters[args.status],
+        'Peaks called on hg19': hg19_vis_query + uniform_query + filters[args.status],
+        'Peaks called on GRCh38 or mm10': grch38_vis_query + mm10_vis_query + filters[args.status],
         'Submitted on hg19': hg19_query + filters[args.status],
-        'Processed on mm10': mm10_query + uniform_query + filters[args.status],
+        'Processed on mm10': mm10_query + filters[args.status],
         'Submitted on mm10': mm10_query + filters[args.status],
         'Cannot be currently processed': concerns_query + filters[args.status],
         'In processing queue': processing_query + filters[args.status],
         'Unreleased files in a released experiment': mismatched_file_query,
-        'Missing GRCh38': not_grch38_query + not_mm10_query + filters[args.status],
+        'Missing GRCh38 or mm10 peaks': not_grch38_vis_query + not_mm10_vis_query + replicated_query + filters[args.status],
         'Missing hg19': not_hg19_query + not_mm10_query + filters[args.status],
         'Missing hg19-v19': not_v19_query + not_mm10_query + filters[args.status],
         'Missing signal files': total_query + missing_signal_query,
@@ -447,6 +464,17 @@ def main():
         # ('Organism Unknown', ENCODE3_query + unknown_org_query),
         ('ROADMAP', ROADMAP_query),
         ('Total', '&award.rfa=ENCODE3' + ROADMAP_query + ENCODE2_query)
+        ])
+
+    if args.grant:
+        columns = collections.OrderedDict([
+            ('ENCODE3-human', ENCODE3_query + human_query + lab_query),
+            ('ENCODE3-mouse', ENCODE3_query + mouse_query + lab_query),
+            ('ENCODE2-human', ENCODE2_query + human_query + lab_query),
+            ('ENCODE2-mouse', ENCODE2_query + mouse_query + lab_query),
+            # ('Organism Unknown', ENCODE3_query + unknown_org_query),
+            ('ROADMAP', ROADMAP_query + lab_query),
+            ('Total', '&award.rfa=ENCODE3' + ROADMAP_query + ENCODE2_query + lab_query)
         ])
 
     if args.datatype == 'CHIP':
