@@ -77,21 +77,6 @@ class Data_Extract():
         self.keysLink = []
         self.PROFILES = {}
         self.ACCESSIONS = []
-        '''
-         'Software',
-            'Organism',
-            'Image',
-            'Pipeline',
-            'Award',
-            'Source',
-            'AnalysisStepVersion',
-            'SoftwareVersion',
-            'Lab',
-            'Platform',
-            'User',
-            'Page',
-            'AnalysisStep']
-        '''
         self.EXCLUDED = [
             'Organism',
             'Award',
@@ -109,27 +94,20 @@ class Data_Extract():
         self.profiles_ref = []
         for profile in self.profilesJSON:
             self.profiles_ref.append(self.helper(profile))
-        print (self.profiles_ref)
         for item in self.profilesJSON:
             profile = temp[item]  # getting the whole schema profile
             self.keysLink = []  # if a key is in this list, it points to a
             # link and will be embedded in the final product
-            
             object_type = item
-            #print (object_type)
             self.make_profile(profile, object_type)
-            #print (self.keysLink)
             self.PROFILES[item] = self.keysLink
-            #print ('--------------')
-        #print (self.PROFILES['User'])
-    #>>>>>>>>>>>>> may be replace class variable keyslink by local variable, I am afraid we rewriting
-    #or may be take the initial list out of the loop - I am not sure
+
 
     def helper(self, item):
         '''feed this back to making references between official object name \
         and the name used in things like the @id
         such as Library and libraries'''
-        if item not in ['Software']:
+        if item not in ['Software', 'AntibodyLot']:
             if item.endswith("y"):
                 # this is a hack to find words like "Library"
                 item = item.rstrip("y") + "ies"
@@ -138,6 +116,8 @@ class Data_Extract():
                 pass
             else:
                 item = item + "s"
+        elif item == 'AntibodyLot':
+            return 'antibodies'
         return item.lower()
 
     def make_profile(self, dictionary, object_type):
@@ -182,34 +162,19 @@ class Data_Extract():
                     # if the key is in profiles it's a link
                     if type(obj[key]) is list:
                         for link in obj[key]:
-                            print ('key - ' + key)
                             self.process_link(
                                 link)
                     else:
                         self.process_link(
                             obj[key])
 
-    #>>> we have to introduce ierarchy here. actually I have to check why we didn't get continuous looping through the user
-    #>>> what is a connectivity hub in our systen. analysis step run I think and, it goes to many files and many files poijnt to it
-    #>>> we will have to introduce object types that would not be expandable.
-    #>>> similar to releasenator
-
-
-    #>>> anyway the fact some user submits for two labs was not recognized remains unsolved
-
-
     def process_link(self, identifier_link):
-        print ("entering process_link with " + identifier_link)
         item = identifier_link.split("/")[1].replace("-", "")
 
         subobj = encodedcc.get_ENCODE(identifier_link, self.connection)
         subobjname = subobj["@type"][0]
-        # >>>>>>> check if user has submits_for list checked here...
-        print ('item=' + str(item))
         if (item in self.profiles_ref) and \
            (identifier_link not in self.searched):
-            # expand subobject
-            print ('expanding on ' + subobj['uuid'])
             self.get_status(subobj)
 
     def run_script(self):
@@ -217,10 +182,6 @@ class Data_Extract():
         # also makes the list of accessions to run from
         uuids = set()
         self.set_up()
-
-
-    #>>> after some more thinking I guess we need to introduce a new list of already examined objects, and check everything against its
-
         for accession in self.ACCESSIONS:
             self.searched = []
             print ("Processing accession: " + accession)
