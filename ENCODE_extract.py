@@ -93,18 +93,11 @@ class Data_Extract():
             'AnalysisStep']
         '''
         self.EXCLUDED = [
-            
             'Organism',
-            
-            
             'Award',
             'Source',
-            
-            
             'Lab',
-            
             'User'
-            
             ]
         self.connection = connection
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
@@ -116,7 +109,7 @@ class Data_Extract():
         self.profiles_ref = []
         for profile in self.profilesJSON:
             self.profiles_ref.append(self.helper(profile))
-        #print (self.profiles_ref)
+        print (self.profiles_ref)
         for item in self.profilesJSON:
             profile = temp[item]  # getting the whole schema profile
             self.keysLink = []  # if a key is in this list, it points to a
@@ -136,14 +129,15 @@ class Data_Extract():
         '''feed this back to making references between official object name \
         and the name used in things like the @id
         such as Library and libraries'''
-        if item.endswith("y"):
-            # this is a hack to find words like "Library"
-            item = item.rstrip("y") + "ies"
-        elif item.endswith("s"):
-            # check for things with "Series" type endings
-            pass
-        else:
-            item = item + "s"
+        if item not in ['Software']:
+            if item.endswith("y"):
+                # this is a hack to find words like "Library"
+                item = item.rstrip("y") + "ies"
+            elif item.endswith("s"):
+                # check for things with "Series" type endings
+                pass
+            else:
+                item = item + "s"
         return item.lower()
 
     def make_profile(self, dictionary, object_type):
@@ -151,6 +145,7 @@ class Data_Extract():
         keysLink is the list of keys that point to links,
         used in the PROFILES'''
         d = dictionary["properties"]
+
         for prop in d.keys():
                 if d[prop].get("linkTo") or d[prop].get("linkFrom"):
                     self.keysLink.append(prop)
@@ -159,6 +154,7 @@ class Data_Extract():
                         i = d[prop].get("items")
                         if i.get("linkFrom") or i.get("linkTo"):
                             self.keysLink.append(prop)
+
 
     def set_up(self):
         '''do some setup for script'''
@@ -209,10 +205,11 @@ class Data_Extract():
         subobj = encodedcc.get_ENCODE(identifier_link, self.connection)
         subobjname = subobj["@type"][0]
         # >>>>>>> check if user has submits_for list checked here...
-
+        print ('item=' + str(item))
         if (item in self.profiles_ref) and \
            (identifier_link not in self.searched):
             # expand subobject
+            print ('expanding on ' + subobj['uuid'])
             self.get_status(subobj)
 
     def run_script(self):
