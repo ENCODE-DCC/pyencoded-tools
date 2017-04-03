@@ -12,6 +12,7 @@ from PIL import Image # install me with 'pip3 install Pillow'
 from urllib.parse import quote
 from base64 import b64encode
 import magic  # install me with 'pip3 install python-magic'
+import re
 # https://github.com/ahupp/python-magic
 # this is the site for python-magic in case we need it
 
@@ -147,11 +148,16 @@ def attachment(path):
     filename = os.path.basename(path)
     mime_type, encoding = mimetypes.guess_type(path)
     major, minor = mime_type.split('/')
-    detected_type = magic.from_file(path, mime=True).decode('ascii')
+    try:
+        detected_type = magic.from_file(path, mime=True).decode('ascii')
+    except AttributeError:
+        detected_type = magic.from_file(path, mime=True)
 
     # XXX This validation logic should move server-side.
     if not (detected_type == mime_type or
+            detected_type == 'application/gzip' and mime_type == 'application/x-tar' or
             detected_type == 'text/plain' and major == 'text'):
+        print(detected_type,mime_type)
         raise ValueError('Wrong extension for %s: %s' % (detected_type, filename))
 
     with open(path, 'rb') as stream:
@@ -161,7 +167,8 @@ def attachment(path):
             'href': 'data:%s;base64,%s' % (mime_type, b64encode(stream.read()).decode('ascii'))
         }
 
-        if mime_type in ('application/pdf', 'text/plain', 'text/tab-separated-values', 'text/html'):
+        # if mime_type in ('application/pdf', 'text/plain', 'text/tab-separated-values', 'text/html'):
+        if mime_type in ('application/pdf', 'text/plain', 'text/tab-separated-values', 'text/html', 'application/x-tar'):
             # XXX Should use chardet to detect charset for text files here.
             return attach
 
@@ -295,22 +302,36 @@ def dict_patcher(old_dict):
     return new_dict
 
 
-def excel_reader(datafile, sheet, update, connection, patchall):
+def excel_reader(datafile, sheet, update, connection, patchall, profile):
     row = reader(datafile, sheetname=sheet)
     keys = next(row)  # grab the first row of headers
     total = 0
     error = 0
     success = 0
     patch = 0
+    properties = profile["properties"]
     for values in row:
         total += 1
         post_json = dict(zip(keys, values))
         post_json = dict_patcher(post_json)
         # add attchments here
-        if post_json.get("attachment"):
-            attach = attachment(post_json["attachment"])
-            post_json["attachment"] = attach
-        print(post_json)
+        # if post_json.get("attachment"):
+            # attach = attachment(post_json["attachment"])
+            # post_json["attachment"] = attach
+        # correctly format numbers and booleans
+        for key in post_json:
+            val = str(post_json[key])
+            if key in [k for k in properties \
+                        if "attachment" in properties[k] and properties[k]["attachment"] ]:
+                attach = attachment(post_json[key])
+                post_json[key] = attach
+            if re.search("^-?[0-9\.E\+]+$",val): # if number
+                post_json[key] = float(val)
+            elif val.lower() == 'true':
+                post_json[key] = True
+            elif val.lower() == 'false':
+                post_json[key] = False
+        # print(post_json)
         temp = {}
         if post_json.get("uuid"):
             temp = encodedcc.get_ENCODE(post_json["uuid"], connection)
@@ -366,10 +387,12 @@ def main():
         names = book.sheet_names()
     profiles = encodedcc.get_ENCODE("/profiles/", connection)
     supported_collections = list(profiles.keys())
-    supported_collections = [s.lower() for s in list(profiles.keys())]
+    supported_collections_lowercase = [s.lower() for s in list(profiles.keys())]
     for n in names:
-        if n.lower() in supported_collections:
-            excel_reader(args.infile, n, args.update, connection, args.patchall)
+        if n.lower() in supported_collections_lowercase:
+            id = supported_collections_lowercase.index(n.lower())
+            profile = profiles[supported_collections[id]]
+            excel_reader(args.infile, n, args.update, connection, args.patchall, profile)
         else:
             print("Sheet name '{name}' not part of supported object types!".format(name=n), file=sys.stderr)
 
