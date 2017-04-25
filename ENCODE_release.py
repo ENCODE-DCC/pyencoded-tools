@@ -140,6 +140,7 @@ class Data_Release():
         self.PROFILES = {}
         self.ACCESSIONS = []
         self.statusDict = {}
+        self.searched = []
         self.connection = connection
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
 
@@ -284,22 +285,25 @@ class Data_Release():
         restricted_flag = False
         inactive_pipeline_flag = False
 
-        if (subobjname == 'File'):
-            if self.is_restricted(subobj) is True:
-                print (subobj['@id'] + ' is restricted, ' +
-                       'therefore will not be released')
-                restricted_flag = True
-            if subobj.get('analysis_step_version'):
-                p = has_inactive_pipeline(encodedcc.get_ENCODE(
-                    identifier_link,
-                    self.connection), "embedded")
-                if p:
-                    print (subobj['@id'] + ' is associated with inactive ' +
-                           'pipeline ' + p + ', therefore will not be released')
-                    inactive_pipeline_flag = True
-
         if (item in self.profiles_ref) and \
            (identifier_link not in self.searched):
+            if (subobjname == 'File'):
+                if self.is_restricted(subobj) is True:
+                    print (subobj['@id'] + ' is restricted, ' +
+                           'therefore will not be released')
+                    restricted_flag = True
+                    self.searched.append(subobj["@id"])
+                if subobj.get('analysis_step_version'):
+                    p = self.has_inactive_pipeline(encodedcc.get_ENCODE(
+                        identifier_link,
+                        self.connection, "embedded"))
+                    if p:
+                        print (subobj['@id'] +
+                               ' is associated with inactive ' +
+                               'pipeline ' + p +
+                               ', therefore will not be released')
+                        inactive_pipeline_flag = True
+                        self.searched.append(subobj["@id"])
             # expand subobject
             if (subobjname in approved_types) and \
                (restricted_flag is False) and \
@@ -410,7 +414,6 @@ class Data_Release():
         print ("Releasenator version " + str(self.releasenator_version))
         for accession in self.ACCESSIONS:
             print ("Processing accession: " + accession)
-            self.searched = []
             expandedDict = encodedcc.get_ENCODE(accession, self.connection)
             objectStatus = expandedDict.get("status")
             obj = expandedDict["@type"][0]
