@@ -97,19 +97,19 @@ def main():
                                ' alternate accessions list ' +
                                str(object_to_clean['alternate_accessions']) +
                                ' is removed')
-                        '''encodedcc.patch_ENCODE(
+                        encodedcc.patch_ENCODE(
                             object_to_clean['uuid'],
                             connection,
-                            {"alternate_accessions": []})'''
+                            {"alternate_accessions": []})
 
                 print (uuid + ' is patched with ' +
                        str({"alternate_accessions": list(
                             uuid_2_alternate_accessions[uuid])}))
-                '''encodedcc.patch_ENCODE(
+                encodedcc.patch_ENCODE(
                     uuid,
                     connection,
                     {"alternate_accessions": list(
-                        uuid_2_alternate_accessions[uuid])})'''
+                        uuid_2_alternate_accessions[uuid])})
 
 if __name__ == '__main__':
     main()
