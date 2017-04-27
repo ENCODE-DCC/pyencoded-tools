@@ -40,56 +40,18 @@ def getArgs():
     return args
 
 
-def encoded_get(url, keypair=None, frame='object', return_response=False):
-    url_obj = urllib.parse.urlsplit(url)
-    new_url_list = list(url_obj)
-    query = urllib.parse.parse_qs(url_obj.query)
-    if 'format' not in query:
-        new_url_list[3] += "&format=json"
-    if 'frame' not in query:
-        new_url_list[3] += "&frame=%s" % (frame)
-    if 'limit' not in query:
-        new_url_list[3] += "&limit=all"
-    if new_url_list[3].startswith('&'):
-        new_url_list[3] = new_url_list[3].replace('&', '', 1)
-    get_url = urllib.parse.urlunsplit(new_url_list)
-    max_retries = 10
-    max_sleep = 10
-    while max_retries:
-        try:
-            if keypair:
-                response = requests.get(get_url,
-                                        auth=keypair,
-                                        headers=GET_HEADERS)
-            else:
-                response = requests.get(get_url, headers=GET_HEADERS)
-        except (requests.exceptions.ConnectionError,
-                requests.exceptions.SSLError) as e:
-            print >> sys.stderr, e
-            sleep(max_sleep - max_retries)
-            max_retries -= 1
-            continue
-        else:
-            if return_response:
-                return response
-            else:
-                return response.json()
-
-
-def retreive_list_of_replaced(object_type,
-                              object_to_inspect_acc,
-                              keypair, server):
-    url = server + 'search/?type=Item&accession=' + \
-        object_to_inspect_acc + '&format=json&limit=all'
+def retreive_list_of_replaced(object_to_inspect_acc,
+                              connection):
     to_return_list = [object_to_inspect_acc]
-    objects_to_inspect = encoded_get(url, keypair)['@graph']
+    objects_to_inspect = encodedcc.get_ENCODE('search/?type=Item&accession=' +
+                                              object_to_inspect_acc,
+                                              connection)['@graph']
     if objects_to_inspect:
         for object_to_inspect in objects_to_inspect:
             if object_to_inspect.get('alternate_accessions'):
                 for acc in object_to_inspect.get('alternate_accessions'):
                     to_return_list.extend(
-                        retreive_list_of_replaced(
-                            object_type, acc, keypair, server))
+                        retreive_list_of_replaced(acc, connection))
                 return to_return_list
             else:
                 return to_return_list
@@ -100,54 +62,54 @@ def retreive_list_of_replaced(object_type,
 def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
-    keypair = (key.authid, key.authpw)
-    server = key.server
     connection = encodedcc.ENC_Connection(key)
-
-    url = server + 'profiles/?format=json&limit=all'
-    profiles = encoded_get(url, keypair)
-
+    profiles = encodedcc.get_ENCODE("/profiles/", connection)
     for object_type in profiles.keys():
-        changes = {}
-        sets = []
-        url = server + 'search/?type=' + object_type + '&format=json&limit=all'
-        objects = encoded_get(url, keypair)['@graph']
+        uuid_2_alternate_accessions = {}
+        alternate_accessions_sets = []
+        objects = encodedcc.get_ENCODE('search/?type=' + object_type,
+                                       connection)['@graph']
         for entry in objects:
             if entry.get('alternate_accessions'):
-                replaced_objects_accs = []
+                replaced_objects_accessions = []
                 for acc in entry.get('alternate_accessions'):
-                    replaced_objects_accs.extend(
-                        retreive_list_of_replaced(object_type, acc))
-                if sorted(list(set(replaced_objects_accs))) != sorted(
+                    replaced_objects_accessions.extend(
+                        retreive_list_of_replaced(acc,
+                                                  connection))
+                if sorted(list(set(replaced_objects_accessions))) != sorted(
                    entry.get('alternate_accessions')):
-                    changes[entry['uuid']] = set(replaced_objects_accs)
-                    sets.append(set(replaced_objects_accs))
-
-        needs_update = 0
-        for k in changes.keys():
-            k_counter = 0
-            for s in sets:
-                if changes[k] <= s:
-                    k_counter += 1
-            if k_counter == 1:
-                needs_update += 1
-                for acc in list(changes[k]):
-                    ob_url = server + 'search/?type=Item&accession=' + acc
-                    obs = encoded_get(ob_url, keypair)['@graph']
-                    for ob in obs:
-                        print (ob['uuid'] + ' alternate accessions list ' +
-                               str(ob['alternate_accessions']) + ' is removed')
-                        encodedcc.patch_ENCODE(
-                            ob['uuid'],
+                    uuid_2_alternate_accessions[entry['uuid']] = \
+                        set(replaced_objects_accessions)
+                    alternate_accessions_sets.append(
+                        set(replaced_objects_accessions))
+        for uuid in uuid_2_alternate_accessions.keys():
+            uuid_sets_counter = 0
+            for entry in alternate_accessions_sets:
+                if uuid_2_alternate_accessions[uuid] <= entry:
+                    uuid_sets_counter += 1
+            if uuid_sets_counter == 1:
+                for acc in list(uuid_2_alternate_accessions[uuid]):
+                    to_clean_objects = encodedcc.get_ENCODE(
+                        'search/?type=Item&accession=' + acc,
+                        connection)['@graph']
+                    for object_to_clean in to_clean_objects:
+                        print (object_to_clean['uuid'] +
+                               ' alternate accessions list ' +
+                               str(object_to_clean['alternate_accessions']) +
+                               ' is removed')
+                        '''encodedcc.patch_ENCODE(
+                            object_to_clean['uuid'],
                             connection,
-                            {"alternate_accessions": []})
+                            {"alternate_accessions": []})'''
 
-                print (k + ' is patched with ' + str({"alternate_accessions":
-                                                      list(changes[k])}))
-                encodedcc.patch_ENCODE(
-                    k,
+                print (uuid + ' is patched with ' +
+                       str({"alternate_accessions": list(
+                            uuid_2_alternate_accessions[uuid])}))
+                '''encodedcc.patch_ENCODE(
+                    uuid,
                     connection,
-                    {"alternate_accessions": list(changes[k])})
+                    {"alternate_accessions": list(
+                        uuid_2_alternate_accessions[uuid])})'''
 
 if __name__ == '__main__':
     main()
