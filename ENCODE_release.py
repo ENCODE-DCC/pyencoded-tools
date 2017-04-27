@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: latin-1 -*-
+
+
+'''
+Releasenator changelog
+
+Version 1.3
+
+Releasenator will no longer release files that are associated with pielines
+that are not in "active" status, for such files warning will be printed.
+Released earlier files will remain released, even if they are associated with
+non-active pipelines, the script will print out warning messages for these
+files as well.
+
+'''
 import argparse
 import os
 import datetime
