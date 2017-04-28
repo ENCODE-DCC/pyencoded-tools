@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: latin-1 -*-
+
+
+'''
+Releasenator changelog
+
+Version 1.3
+
+Releasenator will no longer release files that are associated with pielines
+that are not in "active" status, for such files warning will be printed.
+Released earlier files will remain released, even if they are associated with
+non-active pipelines, the script will print out warning messages for these
+files as well.
+
+'''
 import argparse
 import os
 import datetime
@@ -127,7 +141,7 @@ def getArgs():
 class Data_Release():
     def __init__(self, args, connection):
         # renaming some things so I can be lazy and not pass them around
-        self.releasenator_version = 1.2
+        self.releasenator_version = 1.3
         self.infile = args.infile
         self.outfile = args.outfile
         self.QUERY = args.query
@@ -140,6 +154,7 @@ class Data_Release():
         self.PROFILES = {}
         self.ACCESSIONS = []
         self.statusDict = {}
+        self.searched = []
         self.connection = connection
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
 
@@ -278,21 +293,35 @@ class Data_Release():
                                 self.keysLink.append(prop)
 
     def process_link(self, identifier_link, approved_types):
-        # print ("entering process_link with " + identifier_link)
-        #print ('Replicate' in approved_types)
         item = identifier_link.split("/")[1].replace("-", "")
         subobj = encodedcc.get_ENCODE(identifier_link, self.connection)
         subobjname = subobj["@type"][0]
         restricted_flag = False
-        if (subobjname == 'File') and (self.is_restricted(subobj) is True):
-            print (subobj['@id'] + ' is restricted, ' +
-                   'therefore will not be released')
-            restricted_flag = True
+        inactive_pipeline_flag = False
+
         if (item in self.profiles_ref) and \
            (identifier_link not in self.searched):
+            if (subobjname == 'File'):
+                if self.is_restricted(subobj) is True:
+                    print (subobj['@id'] + ' is restricted, ' +
+                           'therefore will not be released')
+                    restricted_flag = True
+                    self.searched.append(subobj["@id"])
+                if subobj.get('analysis_step_version'):
+                    p = self.has_inactive_pipeline(encodedcc.get_ENCODE(
+                        identifier_link,
+                        self.connection, "embedded"))
+                    if p:
+                        print (subobj['@id'] +
+                               ' is associated with inactive ' +
+                               'pipeline ' + p +
+                               ', therefore will not be released')
+                        inactive_pipeline_flag = True
+                        self.searched.append(subobj["@id"])
             # expand subobject
             if (subobjname in approved_types) and \
-               (restricted_flag is False):
+               (restricted_flag is False) and \
+               (inactive_pipeline_flag is False):
                 self.get_status(
                     subobj,
                     hi.dictionary_of_lower_levels.get(
@@ -308,6 +337,18 @@ class Data_Release():
         if 'restricted' in file_object and file_object['restricted'] is True:
             return True
         return False
+
+    def has_inactive_pipeline(self, file_object):
+        if file_object.get('analysis_step_version'):
+            step_version = file_object.get('analysis_step_version')
+            if step_version.get('analysis_step'):
+                step = step_version.get('analysis_step')
+                if step.get('pipelines'):
+                    for p in step.get('pipelines'):
+                        if p['status'] not in ['active']:
+                            return p['@id']
+        return False
+
 
     def get_status(self, obj, approved_for_update_types):
         '''take object get status, @type, @id, uuid
@@ -387,7 +428,6 @@ class Data_Release():
         print ("Releasenator version " + str(self.releasenator_version))
         for accession in self.ACCESSIONS:
             print ("Processing accession: " + accession)
-            self.searched = []
             expandedDict = encodedcc.get_ENCODE(accession, self.connection)
             objectStatus = expandedDict.get("status")
             obj = expandedDict["@type"][0]
