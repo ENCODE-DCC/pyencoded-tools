@@ -40,8 +40,8 @@ def main():
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
     accessions_set = set()
-    '''
-    experiments = encodedcc.get_ENCODE('search/?type=Experiment&assay_term_name=HiC&assay_term_name=RRBS&assay_term_name=ATAC-seq',
+    
+    experiments = encodedcc.get_ENCODE('search/?type=Experiment',
                                        connection)['@graph']
     assay_types = []
     assay_statuses = []
@@ -84,7 +84,7 @@ def main():
                                                connection)['@graph']
             if (experiments):
                 print (assay_type + '\t' + status)
-                for i in range(3):
+                for i in range(2):
                     random_experiment = random.choice(experiments)
                     if status == 'replaced':
                         replacement = encodedcc.get_ENCODE(random_experiment['accession'],
@@ -131,11 +131,11 @@ def main():
         print (status)
         antibodies = encodedcc.get_ENCODE('search/?type=AntibodyLot&status=' + status,
                                           connection)['@graph']
-        for i in range(10):
+        for i in range(5):
             accessions_set.add(random.choice(antibodies)['accession'])
 
     # at this point we have representatives of different antibodies statuses
-    '''
+    
 
     biosamples = encodedcc.get_ENCODE('search/?type=Biosample',
                                       connection)['@graph']
@@ -154,33 +154,34 @@ def main():
         biosamples = encodedcc.get_ENCODE('search/?type=Biosample&biosample_type=' + bs_type,
                                           connection)['@graph']
         if biosamples:
-            for i in range(3):
+            for i in range(2):
                 accessions_set.add(random.choice(biosamples)['accession'])
 
     for bs_status in biosample_statuses:
         biosamples = encodedcc.get_ENCODE('search/?type=Biosample&status=' + bs_status,
                                           connection)['@graph']
         if biosamples:
-            for i in range(3):
+            for i in range(2):
                 accessions_set.add(random.choice(biosamples)['accession'])
 
     for bs_award in biosample_awards:
         biosamples = encodedcc.get_ENCODE('search/?type=Biosample&award.name=' + bs_award,
                                           connection)['@graph']
         if biosamples:
-            for i in range(3):
+            for i in range(2):
                 accessions_set.add(random.choice(biosamples)['accession'])
 
     files = encodedcc.get_ENCODE('search/?type=File&supersedes=*',
                                  connection)['@graph']
-    for i in range(3):
+    for i in range(2):
         random_file = random.choice(files)
         accessions_set.add(random_file['accession'])
         for entry in random_file['supersedes']:
             accessions_set.add(entry.split('/')[2])
 
 
-    print (accessions_set)
-    print (len(accessions_set))
+    for entry in accessions_set:
+        print (entry)
+    
 if __name__ == '__main__':
     main()

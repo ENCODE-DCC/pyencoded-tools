@@ -76,3 +76,5 @@ ex.output.report
 output.report
 
 uuids_list.txt
+
+*.list
