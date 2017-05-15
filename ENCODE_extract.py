@@ -170,12 +170,15 @@ class Data_Extract():
 
     def process_link(self, identifier_link):
         item = identifier_link.split("/")[1].replace("-", "")
-
-        subobj = encodedcc.get_ENCODE(identifier_link, self.connection)
-        subobjname = subobj["@type"][0]
-        if (item in self.profiles_ref) and \
-           (identifier_link not in self.searched):
-            self.get_status(subobj)
+        try:
+            subobj = encodedcc.get_ENCODE(identifier_link, self.connection)
+        except ValueError:
+            print ('GOT ERROR IN  ' + str(identifier_link) + '  ' + item)
+        else:
+            subobjname = subobj["@type"][0]
+            if (item in self.profiles_ref) and \
+               (identifier_link not in self.searched):
+                self.get_status(subobj)
 
     def run_script(self):
         # set_up() gets all the command line arguments and validates them
