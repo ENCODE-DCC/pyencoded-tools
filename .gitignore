@@ -73,3 +73,5 @@ inserts/
 
 
 *.list
+
+*.output

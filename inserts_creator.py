@@ -114,7 +114,13 @@ def create_inserts(args, connection):
     strings_dict = {}
     for (obj_type, uuid) in sorted(uuids):
         if obj_type not in files_dict:
-            file_name = re.sub('(?<!^)(?=[A-Z])', '_', obj_type).lower()
+            if obj_type not in ['RNAi', 'IDRQualityMetric']:
+                file_name = re.sub('(?<!^)(?=[A-Z])', '_', obj_type).lower()
+            else:
+                if obj_type == 'RNAi':
+                    file_name = 'rnais'
+                elif obj_type == 'IDRQualityMetric':
+                    file_name = 'idr_quality_metric'
             files_dict[obj_type] = open('inserts/' + file_name + '.json', 'w')
             strings_dict[obj_type] = []
     new_object_dict = {}
@@ -126,19 +132,29 @@ def create_inserts(args, connection):
                 new_object_dict[key] = convert_links(object_dict[key],
                                                      link_to_regex)
         if 'attachment' in object_dict:
-            try:
-                urllib.request.urlretrieve("https://www.encodeproject.org/" +
-                                           uuid +
-                                           '/' +
-                                           object_dict['attachment']['href'],
-                                           'documents/' +
-                                           object_dict[
-                                               'attachment']['download'])
-            except urllib.error.HTTPError:
-                print ('non exsting attachment?')
-            else:
-                new_object_dict['attachment'] = object_dict[
-                    'attachment']['download']
+
+            if (object_dict['attachment'].get('href') and
+                    (not object_dict['attachment'].get(
+                        'href').endswith('.svs'))):
+                try:
+                    urllib.request.urlretrieve(
+                        "https://www.encodeproject.org/" +
+                        uuid +
+                        '/' +
+                        object_dict['attachment']['href'],
+                        'documents/' +
+                        object_dict[
+                            'attachment']['download'])
+                except urllib.error.HTTPError as e:
+                    print ("https://www.encodeproject.org/" +
+                           uuid +
+                           '/' +
+                           object_dict['attachment']['href'])
+                    print ('non exsting attachment?')
+                    print (e)
+                else:
+                    new_object_dict['attachment'] = object_dict[
+                        'attachment']['download']
         x = json.dumps(new_object_dict, indent=4, sort_keys=True)
         strings_dict[obj_type].append(x)
         new_object_dict = {}
