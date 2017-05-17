@@ -118,7 +118,7 @@ def create_inserts(args, connection):
                 file_name = re.sub('(?<!^)(?=[A-Z])', '_', obj_type).lower()
             else:
                 if obj_type == 'RNAi':
-                    file_name = 'rnais'
+                    file_name = 'rnai'
                 elif obj_type == 'IDRQualityMetric':
                     file_name = 'idr_quality_metric'
             files_dict[obj_type] = open('inserts/' + file_name + '.json', 'w')
