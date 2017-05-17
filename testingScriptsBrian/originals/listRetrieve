@@ -1,0 +1,1 @@
+curl -L -H "Accept: application/json" --user VMSMRIU7:s3aj2jwvxznpmxks "REPLACEME/search/?format=json&type=ENTERSTUFFHERE" | jq "." 

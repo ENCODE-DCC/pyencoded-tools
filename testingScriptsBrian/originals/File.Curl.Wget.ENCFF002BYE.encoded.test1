@@ -1,0 +1,2 @@
+curl -L -H "Accept: application/json" --user HEHTIAYI:c6kzslpmkhszt3lp "REPLACEME/files/ENCFF002BYE/@@download/ENCFF002BYE.tsv" > curl.ENCFF002BYE.test1
+wget --header="X-Auth-Challenge: true" --user=HEHTIAYI --password=c6kzslpmkhszt3lp "REPLACEME/files/ENCFF002BYE/@@download/ENCFF002BYE.tsv" -O wget.ENCFF002BYE.test1
