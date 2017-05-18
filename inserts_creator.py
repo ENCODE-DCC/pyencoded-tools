@@ -89,6 +89,19 @@ def make_profile(dictionary, object_type):
 
 
 def create_inserts(args, connection):
+    IS_ATTACHMENT = [
+        'attachment',
+        'IDR_plot_true',
+        'IDR_plot_rep1_pr',
+        'IDR_plot_rep2_pr',
+        'IDR_plot_pool_pr',
+        'IDR_parameters_true',
+        'IDR_parameters_rep1_pr',
+        'IDR_parameters_rep2_pr',
+        'IDR_parameters_pool_pr',
+        'cross_correlation_plot'
+    ]
+
     PROFILES = {}
     temp = encodedcc.get_ENCODE("/profiles/", connection)
     profilesJSON = []
@@ -130,31 +143,31 @@ def create_inserts(args, connection):
         for key in object_dict.keys():
             if key not in PROFILES[obj_type]:
                 new_object_dict[key] = convert_links(object_dict[key],
-                                                     link_to_regex)
-        if 'attachment' in object_dict:
-
-            if (object_dict['attachment'].get('href') and
-                    (not object_dict['attachment'].get(
-                        'href').endswith('.svs'))):
-                try:
-                    urllib.request.urlretrieve(
-                        "https://www.encodeproject.org/" +
-                        uuid +
-                        '/' +
-                        object_dict['attachment']['href'],
-                        'documents/' +
-                        object_dict[
-                            'attachment']['download'])
-                except urllib.error.HTTPError as e:
-                    print ("https://www.encodeproject.org/" +
-                           uuid +
-                           '/' +
-                           object_dict['attachment']['href'])
-                    print ('non exsting attachment?')
-                    print (e)
-                else:
-                    new_object_dict['attachment'] = object_dict[
-                        'attachment']['download']
+            
+            keys_to_pop = []                                         link_to_regex)
+            if key in IS_ATTACHMENT:
+                if (object_dict[key].get('href') and
+                        (not object_dict[key].get(
+                            'href').endswith('.svs'))):
+                    try:
+                        urllib.request.urlretrieve(
+                            "https://www.encodeproject.org/" +
+                            uuid +
+                            '/' +
+                            object_dict[key]['href'],
+                            'documents/' +
+                            object_dict[
+                                key]['download'])
+                    except urllib.error.HTTPError as e:
+                        print ("https://www.encodeproject.org/" +
+                               uuid +
+                               '/' +
+                               object_dict[key]['href'])
+                        print ('non exsting attachment?')
+                        print (e)
+                    else:
+                        new_object_dict[key] = object_dict[
+                            key]['download']
         x = json.dumps(new_object_dict, indent=4, sort_keys=True)
         strings_dict[obj_type].append(x)
         new_object_dict = {}
