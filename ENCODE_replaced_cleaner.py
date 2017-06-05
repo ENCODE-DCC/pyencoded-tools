@@ -1,11 +1,7 @@
 import argparse
 import os.path
 import encodedcc
-import requests
-import urllib.parse
-from time import sleep
 
-import sys
 GET_HEADERS = {'accept': 'application/json'}
 
 
@@ -68,7 +64,8 @@ def main():
         profile_properties = encodedcc.get_ENCODE(
             '/profiles/' + object_type, connection).get('properties')
         # we should fix only objects that have alternate accessions property
-        if profile_properties and profile_properties.get('alternate_accessions'):
+        if profile_properties and profile_properties.get(
+                'alternate_accessions'):
             uuid_2_alternate_accessions = {}
             objects = encodedcc.get_ENCODE('search/?type=' + object_type,
                                            connection)['@graph']
@@ -79,7 +76,8 @@ def main():
                         replaced_objects_accessions.extend(
                             retreive_list_of_replaced(acc,
                                                       connection))
-                    if sorted(list(set(replaced_objects_accessions))) != sorted(
+                    if sorted(list(set(
+                        replaced_objects_accessions))) != sorted(
                        entry.get('alternate_accessions')):
                         uuid_2_alternate_accessions[entry['uuid']] = \
                             set(replaced_objects_accessions)
@@ -98,7 +96,8 @@ def main():
                         for object_to_clean in to_clean_objects:
                             print (object_to_clean['uuid'] +
                                    ' alternate accessions list ' +
-                                   str(object_to_clean['alternate_accessions']) +
+                                   str(object_to_clean[
+                                       'alternate_accessions']) +
                                    ' is removed')
                             encodedcc.patch_ENCODE(
                                 object_to_clean['uuid'],
