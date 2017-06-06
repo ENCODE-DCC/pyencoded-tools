@@ -385,11 +385,11 @@ class GetFields():
                     temp = get_ENCODE(self.args.query, self.connection).get("@graph", [])
                 else:
                     temp = [get_ENCODE(self.args.query, self.connection)]
-            elif self.args.object:
-                if os.path.isfile(self.args.object):
-                    self.accessions = [line.strip() for line in open(self.args.object)]
+            elif self.args.infile:
+                if os.path.isfile(self.args.infile):
+                    self.accessions = [line.strip() for line in open(self.args.infile)]
                 else:
-                    self.accessions = self.args.object.split(",")
+                    self.accessions = self.args.infile.split(",")
             if any(temp):
                 for obj in temp:
                     if obj.get("accession"):
