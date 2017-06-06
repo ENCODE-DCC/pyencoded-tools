@@ -679,7 +679,7 @@ def patch_set(args, connection):
                         if temp_data[key] in ["True", "true", "TRUE"]:
                             patch_data[k[0]] = True
                         elif temp_data[key] in ["False", "false", "FALSE"]:
-                            patch_input[k[0]] = False
+                            patch_data[k[0]] = False
                 else:
                     patch_data[k[0]] = temp_data[key]
                 old_data = {}
