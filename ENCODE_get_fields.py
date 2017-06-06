@@ -5,20 +5,20 @@ import argparse
 import encodedcc
 
 EPILOG = '''
-    To get multiple objects use the '--object' argument
+    To get multiple objects use the '--infile' argument
     and provide a file with the list of object identifiers
 
-            %(prog)s --object filenames.txt
+            %(prog)s --infile filenames.txt
 
         this can take accessions, uuids, @ids, or aliases
 
-    To get a single object use the '--object' argument
+    To get a single object use the '--infile' argument
     and use the object's identifier, also will take a comma separated list
 
-            %(prog)s --object ENCSR000AAA
-            %(prog)s --object 3e6-some-uuid-here-e45
-            %(prog)s --object this-is:an-alias
-            %(prog)s --object ENCSR000AAA,ENCSR000AAB
+            %(prog)s --infile ENCSR000AAA
+            %(prog)s --infile 3e6-some-uuid-here-e45
+            %(prog)s --infile this-is:an-alias
+            %(prog)s --infile ENCSR000AAA,ENCSR000AAB
 
     To get multiple fields use the '--field' argument
     and feed it a file with the list of fieldnames
@@ -63,7 +63,7 @@ EPILOG = '''
         string are the default and do not have an identifier
     ***please note that list type fields will show only unique items***
 
-            %(prog)s --field files.status --object ENCSR000AAA
+            %(prog)s --field files.status --infile ENCSR000AAA
 
         accession       file.status:list
         ENCSR000AAA     ['released']
@@ -85,7 +85,7 @@ EPILOG = '''
 
     Useage for '--allfields':
 
-            %(prog)s --object ENCSR000AAA --allfields
+            %(prog)s --infile ENCSR000AAA --allfields
 
         accession    status    files        award ...
         ENCSR000AAA  released  [/files/...] /awards/...
@@ -107,7 +107,7 @@ EPILOG = '''
     which is slightly faster than the normal table view used
     However, it may not posses the latest updates to the data and may not be
     preferable to your application
-    '--collection' also overrides any other '--object' option and so but it
+    '--collection' also overrides any other '--infile' option and so but it
     can be combined with any of the '--field' or '--allfields' options
 
     NOTE: while '--collection' should work with the '--field' field.embeddedfield
@@ -122,7 +122,7 @@ def getArgs():
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         )
-    parser.add_argument('--object',
+    parser.add_argument('--infile',
                         help="Either the file containing a list of ENCs as a column\
                         or this can be a single accession by itself")
     parser.add_argument('--query',
