@@ -112,7 +112,7 @@ class ENC_Collection(object):
         if self.es_connection is None:
             es_server = self.server.rstrip('/') + ':9200'
             self.es_connection = ElasticSearch(es_server)
-        results = self.es_connection.search(query_dict, index='encoded',
+        results = self.es_connection.search(query_dict, index='clincoded',
                                             doc_type=self.search_name,
                                             size=maxhits)
         return results
