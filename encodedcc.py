@@ -658,6 +658,7 @@ def patch_set(args, connection):
             for key in temp_data.keys():
                 k = key.split(":")
                 if len(k) > 1:
+                    k[1] = k[1].lower()
                     if k[1] == "int" or k[1] == "integer":
                         patch_data[k[0]] = int(temp_data[key])
                     elif k[1] == "array" or k[1] == "list":
@@ -675,11 +676,11 @@ def patch_set(args, connection):
                         # this is a dictionary that is being PATCHed
                         temp_data[key] = temp_data[key].replace("'", '"')
                         patch_data[k[0]] = json.loads(temp_data[key])
-                    elif k[1] in ["bool", "Boolean", "boolean", "BOOLEAN"]:
-                        if temp_data[key] in ["True", "true", "TRUE"]:
+                    elif k[1] in ["bool", "boolean"]:
+                        if temp_data[key].lower() == "true":
                             patch_data[k[0]] = True
-                        elif temp_data[key] in ["False", "false", "FALSE"]:
-                            patch_input[k[0]] = False
+                        elif temp_data[key].lower() == "false":
+                            patch_data[k[0]] = False
                 else:
                     patch_data[k[0]] = temp_data[key]
                 old_data = {}
