@@ -81,18 +81,17 @@ def encoded_get(url, keypair=None, frame='object', return_response=False):
 def process_links_list(list_of_links, keypair, server):
     to_return_list = set()
     for entry in list_of_links:
-        if (not entry.startswith('/files/ENCFF')) and \
-           (not entry.startswith('/files/TSTFF')):
-
-            replaced_file = encoded_get(server +
-                                        entry,
-                                        keypair)
-            if replaced_file['uuid'] == entry.split('/')[2]:
+        if (entry.find('ENC') == -1) and \
+           (entry.find('TST') == -1):
+            replaced_object = encoded_get(server +
+                                          entry,
+                                          keypair)
+            acc = replaced_object.get('accession')
+            if acc:
                 check_for_existance = encoded_get(
-                    server + replaced_file['accession'], keypair)
+                    server + acc, keypair)
                 if check_for_existance.get('status') != 'error':
-                    new_entry = '/files/' + \
-                                check_for_existance['accession'] + '/'
+                    new_entry = check_for_existance.get('@id')
                 else:
                     new_entry = entry
             else:
@@ -105,52 +104,90 @@ def process_links_list(list_of_links, keypair, server):
     return None
 
 
+def fix_replaced_references(obj, property, patching_data, keypair, server):
+    obj_property = obj.get(property)
+    if obj_property:
+        if isinstance(obj_property, list):
+            new_links_list = process_links_list(
+                obj_property, keypair, server)
+            if new_links_list:
+                patching_data[property] = new_links_list
+        else:
+            new_links_list = process_links_list(
+                [obj_property], keypair, server)
+            if new_links_list:
+                patching_data[property] = new_links_list[0]
+
+
 def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
-    connection = encodedcc.ENC_Connection(key)
+    # connection = encodedcc.ENC_Connection(key)
     keypair = (key.authid, key.authpw)
     server = key.server
     query = args.query
 
-    files = encoded_get(server +
-                        'search/?type=File&format=json&' +
-                        'frame=object&limit=all&' + query,
-                        keypair)['@graph']
-    print ('There are ' + str(len(files)) + ' files on the portal')
+    accessioned_objects = \
+        encoded_get(server + 'search/?type=AntibodyLot' +
+                    '&type=Donor&type=Biosample' +
+                    '&type=File&type=Library' +
+                    '&type=Dataset&type=Pipeline' +
+                    '&type=Replicate' +
+                    '&type=Treatment&format=json&' +
+                    'frame=object&limit=all&' + query, keypair)['@graph']
+    print ('There are ' + str(len(accessioned_objects)) +
+           ' accessioned objects on the portal')
     counter = 0
-    for f in files:
+    for obj in accessioned_objects:
         counter += 1
         if counter % 1000 == 0:
             print ('Script processed ' + str(counter) + ' files')
-        if f['status'] not in ['replaced']:
+        if obj['status'] not in ['replaced']:
             patching_data = {}
-            derived_from_list = f.get('derived_from')
-            if derived_from_list:
-                new_derived_from_list = process_links_list(
-                    derived_from_list, keypair, server)
-                if new_derived_from_list:
-                    patching_data['derived_from'] = new_derived_from_list
 
-            paired_with_file = f.get('paired_with')
-            if paired_with_file:
-                new_paired_with = process_links_list(
-                    [paired_with_file], keypair, server)
-                if new_paired_with:
-                    patching_data['paired_with'] = new_paired_with[0]
+            # fixing links of file/experiment/biosample
+            fix_replaced_references(obj, 'derived_from',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'paired_with',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'controlled_by',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'supersedes',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'dataset',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'related_files',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'related_datasets',
+                                    patching_data, keypair, server)
 
-            controlled_by_list = f.get('controlled_by')
-            if controlled_by_list:
-                new_controlled_by_list = process_links_list(
-                    controlled_by_list, keypair, server)
-                if new_controlled_by_list:
-                    patching_data['controlled_by'] = new_controlled_by_list
+            # fixing links of biosample
+            fix_replaced_references(obj, 'host',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'part_of',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'originated_from',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'pooled_from',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'donor',
+                                    patching_data, keypair, server)
+
+            # fixing links of library
+            fix_replaced_references(obj, 'biosample',
+                                    patching_data, keypair, server)
+
+            # fixing links of replicate
+            fix_replaced_references(obj, 'antibody',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'experiment',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'library',
+                                    patching_data, keypair, server)
             if patching_data:
-                print ('Patching file ' + f['accession'])
-                encodedcc.patch_ENCODE(f['accession'],
-                                       connection, patching_data)
-                
-
+                print ('Patching file ' + obj['accession'])
+                # encodedcc.patch_ENCODE(obj['accession'],
+                #                       connection, patching_data)
 
 
 if __name__ == '__main__':
