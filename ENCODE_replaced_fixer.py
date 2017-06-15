@@ -127,21 +127,21 @@ def main():
     server = key.server
     query = args.query
 
-    accessioned_objects = \
+    objects = \
         encoded_get(server + 'search/?type=AntibodyLot' +
                     '&type=Donor&type=Biosample' +
                     '&type=File&type=Library' +
                     '&type=Dataset&type=Pipeline' +
                     '&type=Replicate' +
                     '&type=Treatment&format=json&' +
-                    'frame=object&limit=all&' + query, keypair)['@graph']
-    print ('There are ' + str(len(accessioned_objects)) +
-           ' accessioned objects on the portal')
+                    'frame=object&limit=5000&' + query, keypair)['@graph']
+    print ('There are ' + str(len(objects)) +
+           ' objects that should be inspected on the portal')
     counter = 0
-    for obj in accessioned_objects:
+    for obj in objects:
         counter += 1
         if counter % 1000 == 0:
-            print ('Script processed ' + str(counter) + ' files')
+            print ('Script processed ' + str(counter) + ' objects')
         if obj['status'] not in ['replaced']:
             patching_data = {}
 
@@ -185,8 +185,8 @@ def main():
             fix_replaced_references(obj, 'library',
                                     patching_data, keypair, server)
             if patching_data:
-                print ('Patching file ' + obj['accession'])
-                # encodedcc.patch_ENCODE(obj['accession'],
+                print ('Patching object ' + obj['@type'][0] + '\t' + obj['uuid'] + '\t' + str(patching_data))
+                # encodedcc.patch_ENCODE(obj['uuid'],
                 #                       connection, patching_data)
 
 
