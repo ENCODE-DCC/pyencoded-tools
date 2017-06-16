@@ -145,6 +145,12 @@ def main():
         if obj['status'] not in ['replaced']:
             patching_data = {}
 
+            # fixing links of donor
+            fix_replaced_references(obj, 'parent_strains',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'identical_twin',
+                                    patching_data, keypair, server)
+
             # fixing links of file/experiment/biosample
             fix_replaced_references(obj, 'derived_from',
                                     patching_data, keypair, server)
@@ -175,6 +181,12 @@ def main():
 
             # fixing links of library
             fix_replaced_references(obj, 'biosample',
+                                    patching_data, keypair, server)
+
+            # fixing links of treatment
+            fix_replaced_references(obj, 'biosamples_used',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'antibodies_used',
                                     patching_data, keypair, server)
 
             # fixing links of replicate
