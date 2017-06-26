@@ -24,20 +24,23 @@ This script gathers all accession/uuids of child objects
 and all accession/uuids of child objects embedded in parent
 objects and reports the difference.
 
+Tests
+------
+Tests are in /pyencoded-tools/tests/test_encode_orphans.py and can be run
+with pytest at the command line.
+
 """
 
 # Define parent-child relationship:
-# A child is the possible orphan while a parent is any
-# object that could refer to it (as defined in the schema
-# at https://www.encodeproject.org/profiles/). The child
-# can have one parent or multiple parents (e.g. Documents).
-# To define an orphan, add a new object to the 'orphans' list,
-# where 'child' is the possible orphan object, 'child_field'
-# is its identification field (accession/uuid/@id), 'parent'
-# is the parent object (or list of parent objects), and 'parent_field'
-# is the child's identification field (accession/uuid/@id) in
-# the parent (a list is required if there are multiple parents,
-# and the 'parent' list and 'parent_field' list must be same length.
+# A child is the possible orphan while a parent is any object that could refer
+# to it (as defined in the schema at https://www.encodeproject.org/profiles/).
+# The child can have one parent or multiple parents (e.g. Documents). To
+# define an orphan, add a new object to the 'orphans' list, where 'child' is
+# the possible orphan object, 'child_field' is its identification field
+# (accession/uuid/@id), 'parent' is the parent object (or list of parent
+# objects), and 'parent_field' is the child's identification field
+# (accession/uuid/@id) in the parent (a list is required if there are multiple
+# parents, and the 'parent' list and 'parent_field' list must be same length.
 orphans = [{'child': 'Biosample',
             'child_field': 'accession',
             'parent': 'Library',
@@ -136,49 +139,82 @@ orphans = [{'child': 'Biosample',
                              'documents.@id',
                              'documents.@id',
                              'documents.@id',
-                             'documents.@id',
                              'file_format_specification.@id']}]
 
 
-def extract_profile(value, results):
-    """Returns identifier, status, lab,
-    created date, submitted_by, and @type
-    of child object given accession
-    (or other identifier) and results
-    from GET request."""
-    na = 'not_available'
-    if len(value) == 11:
-        id_field = 'accession'
+def get_id_type(value):
+    """Returns field_name of identifier.
+    """
+    if "/" in value:
+        return '@id'
+    elif len(value) == 11:
+        return 'accession'
     elif len(value) == 36:
-        id_field = 'uuid'
+        return 'uuid'
     else:
-        id_field = '@id'
+        raise ValueError('Invalid identifier')
+
+
+def extract_profile(value, results):
+    """Returns identifier, status, lab, date_created, submitted_by, and @type
+    of child object given accession (or other identifier) and results from GET
+    request.
+    """
+    na = 'not_available'
+    id_field = get_id_type(value)
     data = [{'accession': value,
              'status': r.get('status', na),
              'lab': r.get('lab', {})
              if isinstance(r.get('lab', {}), str)
              else r.get('lab', {}).get('name', na),
-             'submitted_by': r.get('submitted_by', na),
+             'date_created': r.get('date_created', na),
+             'submitted_by': r.get('submitted_by', {})
+             if isinstance(r.get('submitted_by', {}), str)
+             else r.get('submitted_by', {}).get('title', na),
              '@type': r.get('@type', [])[:1]}
             for r in results if r.get(id_field) == value][0]
     return data
 
 
-def get_data(item_type, field_name):
-    """Returns DataFrame of accessions/uuids/@ids
-    and metadata given the ENCODE item type and
-    field name defining location of accessions/uuids/@ids.
+def find_replacement(value):
+    """Returns replacement identifier (accession/uuid/@id) given replaced
+    identifier if it exists.
     """
-    data = []
-    childless_parents = []
-    field_name_split = field_name.split('.')
-    # Grab all objects of that type.
+    url = 'https://www.encodeproject.org/'\
+          '{}/?format=json'.format(value)
+    r = requests.get(url, auth=(key.authid, key.authpw))
+    if (r.status_code == 200):
+        r = r.json()
+        # Set replaced accession to replacement accession.
+        id_field = get_id_type(value)
+        new_value = r.get(id_field)
+        return new_value
+    else:
+        return value
+
+
+def get_data(item_type):
+    """Returns results of search for specified ENCODE item type.
+    """
+    # Grab all objects of type item_type.
     url = 'https://www.encodeproject.org/search/'\
         '?type={}&limit=all&format=json'\
         '&frame=embedded'.format(item_type)
     r = requests.get(url, auth=(key.authid, key.authpw))
     results = r.json()['@graph']
     print('Total {}: {}'.format(item_type, len(results)))
+    return results
+
+
+def parse_data(results, field_name):
+    """Returns DataFrame of extracted identifier values, as well as list of
+    objects that are missing identifiers (childless parents), given results
+    from GET query and field_name of identifier (e.g. 'accession' or
+    'analysis_step.uuid').
+    """
+    data = []
+    childless_parents = []
+    field_name_split = field_name.split('.')
     # Process each object one at a time.
     for result in results:
         value, values = result, None
@@ -194,10 +230,11 @@ def get_data(item_type, field_name):
                 value = None
                 # Recovered values so exit loop.
                 break
+            # Extract values from list of dictionaries.
             # Otherwise access field name and update value.
             value = value.get(name, {})
-        # Deal with objects missing field. An empty dict
-        # is returned if field not present.
+        # Deal with objects missing field. An empty dict is returned if field
+        # not present.
         if isinstance(value, dict):
             childless_parents.append({'accession': result.get('accession',
                                                               result.get('uuid'))})
@@ -205,21 +242,12 @@ def get_data(item_type, field_name):
         # See if replacement is also orphaned (only for child objects).
         if ((result.get('status') == 'replaced')
                 and (len(field_name_split) == 1)):
-            url = 'https://www.encodeproject.org/'\
-                '{}/?format=json'.format(result.get('accession',
-                                                    result.get('uuid',
-                                                               result.get('@id'))))
-            r = requests.get(url, auth=(key.authid, key.authpw))
-            if (r.status_code == 200):
-                r = r.json()
-                # Set replaced accession to replacement accession.
-                value = r.get('accession',
-                              r.get('uuid',
-                                    r.get('@id')))
+            value = find_replacement(value)
         # Deal with values recovered from a list of objects/strings.
         if values is not None:
-            # Possible to have empty list.
-            if len(values) == 0:
+            # Possible to have empty list or list of Nones if field_name
+            # not found.
+            if ((len(values) == 0) or (None in values)):
                 childless_parents.append({'accession': result.get('accession',
                                                                   result.get('uuid'))})
             else:
@@ -234,12 +262,7 @@ def get_data(item_type, field_name):
         # For parent objects just add accession of child object.
         else:
             data.append({'accession': value})
-    if childless_parents:
-        print('Number of {} missing {} field'
-              ' (childless parents): {}'.format(item_type,
-                                                field_name,
-                                                len(childless_parents)))
-    return pd.DataFrame(data)
+    return pd.DataFrame(data), childless_parents
 
 
 def find_orphans(i, item):
@@ -253,26 +276,39 @@ def find_orphans(i, item):
                                                     relation['child_field'],
                                                     relation['parent_field'])
         print('{}. {} not associated with {}'.format((i + 1), child, parent))
-        # Grab child data.
-        child_data = get_data(child, child_field)
-        # Grab parent data.
-        # Deal with multiple parents.
+        # Grab and parse child data.
+        child_results = get_data(child)
+        child_data, _ = parse_data(child_results, child_field)
+        # Grab and parse parent data.
+        # If multiple parents.
         if isinstance(parent, list):
             # Build list from multiple parents.
             parent_data = []
+            childless_parents = []
+            assert len(parent) == len(parent_field)
             for p, f in zip(parent, parent_field):
-                data = get_data(p, f)
-                parent_data.append(data)
+                p_results = get_data(p)
+                p_data, cp = parse_data(p_results, f)
+                parent_data.append(p_data)
+                if len(cp) != 0:
+                    childless_parents.extend(cp)
             # Combine DataFrames
             parent_data = pd.concat(parent_data)
         else:
             # If only single parent.
-            parent_data = get_data(parent, parent_field)
+            parent_results = get_data(parent)
+            parent_data, childless_parents = parse_data(parent_results,
+                                                        parent_field)
         # Compare groups.
         same = child_data[child_data.accession.isin(parent_data.accession)]\
             .drop_duplicates('accession')
         diff = child_data[~(child_data.accession.isin(parent_data.accession))]\
             .drop_duplicates('accession')
+        if childless_parents:
+            print('Number of {} missing {} field'
+                  ' (childless parents): {}'.format(parent,
+                                                    parent_field,
+                                                    len(childless_parents)))
         print('Number of {} with {} (families): {}'.format(child,
                                                            parent,
                                                            len(same)))
@@ -307,7 +343,6 @@ def get_args():
 
 def main():
     global key
-    global args
     args = get_args()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     # Build list of ENCODE object types for orphan checking.
@@ -325,15 +360,25 @@ def main():
             raise ValueError("Invalid item type: {}.".format((set(input_type)
                                                               - set(item_type))))
         print('Custom orphan search:')
-    return [find_orphans(i, item) for i, item in enumerate(item_type)]
+    results = [find_orphans(i, item) for i, item in enumerate(item_type)]
+    # Make flat.
+    results = [item for sublist in results for item in sublist]
+    for result in results:
+        df = result[2]
+        df.date_created = df['date_created'].apply(lambda x: pd.to_datetime(x))
+        print(df[['accession',
+                  'status',
+                  'lab',
+                  'date_created']].sort_values(by='date_created',
+                                               ascending=False).reset_index(drop=True).to_string())
+    if args.outfile is not None:
+        df = pd.concat([result[2] for result in results])
+        df.date_created = df.date_created.apply(lambda x: pd.to_datetime(x))
+        df['@type'] = df['@type'].apply(lambda x: x[0])
+        df.sort_values(by=['@type', 'date_created'],
+                       ascending=[True, False]).reset_index(drop=True).to_csv(args.outfile,
+                                                                              sep='\t')
 
 
 if __name__ == '__main__':
-    results = main()
-    results = [item for sublist in results for item in sublist]
-    for result in results:
-        print('{} without {}:'.format(result[0], result[1]))
-        print(result[2][['accession', 'status', 'lab']].to_string())
-    if args.outfile is not None:
-        pd.concat([result[2] for result in results]).to_csv(args.outfile,
-                                                            sep='\t')
+    main()
