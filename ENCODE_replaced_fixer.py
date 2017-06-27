@@ -134,7 +134,7 @@ def main():
                     '&type=Dataset&type=Pipeline' +
                     '&type=Replicate' +
                     '&type=Treatment&format=json&' +
-                    'frame=object&limit=5000&' + query, keypair)['@graph']
+                    'frame=object&limit=all&' + query, keypair)['@graph']
     print ('There are ' + str(len(objects)) +
            ' objects that should be inspected on the portal')
     counter = 0
@@ -150,6 +150,18 @@ def main():
                                     patching_data, keypair, server)
             fix_replaced_references(obj, 'identical_twin',
                                     patching_data, keypair, server)
+            fix_replaced_references(obj, 'outcrossed_strain',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'littermates',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'fraternal_twin',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'parents',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'children',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'siblings',
+                                    patching_data, keypair, server)
 
             # fixing links of file/experiment/biosample
             fix_replaced_references(obj, 'derived_from',
@@ -157,6 +169,8 @@ def main():
             fix_replaced_references(obj, 'paired_with',
                                     patching_data, keypair, server)
             fix_replaced_references(obj, 'controlled_by',
+                                    patching_data, keypair, server)
+            fix_replaced_references(obj, 'possible_controls',
                                     patching_data, keypair, server)
             fix_replaced_references(obj, 'supersedes',
                                     patching_data, keypair, server)
