@@ -211,7 +211,16 @@ def main():
             fix_replaced_references(obj, 'library',
                                     patching_data, keypair, server)
             if patching_data:
-                print ('Patching object ' + obj['@type'][0] + '\t' + obj['uuid'] + '\t' + str(patching_data))
+                print ('Patching object ' +
+                       obj['@type'][0] + '\t' + obj['uuid'])
+                print ('OLD DATA:')
+                for k in patching_data:
+                    print ('\t' + k + '\t' + str(obj[k]))
+                print ('---------')
+                print ('NEW DATA:')
+                for k in patching_data:
+                    print ('\t' + k + '\t' + str(patching_data[k]))
+                print ('---------')
                 # encodedcc.patch_ENCODE(obj['uuid'],
                 #                       connection, patching_data)
 
