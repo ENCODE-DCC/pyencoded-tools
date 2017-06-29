@@ -122,7 +122,7 @@ def fix_replaced_references(obj, property, patching_data, keypair, server):
 def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
-    # connection = encodedcc.ENC_Connection(key)
+    connection = encodedcc.ENC_Connection(key)
     keypair = (key.authid, key.authpw)
     server = key.server
     query = args.query
@@ -221,8 +221,8 @@ def main():
                 for k in patching_data:
                     print ('\t' + k + '\t' + str(patching_data[k]))
                 print ('---------')
-                # encodedcc.patch_ENCODE(obj['uuid'],
-                #                       connection, patching_data)
+                encodedcc.patch_ENCODE(obj['uuid'],
+                                       connection, patching_data)
 
 
 if __name__ == '__main__':
