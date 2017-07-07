@@ -166,8 +166,6 @@ def main():
             # fixing links of file/experiment/biosample
             fix_replaced_references(obj, 'derived_from',
                                     patching_data, keypair, server)
-            fix_replaced_references(obj, 'paired_with',
-                                    patching_data, keypair, server)
             fix_replaced_references(obj, 'controlled_by',
                                     patching_data, keypair, server)
             fix_replaced_references(obj, 'possible_controls',
