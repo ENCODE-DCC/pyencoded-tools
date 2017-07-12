@@ -17,12 +17,13 @@ Purpose
 -------
 Provide robust framework for performing browser tasks with Selenium.
 
-New data gathering tasks can inherit from the Task class.
+New data gathering tasks can inherit from the SeleniumTask class.
 
 New data comparison tasks between production data and RC data can inherit
 from the URLComparison class.
 
-TODO: BrowserComparison class.
+New data comparison tasks between browsers for the same URL can inherit
+from the BrowserComparison class.
 
 The DataManager class launches DataWorkers to complete individual tasks
 in a fault-tolerant way.
@@ -38,13 +39,16 @@ Example
 $ python -i qancode.py
 
 # Initiate QANCODE object with URL to compare to production.
->>> qa = QANCODE(rc_url='https://v58-test-master.demo.encodedcc.org')
+>>> qa = QANCODE(rc_url='https://test.encodedcc.org')
 
 # Run facet comparison for Experiment items in Safari as public and
 # admin user.
 >>> qa.compare_facets(users=['Public', 'encxxxtest@gmail.com'],
                       browsers=['Safari'],
                       item_types=['/search/?type=Experiment'])
+
+Will return comparison of data between production and RC for a given browser
+as well as comparison of data between browsers for a given URL.
 
 Required
 --------
@@ -217,7 +221,7 @@ class SignIn(object):
         return None
 
 
-class Task(metaclass=ABCMeta):
+class SeleniumTask(metaclass=ABCMeta):
     """
     ABC for defining a Selenium task.
     """
@@ -231,7 +235,7 @@ class Task(metaclass=ABCMeta):
         pass
 
 
-class GetFacetNumbers(Task):
+class GetFacetNumbers(SeleniumTask):
     """
     Implementation of Task for getting facet number data.
     """
@@ -267,7 +271,7 @@ class GetFacetNumbers(Task):
         data_dict = defaultdict(list)
         for facet in facets:
             title = facet.find_element_by_css_selector(
-                'h5').text.replace(':', '')
+                'h5').text.replace(':', '').strip()
             categories = [
                 c.text for c in facet.find_elements_by_class_name('facet-item')]
             print('Collecting values in {}.'.format(title))
@@ -280,6 +284,85 @@ class GetFacetNumbers(Task):
                 title = title + str(title_number)
             data_dict[title] = list(zip(categories, numbers))
         return data_dict
+
+
+class BrowserComparison(metaclass=ABCMeta):
+    """
+    ABC for comparing data between browsers.
+    """
+
+    def __init__(self, user, url, item_type, all_data):
+        self.all_data = all_data
+        self.user = user
+        self.url = url
+        self.item_type = item_type
+        self.url_data = [d for d in all_data if ((d['user'] == user)
+                                                 and (d['item_type'] == item_type)
+                                                 and (d['url'] == url))]
+
+    @abstractmethod
+    def compare_data(self):
+        pass
+
+
+class CompareFacetNumbersBetweenBrowsers(BrowserComparison):
+    """
+    Implementation of BrowserComparison for facet numbers.
+    """
+
+    def compare_data(self):
+        """
+        Return comparison of data between browsers given server (prod/RC),
+        user, item_type.
+        """
+        print('Comparing data between browsers.')
+        print('As user: {}'.format(self.user))
+        print('URL: {}'.format(self.url))
+        print('Item type: {}'.format(self.item_type))
+        # Find keys that are not in all groups.
+        all_keys = set.union(*[set(d['data'].keys()) for d in self.url_data])
+        common_keys = set.intersection(*[set(d['data'].keys())
+                                         for d in self.url_data])
+        different_keys = all_keys - common_keys
+        if different_keys:
+            for key in different_keys:
+                print(key)
+                # Print groups that have key.
+                browsers_with_key = set([d['browser'] for d in self.url_data
+                                         if key in d['data'].keys()])
+                if browsers_with_key:
+                    print('{}{}In browsers: {}{}'.format(
+                        ' ' * 5, bcolors.WARNING, list(browsers_with_key), bcolors.ENDC))
+                # Print groups that do not have key.
+                browsers_without_key = set(
+                    [d['browser'] for d in self.url_data if key not in d['data'].keys()])
+                if browsers_without_key:
+                    print('{}{}Not in browsers: {}{}'.format(
+                        ' ' * 5, bcolors.FAIL, list(browsers_without_key), bcolors.ENDC))
+        if common_keys:
+            for key in sorted(common_keys):
+                print(key)
+                category_data_by_browser = [(d['browser'], set(d['data'][key]))
+                                            for d in self.url_data]
+                all_data = set.union(*[d[1] for d in category_data_by_browser])
+                common_data = set.intersection(*[d[1] for d
+                                                 in category_data_by_browser])
+                different_data = all_data - common_data
+                if different_data:
+                    for dd in different_data:
+                        browsers_with_different_data = [
+                            d[0] for d in category_data_by_browser if dd in d[1]]
+                        print('{}{}{}{}'.format(
+                            ' ' * 5, bcolors.OKGREEN, dd, bcolors.ENDC))
+                        print('{}{}In browsers: {}{}'.format(
+                            ' ' * 10, bcolors.WARNING, list(browsers_with_different_data), bcolors.ENDC))
+                        browsers_without_different_data = [
+                            d[0] for d in category_data_by_browser if dd not in d[1]]
+                        print('{}{}Not in browsers: {}{}'.format(
+                            ' ' * 10, bcolors.FAIL, list(browsers_without_different_data), bcolors.ENDC))
+                else:
+                    print('{}{}MATCH{}'.format(
+                        ' ' * 5, bcolors.OKBLUE, bcolors.ENDC))
 
 
 class URLComparison(metaclass=ABCMeta):
@@ -311,12 +394,13 @@ class URLComparison(metaclass=ABCMeta):
         pass
 
 
-class CompareFacetNumbers(URLComparison):
+class CompareFacetNumbersBetweenURLS(URLComparison):
     """
     Implementation of URLComparison for facet numbers.
     """
 
     def compare_data(self):
+        print('Comparing data between URLs.')
         print('As user: {}'.format(self.user))
         print('Browser: {}'.format(self.browser))
         print('First URL: {}'.format(self.prod_url))
@@ -455,7 +539,8 @@ class QANCODE(object):
                        users='all',
                        item_types='all',
                        task=GetFacetNumbers,
-                       comparison=CompareFacetNumbers):
+                       url_comparison=True,
+                       browser_comparison=True):
         """
         Gets RC URL facet numbers and compares them to production URL facet
         numbers for given item_type, browser, user.
@@ -500,13 +585,23 @@ class QANCODE(object):
                          item_types=item_types,
                          task=task)
         dm.run_tasks()
-        for browser in browsers:
-            for user in users:
-                for item_type in item_types:
-                    cfn = CompareFacetNumbers(browser=browser,
-                                              user=user,
-                                              prod_url=self.prod_url,
-                                              rc_url=self.rc_url,
-                                              item_type=item_type,
-                                              all_data=dm.all_data)
-                    cfn.compare_data()
+        if browser_comparison:
+            for browser in browsers:
+                for user in users:
+                    for item_type in item_types:
+                        cfn_url = CompareFacetNumbersBetweenURLS(browser=browser,
+                                                                 user=user,
+                                                                 prod_url=self.prod_url,
+                                                                 rc_url=self.rc_url,
+                                                                 item_type=item_type,
+                                                                 all_data=dm.all_data)
+                        cfn_url.compare_data()
+        if url_comparison:
+            for url in urls:
+                for user in users:
+                    for item_type in item_types:
+                        cfn_browser = CompareFacetNumbersBetweenBrowsers(user=user,
+                                                                         url=url,
+                                                                         item_type=item_type,
+                                                                         all_data=dm.all_data)
+                        cfn_browser.compare_data()
