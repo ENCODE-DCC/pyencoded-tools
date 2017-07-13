@@ -215,7 +215,7 @@ class URLComparison(metaclass=ABCMeta):
 
 
 #########################################
-# Selenium setup and signin procedures. #
+# Selenium setup and sign-in procedures. #
 #########################################
 
 
@@ -674,7 +674,8 @@ class QANCODE(object):
         """
         List all possible tests.
         """
-        pass
+        print(*[f for f in dir(QANCODE) if callable(getattr(QANCODE, f))
+                and not f.startswith('__')], sep='\n')
 
     def compare_facets(self,
                        browsers='all',
