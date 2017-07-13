@@ -63,11 +63,12 @@ list of objects containing username and password fields:
 
 """
 
-
+# Default browsers.
 BROWSERS = ['Chrome',
             'Firefox',
             'Safari']
 
+# Default users.
 USERS = ['Public',
          'encoded.test@gmail.com',
          'encoded.test2@gmail.com',
@@ -75,6 +76,9 @@ USERS = ['Public',
 
 
 class bcolors:
+    """
+    Helper class for text color definitions.
+    """
     OKBLUE = '\x1b[36m'
     OKGREEN = '\x1b[1;32m'
     WARNING = '\x1b[33m'
@@ -82,7 +86,138 @@ class bcolors:
     ENDC = '\x1b[0m'
 
 
+#######################
+# Page object models. #
+#######################
+
+
+class FrontPage(object):
+    """
+    Page object models allow selectors to be defined in one place and then
+    used by all of the test.
+    """
+    login_button_text = 'Submitter sign-in'
+    logout_button_text = 'Submitter sign out'
+    menu_button_data_css = '#main > ul > li:nth-child(1) > a'
+    menu_button_data_alt_css = '#main > ul > li:nth-child(1) > button'
+    drop_down_search_button_css = '#main > ul > li.dropdown.open > ul > li:nth-child(2) > a'
+
+
+class SignInModal(object):
+    """
+    Page object model.
+    """
+    login_modal_class = 'auth0-lock-header-logo'
+    google_button_css = '#auth0-lock-container-1 > div > div.auth0-lock-center > form > div > div > div:nth-child(3) > span > div > div > div > div > div > div > div > div > div > div.auth0-lock-social-buttons-container > button:nth-child(2) > div.auth0-lock-social-button-icon'
+    button_tag = 'button'
+    user_id_input_css = '#identifierId'
+    user_next_button_css = '#identifierNext > content > span'
+    password_input_css = '#password > div.aCsJod.oJeWuf > div > div.Xb9hP > input'
+    password_next_button_css = '#passwordNext > content > span'
+    two_step_user_id_input_css = '#username'
+    two_step_password_input_css = '#password'
+    two_step_submit_css = '#login > input'
+    two_step_send_sms_css = '#sms-send > input.submit-button'
+    two_step_code_input_css = '#otp'
+    two_step_submit_verification_css = '#otp-box > div > input.go-button'
+
+
+class SearchPageList(object):
+    """
+    Page object model.
+    """
+    facet_box_class = 'facets'
+    see_more_buttons_css = '#content > div > div > div > div > div.col-sm-5.col-md-4.col-lg-3 > div > div > div > ul > div.pull-right > small > button'
+    facet_class = 'facet'
+    category_title_class = 'facet-item'
+    number_class = 'pull-right'
+
+
+class SearchPageMatrix(object):
+    """
+    Page object model.
+    """
+    pass
+
+
+##################################################################
+# Abstract methods for data gathering and data comparison tasks. #
+##################################################################
+
+
+class SeleniumTask(metaclass=ABCMeta):
+    """
+    ABC for defining a Selenium task.
+    """
+
+    def __init__(self, driver, item_type):
+        self.driver = driver
+        self.item_type = item_type
+
+    @abstractmethod
+    def get_data(self):
+        pass
+
+
+class BrowserComparison(metaclass=ABCMeta):
+    """
+    ABC for comparing data between browsers.
+    """
+
+    def __init__(self, user, url, item_type, browsers, all_data):
+        self.all_data = all_data
+        self.user = user
+        self.url = url
+        self.item_type = item_type
+        self.browsers = browsers
+        self.url_data = [d for d in all_data if ((d['user'] == user)
+                                                 and (d['item_type'] == item_type)
+                                                 and (d['url'] == url))]
+
+    @abstractmethod
+    def compare_data(self):
+        pass
+
+
+class URLComparison(metaclass=ABCMeta):
+    """
+    ABC for comparing data between prod and RC given browser and user.
+    """
+
+    def __init__(self, browser, user, prod_url, rc_url, item_type, all_data):
+        self.browser = browser
+        self.user = user
+        self.all_data = all_data
+        self.prod_url = prod_url
+        self.rc_url = rc_url
+        self.item_type = item_type
+        self.prod_data = [d['data'] for d in all_data
+                          if ((d['url'] == prod_url)
+                              and (d['user'] == user)
+                              and (d['browser'] == browser)
+                              and (d['item_type'] == item_type))]
+        self.rc_data = [d['data'] for d in all_data
+                        if ((d['url'] == rc_url)
+                            and (d['user'] == user)
+                            and (d['browser'] == browser)
+                            and (d['item_type'] == item_type))]
+        assert len(self.prod_data) == len(self.rc_data)
+
+    @abstractmethod
+    def compare_data(self):
+        pass
+
+
+#########################################
+# Selenium setup and signin procedures. #
+#########################################
+
+
 class NewDriver(object):
+    """
+    Initiate new Selenium driver.
+    """
+
     def __init__(self, browser, url):
         print('Opening {} in {}'.format(url, browser))
         if browser == 'Safari':
@@ -101,6 +236,10 @@ class NewDriver(object):
 
 
 class SignIn(object):
+    """
+    Run through OAuth authentication procedure.
+    """
+
     def __init__(self, driver, user, cred_file=os.path.expanduser('~/qa_credentials.json')):
         self.driver = driver
         self.user = user
@@ -125,7 +264,7 @@ class SignIn(object):
         while wait_time > 0:
             try:
                 WebDriverWait(self.driver, 1).until(EC.presence_of_element_located(
-                    (By.CLASS_NAME, 'auth0-lock-header-logo')))
+                    (By.CLASS_NAME, SignInModal.login_modal_class)))
                 time.sleep(1)
                 wait_time -= 1
             except TimeoutException:
@@ -139,27 +278,37 @@ class SignIn(object):
         else:
             return False
 
+    def signed_in(self):
+        try:
+            self.driver.wait.until(EC.presence_of_element_located(
+                (By.LINK_TEXT, FrontPage.logout_button_text)))
+            print('Login successful')
+            time.sleep(3)
+            return True
+        except TimeoutError:
+            return False
+
     def login_two_step(self):
         user_id = self.driver.wait.until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, '#username')))
+            EC.element_to_be_clickable((By.CSS_SELECTOR, SignInModal.two_step_user_id_input_css)))
         user_id.send_keys(self.creds[0]['username'])
         password = self.driver.wait.until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, '#password')))
+            EC.element_to_be_clickable((By.CSS_SELECTOR, SignInModal.two_step_password_input_css)))
         pw = getpass.getpass()
         password.send_keys(pw)
         pw = None
         submit = self.driver.wait.until(EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, '#login > input')))
+            (By.CSS_SELECTOR, SignInModal.two_step_submit_css)))
         submit.click()
         send_sms = self.driver.wait.until(EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, '#sms-send > input.submit-button')))
+            (By.CSS_SELECTOR, SignInModal.two_step_send_sms_css)))
         send_sms.click()
         code = self.driver.wait.until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, '#otp')))
+            EC.element_to_be_clickable((By.CSS_SELECTOR, SignInModal.two_step_code_input_css)))
         verification = input('Authentication code: ')
         code.send_keys(verification)
         submit = self.driver.wait.until(EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, '#otp-box > div > input.go-button')))
+            (By.CSS_SELECTOR, SignInModal.two_step_submit_verification_css)))
         submit.click()
 
     def sign_in(self):
@@ -167,20 +316,20 @@ class SignIn(object):
         original_window_handle = self.driver.window_handles[0]
         self.driver.switch_to_window(original_window_handle)
         login_button = self.driver.wait.until(EC.element_to_be_clickable(
-            (By.PARTIAL_LINK_TEXT, 'Submitter sign-in')))
+            (By.PARTIAL_LINK_TEXT, FrontPage.login_button_text)))
         try:
             login_button.click()
             self.driver.wait.until(EC.presence_of_element_located(
-                (By.CLASS_NAME, 'auth0-lock-header-logo')))
+                (By.CLASS_NAME, SignInModal.login_modal_class)))
         except TimeoutException:
             login_button.click()
         try:
             google_button = self.driver.wait.until(EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, '#auth0-lock-container-1 > div > div.auth0-lock-center > form > div > div > div:nth-child(3) > span > div > div > div > div > div > div > div > div > div > div.auth0-lock-social-buttons-container > button:nth-child(2) > div.auth0-lock-social-button-icon')))
+                (By.CSS_SELECTOR, SignInModal.google_button_css)))
             google_button.click()
         except TimeoutException:
             # Hack to find button in Safari.
-            for button in self.driver.find_elements_by_tag_name('button'):
+            for button in self.driver.find_elements_by_tag_name(SignInModal.button_tag):
                 if '@' in button.text:
                     button.click()
                     break
@@ -188,23 +337,23 @@ class SignIn(object):
             return None
         try:
             user_id = self.driver.wait.until(EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, '#identifierId')))
+                (By.CSS_SELECTOR, SignInModal.user_id_input_css)))
         except TimeoutException:
             new_window_handle = [
                 h for h in self.driver.window_handles if h != original_window_handle][0]
             self.driver.switch_to_window(new_window_handle)
             user_id = self.driver.wait.until(EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, '#identifierId')))
+                (By.CSS_SELECTOR, SignInModal.user_id_input_css)))
         user_id.send_keys(self.creds[0]['username'])
-        next_button = self.driver.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,
-                                                                         '#identifierNext > content > span')))
+        next_button = self.driver.wait.until(EC.element_to_be_clickable(
+            (By.CSS_SELECTOR, SignInModal.user_next_button_css)))
         next_button.click()
         try:
             pw = self.driver.wait.until(EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, '#password > div.aCsJod.oJeWuf > div > div.Xb9hP > input')))
+                (By.CSS_SELECTOR, SignInModal.password_input_css)))
             pw.send_keys(self.creds[0]['password'])
-            next_button = self.driver.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,
-                                                                             '#passwordNext > content > span')))
+            next_button = self.driver.wait.until(EC.element_to_be_clickable(
+                (By.CSS_SELECTOR, SignInModal.password_next_button_css)))
             next_button.click()
         except TimeoutException:
             if self.is_two_step():
@@ -213,26 +362,17 @@ class SignIn(object):
                 new_window_handle = [
                     h for h in self.driver.window_handles if h != original_window_handle][0]
                 self.driver.switch_to_window(new_window_handle)
-                next_button = self.driver.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,
-                                                                                 '#passwordNext > content > span')))
+                next_button = self.driver.wait.until(EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, SignInModal.password_next_button_css)))
                 next_button.click()
-        self.driver.switch_to_window(original_window_handle)
         self.wait_for_modal_to_quit()
-        return None
+        self.driver.switch_to_window(original_window_handle)
+        return self.signed_in()
 
 
-class SeleniumTask(metaclass=ABCMeta):
-    """
-    ABC for defining a Selenium task.
-    """
-
-    def __init__(self, driver, item_type):
-        self.driver = driver
-        self.item_type = item_type
-
-    @abstractmethod
-    def get_data(self):
-        pass
+###################
+# Selenium tasks. #
+###################
 
 
 class GetFacetNumbers(SeleniumTask):
@@ -244,13 +384,13 @@ class GetFacetNumbers(SeleniumTask):
         if self.item_type is None:
             try:
                 data_button = self.driver.wait_long.until(EC.element_to_be_clickable(
-                    (By.CSS_SELECTOR, '#main > ul > li:nth-child(1) > a')))
+                    (By.CSS_SELECTOR, FrontPage.menu_button_data_css)))
             except TimeoutException:
                 data_button = self.driver.wait_long.until(EC.element_to_be_clickable(
-                    (By.CSS_SELECTOR, '#main > ul > li:nth-child(1) > button')))
+                    (By.CSS_SELECTOR, FrontPage.menu_button_data_alt_css)))
             data_button.click()
             search_button = self.driver.wait_long.until(EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, '#main > ul > li.dropdown.open > ul > li:nth-child(2) > a')))
+                (By.CSS_SELECTOR, FrontPage.drop_down_search_button_css)))
             search_button.click()
         else:
             type_url = self.driver.current_url + self.item_type
@@ -258,25 +398,26 @@ class GetFacetNumbers(SeleniumTask):
             self.driver.get(type_url)
         try:
             facet_box = self.driver.wait.until(
-                EC.presence_of_element_located((By.CLASS_NAME, 'facets')))
+                EC.presence_of_element_located((By.CLASS_NAME, SearchPageList.facet_box_class)))
         except TimeoutError:
             search_button.click()
             facet_box = self.driver.wait.until(
-                EC.presence_of_element_located((By.CLASS_NAME, 'facets')))
+                EC.presence_of_element_located((By.CLASS_NAME, SearchPageList.facet_box_class)))
         see_more_buttons = facet_box.find_elements_by_css_selector(
-            '#content > div > div > div > div > div.col-sm-5.col-md-4.col-lg-3 > div > div > div > ul > div.pull-right > small > button')
+            SearchPageList.see_more_buttons_css)
         for button in see_more_buttons:
             button.click()
-        facets = self.driver.find_elements_by_class_name('facet')
+        facets = self.driver.find_elements_by_class_name(
+            SearchPageList.facet_class)
         data_dict = defaultdict(list)
         for facet in facets:
             title = facet.find_element_by_css_selector(
                 'h5').text.replace(':', '').strip()
             categories = [
-                c.text for c in facet.find_elements_by_class_name('facet-item')]
+                c.text for c in facet.find_elements_by_class_name(SearchPageList.category_title_class)]
             print('Collecting values in {}.'.format(title))
             numbers = [n.text for n in facet.find_elements_by_class_name(
-                'pull-right') if n.text != '']
+                SearchPageList.number_class) if n.text != '']
             assert len(categories) == len(numbers)
             if title in data_dict.keys():
                 title_number = len([t for t in data_dict.keys()
@@ -286,23 +427,9 @@ class GetFacetNumbers(SeleniumTask):
         return data_dict
 
 
-class BrowserComparison(metaclass=ABCMeta):
-    """
-    ABC for comparing data between browsers.
-    """
-
-    def __init__(self, user, url, item_type, all_data):
-        self.all_data = all_data
-        self.user = user
-        self.url = url
-        self.item_type = item_type
-        self.url_data = [d for d in all_data if ((d['user'] == user)
-                                                 and (d['item_type'] == item_type)
-                                                 and (d['url'] == url))]
-
-    @abstractmethod
-    def compare_data(self):
-        pass
+##########################
+# Data comparison tasks. #
+##########################
 
 
 class CompareFacetNumbersBetweenBrowsers(BrowserComparison):
@@ -315,7 +442,7 @@ class CompareFacetNumbersBetweenBrowsers(BrowserComparison):
         Return comparison of data between browsers given server (prod/RC),
         user, item_type.
         """
-        print('Comparing data between browsers.')
+        print('Comparing data between browsers: {}.'.format(self.browsers))
         print('As user: {}'.format(self.user))
         print('URL: {}'.format(self.url))
         print('Item type: {}'.format(self.item_type))
@@ -363,35 +490,6 @@ class CompareFacetNumbersBetweenBrowsers(BrowserComparison):
                 else:
                     print('{}{}MATCH{}'.format(
                         ' ' * 5, bcolors.OKBLUE, bcolors.ENDC))
-
-
-class URLComparison(metaclass=ABCMeta):
-    """
-    ABC for comparing data between prod and RC given browser and user.
-    """
-
-    def __init__(self, browser, user, prod_url, rc_url, item_type, all_data):
-        self.browser = browser
-        self.user = user
-        self.all_data = all_data
-        self.prod_url = prod_url
-        self.rc_url = rc_url
-        self.item_type = item_type
-        self.prod_data = [d['data'] for d in all_data
-                          if ((d['url'] == prod_url)
-                              and (d['user'] == user)
-                              and (d['browser'] == browser)
-                              and (d['item_type'] == item_type))]
-        self.rc_data = [d['data'] for d in all_data
-                        if ((d['url'] == rc_url)
-                            and (d['user'] == user)
-                            and (d['browser'] == browser)
-                            and (d['item_type'] == item_type))]
-        assert len(self.prod_data) == len(self.rc_data)
-
-    @abstractmethod
-    def compare_data(self):
-        pass
 
 
 class CompareFacetNumbersBetweenURLS(URLComparison):
@@ -451,6 +549,11 @@ class CompareFacetNumbersBetweenURLS(URLComparison):
                 print('{}{}MATCH{}'.format(' ' * 5, bcolors.OKBLUE, bcolors.ENDC))
 
 
+################################################
+# Classes for running Selenium tasks robustly. #
+################################################
+
+
 class DataWorker(object):
     def __init__(self, browser, url, user, task, item_type):
         self.task_completed = False
@@ -467,7 +570,9 @@ class DataWorker(object):
         try:
             self.new_driver()
             if self.user != 'Public':
-                SignIn(self.driver, self.user)
+                signed_in = SignIn(self.driver, self.user)
+                if not signed_in:
+                    raise ValueError('Login stalled.')
             new_task = self.task(self.driver, self.item_type)
             data = new_task.get_data()
             self.task_completed = True
@@ -516,6 +621,11 @@ class DataManager(object):
                             retry -= 1
                             if retry < 0:
                                 raise ValueError('Task incomplete.')
+
+
+################################################################
+# QANCODE object gets data, compares data using defined tasks. #
+################################################################
 
 
 class QANCODE(object):
@@ -603,5 +713,6 @@ class QANCODE(object):
                         cfn_browser = CompareFacetNumbersBetweenBrowsers(user=user,
                                                                          url=url,
                                                                          item_type=item_type,
+                                                                         browsers=browsers,
                                                                          all_data=dm.all_data)
                         cfn_browser.compare_data()
