@@ -5,10 +5,11 @@ import os
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+from itertools import chain
 from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.common.exceptions import TimeoutException, WebDriverException, NoSuchElementException
 from selenium.webdriver.common.by import By
 
 
@@ -137,7 +138,12 @@ class SearchPageMatrix(object):
     """
     Page object model.
     """
-    pass
+    see_more_top_buttons_css = '#content > div > div > div > div.col-sm-7.col-md-8.col-lg-9.sm-no-padding > div > div > div > ul > div.pull-right > small > button'
+    see_more_left_buttons_css = '#content > div > div > div > div.col-sm-5.col-md-4.col-lg-3.sm-no-padding > div > div > div > ul > div.pull-right > small > button'
+    box_top_css = '#content > div > div > div:nth-child(1) > div.col-sm-7.col-md-8.col-lg-9.sm-no-padding > div'
+    box_left_css = '#content > div > div > div:nth-child(2) > div.col-sm-5.col-md-4.col-lg-3.sm-no-padding > div'
+    facets_top_class = 'facet'
+    facets_left_class = 'facet'
 
 
 ##################################################################
@@ -380,6 +386,37 @@ class GetFacetNumbers(SeleniumTask):
     Implementation of Task for getting facet number data.
     """
 
+    def matrix_page(self):
+        print('Matrix page detected')
+        box_top = self.driver.wait.until(EC.presence_of_element_located(
+            (By.CSS_SELECTOR, SearchPageMatrix.box_top_css)))
+        box_left = self.driver.wait.until(EC.presence_of_element_located(
+            (By.CSS_SELECTOR, SearchPageMatrix.box_left_css)))
+        see_more_top_buttons = self.driver.find_elements_by_css_selector(
+            SearchPageMatrix.see_more_top_buttons_css)
+        see_more_left_buttons = self.driver.find_elements_by_css_selector(
+            SearchPageMatrix.see_more_left_buttons_css)
+        for button in chain(see_more_top_buttons, see_more_left_buttons):
+            button.click()
+        facets_top = box_top.find_elements_by_class_name(
+            SearchPageMatrix.facets_top_class)
+        facets_left = box_left.find_elements_by_class_name(
+            SearchPageMatrix.facets_left_class)
+        facets = chain(facets_top, facets_left)
+        return facets
+
+    def search_page(self):
+        print('Search page detected')
+        facet_box = self.driver.wait.until(
+            EC.presence_of_element_located((By.CLASS_NAME, SearchPageList.facet_box_class)))
+        see_more_buttons = facet_box.find_elements_by_css_selector(
+            SearchPageList.see_more_buttons_css)
+        for button in see_more_buttons:
+            button.click()
+        facets = self.driver.find_elements_by_class_name(
+            SearchPageList.facet_class)
+        return facets
+
     def get_data(self):
         if self.item_type is None:
             try:
@@ -397,18 +434,13 @@ class GetFacetNumbers(SeleniumTask):
             print('Getting type: {}'.format(self.item_type))
             self.driver.get(type_url)
         try:
-            facet_box = self.driver.wait.until(
-                EC.presence_of_element_located((By.CLASS_NAME, SearchPageList.facet_box_class)))
-        except TimeoutError:
-            search_button.click()
-            facet_box = self.driver.wait.until(
-                EC.presence_of_element_located((By.CLASS_NAME, SearchPageList.facet_box_class)))
-        see_more_buttons = facet_box.find_elements_by_css_selector(
-            SearchPageList.see_more_buttons_css)
-        for button in see_more_buttons:
-            button.click()
-        facets = self.driver.find_elements_by_class_name(
-            SearchPageList.facet_class)
+            self.driver.wait.until(EC.title_contains('Search'))
+        except TimeoutException:
+            pass
+        if 'matrix' in self.driver.current_url:
+            facets = self.matrix_page()
+        else:
+            facets = self.search_page()
         data_dict = defaultdict(list)
         for facet in facets:
             title = facet.find_element_by_css_selector(
@@ -678,9 +710,8 @@ class QANCODE(object):
             '/search/?type=Pipeline',
             '/search/?type=Publication',
             '/search/?type=Software',
-            # TODO: Fix get_data to support matrix view.
-            #'/matrix/?type=Experiment',
-            #'/matrix/?type=Annotation'
+            '/matrix/?type=Experiment',
+            '/matrix/?type=Annotation'
         ]
         if browsers == 'all':
             browsers = [b for b in BROWSERS]
