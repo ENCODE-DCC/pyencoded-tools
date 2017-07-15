@@ -1,11 +1,17 @@
+import cv2
 import getpass
 import json
+import tempfile
 import time
+import numpy as np
 import os
+import uuid
 
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+from io import BytesIO
 from itertools import chain
+from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -42,6 +48,8 @@ $ python -i qancode.py
 # Initiate QANCODE object with URL to compare to production.
 >>> qa = QANCODE(rc_url='https://test.encodedcc.org')
 
+First:
+
 # Run facet comparison for Experiment items in Safari as public and
 # admin user.
 >>> qa.compare_facets(users=['Public', 'encxxxtest@gmail.com'],
@@ -50,6 +58,18 @@ $ python -i qancode.py
 
 Will return comparison of data between production and RC for a given browser
 as well as comparison of data between browsers for a given URL.
+
+Second:
+
+# Find the difference between two screenshots.
+>>> qa.find_differences(browsers=['Safari'],
+                        users=['Public'],
+                        item_types=['/biosamples/ENCBS632MTU/'])
+
+Will output image showing difference if found.
+
+>>>
+
 
 Required
 --------
@@ -156,9 +176,11 @@ class SeleniumTask(metaclass=ABCMeta):
     ABC for defining a Selenium task.
     """
 
-    def __init__(self, driver, item_type):
+    def __init__(self, driver, item_type, temp_dir=None, server_name=None):
         self.driver = driver
         self.item_type = item_type
+        self.temp_dir = temp_dir
+        self.server_name = server_name
 
     @abstractmethod
     def get_data(self):
@@ -212,7 +234,6 @@ class URLComparison(metaclass=ABCMeta):
     @abstractmethod
     def compare_data(self):
         pass
-
 
 #########################################
 # Selenium setup and sign-in procedures. #
@@ -459,6 +480,100 @@ class GetFacetNumbers(SeleniumTask):
         return data_dict
 
 
+class GetScreenShot(SeleniumTask):
+    """
+    Get screenshot for comparison.
+    """
+
+    def stitch_image(self, image_path):
+        print('Stitching screenshot')
+        self.driver.execute_script('window.scrollTo(0, {});'.format(0))
+        client_height = self.driver.execute_script(
+            'return document.body.clientHeight;')
+        scroll_height = self.driver.execute_script(
+            'return document.body.scrollHeight;')
+        image_slices = []
+        while True:
+            scroll_top = self.driver.execute_script(
+                'return document.body.scrollTop || document.documentElement.scrollTop;')
+            image = Image.open(
+                BytesIO(self.driver.get_screenshot_as_png())).convert('RGB')
+            print(client_height + scroll_top)
+            if ((((2 * client_height) + scroll_top) > scroll_height)
+                    and (scroll_height != (client_height + scroll_top))):
+                # Get difference for cropping next image.
+                difference_to_keep = abs(
+                    2 * (scroll_height - (client_height + scroll_top)))
+                print('diff to keep', difference_to_keep)
+                print('current_position', (scroll_top + client_height))
+            print(scroll_height)
+            if np.allclose(scroll_height, (client_height + scroll_top), rtol=0.0025):
+                image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+                print(image.shape)
+                y_bound_low = image.shape[0] - difference_to_keep
+                image = image[y_bound_low:, :]
+                image_slices.append(image)
+                break
+            image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+            image_slices.append(image)
+            self.driver.execute_script(
+                'window.scrollTo(0, {});'.format(client_height + scroll_top))
+            self.driver.execute_script(
+                'document.getElementById("navbar").style.visibility = "hidden";')
+        stitched = np.concatenate(*[image_slices], axis=0)
+        # Crop stitched rightside a bit so scrollbar doesn't influence diff.
+        stitched = stitched[:, :stitched.shape[1] - 20]
+        cv2.imwrite(image_path, stitched)
+
+    def take_screenshot(self):
+        current_url = self.driver.current_url
+        print('Taking picture of {}'.format(current_url))
+        filename = '{}{}.png'.format(self.server_name, uuid.uuid4().int)
+        image_path = os.path.join(self.temp_dir, filename)
+        print(image_path)
+        client_height = self.driver.execute_script(
+            'return document.body.clientHeight;')
+        scroll_height = self.driver.execute_script(
+            'return document.body.scrollHeight;')
+        if ((self.driver.capabilities['browserName'] == 'safari')
+                or (client_height == scroll_height)):
+            self.driver.save_screenshot(image_path)
+        else:
+            self.stitch_image(image_path)
+        return image_path
+
+    def make_experiment_pages_look_the_same(self):
+        graph_close_button = self.driver.wait.until(EC.element_to_be_clickable(
+            (By.CSS_SELECTOR, '#content > div > div:nth-child(4) > div > div:nth-child(2) > div.file-gallery-graph-header.collapsing-title > button')))
+        graph_close_button.click()
+        self.driver.find_element_by_xpath(
+            '//*[@id="content"]/div/div[3]/div/div[3]/div[2]/div/table[2]/thead/tr[2]/th[1]').click()
+
+    def get_rid_of_test_warning_banner(self):
+        testing_warning_banner_button = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable(
+            (By.CSS_SELECTOR, '#navbar > div.test-warning > div > p > button')))
+        testing_warning_banner_button.click()
+
+    def get_data(self):
+        if self.item_type is not None:
+            type_url = self.driver.current_url + self.item_type
+            print('Getting type: {}'.format(self.item_type))
+            self.driver.get(type_url)
+        self.driver.wait.until(
+            EC.presence_of_element_located((By.ID, 'navbar')))
+        try:
+            self.make_experiment_pages_look_the_same()
+        except:
+            pass
+        try:
+            self.get_rid_of_test_warning_banner()
+        except:
+            pass
+        time.sleep(3)
+        image_path = self.take_screenshot()
+        return image_path
+
+
 ##########################
 # Data comparison tasks. #
 ##########################
@@ -581,19 +696,80 @@ class CompareFacetNumbersBetweenURLS(URLComparison):
                 print('{}{}MATCH{}'.format(' ' * 5, bcolors.OKBLUE, bcolors.ENDC))
 
 
+class CompareScreenShots(URLComparison):
+    def is_same(self, difference):
+        self.diff_distance_metric = difference.sum()
+        if np.any(difference):
+            # Thresholded value.
+            if difference.sum() > 50000:
+                return False
+        return True
+
+    def pad_if_different_shape(self, image_one, image_two):
+        image_one_row_number = image_one.shape[0]
+        image_two_row_number = image_two.shape[0]
+        pad_shape = abs(image_one_row_number - image_two_row_number)
+        if image_one_row_number > image_two_row_number:
+            image_two = np.pad(
+                image_two, ((0, pad_shape), (0, 0), (0, 0)), mode='constant')
+        else:
+            image_one = np.pad(
+                image_one, ((0, pad_shape), (0, 0), (0, 0)), mode='constant')
+        return image_one, image_two
+
+    def compute_image_difference(self):
+        directory = os.path.join(
+            os.path.expanduser('~'), 'Desktop', 'image_diff')
+        if not self.item_type.endswith('/'):
+            self.item_type = self.item_type + '/'
+        if len(self.item_type) == 1:
+            sub_name = '_front_page'
+        else:
+            sub_name = self.item_type.replace(
+                '/', '_').replace('?', '').replace('=', '_')
+        if not os.path.exists(directory):
+            print('Creating directory on Desktop')
+            os.makedirs(directory)
+        path_name = '{}{}prod_rc_diff.png'.format(
+            self.browser, sub_name).lower()
+        image_one = cv2.imread(self.prod_data[0])
+        image_two = cv2.imread(self.rc_data[0])
+        if image_one.shape[0] != image_two.shape[0]:
+            image_one, image_two = self.pad_if_different_shape(
+                image_one, image_two)
+        difference = cv2.subtract(image_one, image_two)
+        if not self.is_same(difference):
+            print('{}Difference detected{}'.format(bcolors.FAIL, bcolors.ENDC))
+            print('{}Outputting file {}{}'.format(
+                bcolors.FAIL, path_name, bcolors.ENDC))
+            diff = cv2.addWeighted(image_one, 0.2, difference, 1, 0)
+            all_viz = np.concatenate([image_one, diff, image_two], axis=1)
+            cv2.imwrite(os.path.join(directory, path_name), all_viz)
+        else:
+            # cv2.imwrite(os.path.join(directory, path_name), image_one)
+            # cv2.imwrite(os.path.join(directory, path_name), image_two)
+            print('{}MATCH{}'.format(bcolors.OKBLUE, bcolors.ENDC))
+
+    def compare_data(self):
+        self.compute_image_difference()
+        print('Distance metric: {}'.format(self.diff_distance_metric))
+
+
 ################################################
 # Classes for running Selenium tasks robustly. #
 ################################################
 
 
 class DataWorker(object):
-    def __init__(self, browser, url, user, task, item_type):
+    def __init__(self, browser, url, user, task, item_type, temp_dir, server_name):
         self.task_completed = False
         self.browser = browser
         self.task = task
         self.url = url
         self.user = user
         self.item_type = item_type
+        self.temp_dir = temp_dir
+        self.server_name = server_name
 
     def new_driver(self):
         self.driver = NewDriver(self.browser, self.url).driver
@@ -605,7 +781,10 @@ class DataWorker(object):
                 signed_in = SignIn(self.driver, self.user)
                 if not signed_in:
                     raise ValueError('Login stalled.')
-            new_task = self.task(self.driver, self.item_type)
+            new_task = self.task(self.driver,
+                                 self.item_type,
+                                 self.temp_dir,
+                                 self.server_name)
             data = new_task.get_data()
             self.task_completed = True
             return data
@@ -621,13 +800,14 @@ class DataWorker(object):
 
 
 class DataManager(object):
-    def __init__(self, browsers, urls, users, task, item_types=[None]):
+    def __init__(self, browsers, urls, users, task, item_types=[None], temp_dir=None):
         self.browsers = browsers
         self.urls = urls
         self.users = users
         self.task = task
         self.item_types = item_types
         self.all_data = []
+        self.temp_dir = temp_dir
 
     def run_tasks(self):
         for user in self.users:
@@ -636,18 +816,25 @@ class DataManager(object):
                     for item_type in self.item_types:
                         retry = 10
                         while retry > 0:
+                            if 'cc' not in url:
+                                server_name = 'prod'
+                            else:
+                                server_name = 'RC'
                             dw = DataWorker(browser=browser,
                                             url=url,
                                             user=user,
                                             task=self.task,
-                                            item_type=item_type)
+                                            item_type=item_type,
+                                            temp_dir=self.temp_dir,
+                                            server_name=server_name)
                             data = dw.run_task()
                             if dw.task_completed:
                                 self.all_data.append({'browser': browser,
                                                       'url': url,
                                                       'user': user,
                                                       'item_type': item_type,
-                                                      'data': data})
+                                                      'data': data,
+                                                      'server_name': server_name})
                                 break
                             time.sleep(2)
                             retry -= 1
@@ -669,6 +856,8 @@ class QANCODE(object):
     def __init__(self, rc_url, prod_url='https://encodeproject.org'):
         self.rc_url = rc_url
         self.prod_url = prod_url
+        self.browsers = [b for b in BROWSERS]
+        self.users = [u for u in USERS]
 
     def list_methods(self):
         """
@@ -715,9 +904,9 @@ class QANCODE(object):
             '/matrix/?type=Annotation'
         ]
         if browsers == 'all':
-            browsers = [b for b in BROWSERS]
+            browsers = self.browsers
         if users == 'all':
-            users = [u for u in USERS]
+            users = self.users
         if item_types == 'all':
             item_types = [t for t in all_item_types]
         urls = [self.prod_url, self.rc_url]
@@ -727,7 +916,7 @@ class QANCODE(object):
                          item_types=item_types,
                          task=task)
         dm.run_tasks()
-        if browser_comparison:
+        if url_comparison:
             for browser in browsers:
                 for user in users:
                     for item_type in item_types:
@@ -738,7 +927,7 @@ class QANCODE(object):
                                                                  item_type=item_type,
                                                                  all_data=dm.all_data)
                         cfn_url.compare_data()
-        if url_comparison:
+        if browser_comparison:
             for url in urls:
                 for user in users:
                     for item_type in item_types:
@@ -748,3 +937,43 @@ class QANCODE(object):
                                                                          browsers=browsers,
                                                                          all_data=dm.all_data)
                         cfn_browser.compare_data()
+
+    def find_differences(self,
+                         browsers='all',
+                         users='all',
+                         item_types='all',
+                         task=GetScreenShot):
+        """
+        Does image diff for given item_types.
+        """
+        all_item_types = ['/',
+                          '/experiments/ENCSR502NRF/',
+                          '/biosamples/ENCBS632MTU/',
+                          '/annotations/ENCSR790GQB/',
+                          'publications/b2e859e6-3ee7-4274-90be-728e0faaa8b9/',
+                          'data/annotations/']
+        if browsers == 'all':
+            browsers = self.browsers
+        if users == 'all':
+            users = self.users
+        if item_types == 'all':
+            item_types = [t for t in all_item_types]
+        urls = [self.prod_url, self.rc_url]
+        with tempfile.TemporaryDirectory() as td:
+            dm = DataManager(browsers=browsers,
+                             urls=urls,
+                             users=users,
+                             item_types=item_types,
+                             task=task,
+                             temp_dir=td)
+            dm.run_tasks()
+            for browser in browsers:
+                for user in users:
+                    for item_type in item_types:
+                        css = CompareScreenShots(browser=browser,
+                                                 user=user,
+                                                 prod_url=self.prod_url,
+                                                 rc_url=self.rc_url,
+                                                 item_type=item_type,
+                                                 all_data=dm.all_data)
+                        css.compare_data()
