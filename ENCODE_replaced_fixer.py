@@ -166,15 +166,11 @@ def main():
             # fixing links of file/experiment/biosample
             fix_replaced_references(obj, 'derived_from',
                                     patching_data, keypair, server)
-            fix_replaced_references(obj, 'paired_with',
-                                    patching_data, keypair, server)
             fix_replaced_references(obj, 'controlled_by',
                                     patching_data, keypair, server)
             fix_replaced_references(obj, 'possible_controls',
                                     patching_data, keypair, server)
             fix_replaced_references(obj, 'supersedes',
-                                    patching_data, keypair, server)
-            fix_replaced_references(obj, 'dataset',
                                     patching_data, keypair, server)
             fix_replaced_references(obj, 'related_files',
                                     patching_data, keypair, server)
@@ -205,8 +201,6 @@ def main():
 
             # fixing links of replicate
             fix_replaced_references(obj, 'antibody',
-                                    patching_data, keypair, server)
-            fix_replaced_references(obj, 'experiment',
                                     patching_data, keypair, server)
             fix_replaced_references(obj, 'library',
                                     patching_data, keypair, server)
