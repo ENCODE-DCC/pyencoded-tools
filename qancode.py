@@ -722,8 +722,8 @@ class CompareScreenShots(URLComparison):
             os.path.expanduser('~'), 'Desktop', 'image_diff')
         if not self.item_type.endswith('/'):
             self.item_type = self.item_type + '/'
-        if len(self.item_type) == 1:
-            sub_name = '_front_page'
+        if len(self.item_type) <= 1:
+            sub_name = '_front_page_'
         else:
             sub_name = self.item_type.replace(
                 '/', '_').replace('?', '').replace('=', '_')
@@ -739,6 +739,7 @@ class CompareScreenShots(URLComparison):
                 image_one, image_two)
         difference = cv2.subtract(image_one, image_two)
         if not self.is_same(difference):
+            self.diff_found = True
             print('{}Difference detected{}'.format(bcolors.FAIL, bcolors.ENDC))
             print('{}Outputting file {}{}'.format(
                 bcolors.FAIL, path_name, bcolors.ENDC))
@@ -746,13 +747,16 @@ class CompareScreenShots(URLComparison):
             all_viz = np.concatenate([image_one, diff, image_two], axis=1)
             cv2.imwrite(os.path.join(directory, path_name), all_viz)
         else:
+            self.diff_found = False
             # cv2.imwrite(os.path.join(directory, path_name), image_one)
             # cv2.imwrite(os.path.join(directory, path_name), image_two)
             print('{}MATCH{}'.format(bcolors.OKBLUE, bcolors.ENDC))
+        return (self.diff_found, path_name)
 
     def compare_data(self):
-        self.compute_image_difference()
+        result = self.compute_image_difference()
         print('Distance metric: {}'.format(self.diff_distance_metric))
+        return result
 
 
 ################################################
@@ -816,7 +820,7 @@ class DataManager(object):
                     for item_type in self.item_types:
                         retry = 10
                         while retry > 0:
-                            if 'cc' not in url:
+                            if self.urls[0] == url:
                                 server_name = 'prod'
                             else:
                                 server_name = 'RC'
@@ -946,7 +950,7 @@ class QANCODE(object):
         """
         Does image diff for given item_types.
         """
-        all_item_types = ['/',
+        all_item_types = [' ',
                           '/experiments/ENCSR502NRF/',
                           '/biosamples/ENCBS632MTU/',
                           '/annotations/ENCSR790GQB/',
@@ -959,6 +963,7 @@ class QANCODE(object):
         if item_types == 'all':
             item_types = [t for t in all_item_types]
         urls = [self.prod_url, self.rc_url]
+        results = []
         with tempfile.TemporaryDirectory() as td:
             dm = DataManager(browsers=browsers,
                              urls=urls,
@@ -976,4 +981,6 @@ class QANCODE(object):
                                                  rc_url=self.rc_url,
                                                  item_type=item_type,
                                                  all_data=dm.all_data)
-                        css.compare_data()
+                        result = css.compare_data()
+                        results.append(result)
+        return results
