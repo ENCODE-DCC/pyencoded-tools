@@ -73,7 +73,11 @@ Will output image showing difference if found.
 
 Required
 --------
-Selenium webdriver for Chrome, Firefox, Safari.
+Selenium webdriver for Chrome, Firefox.
+
+Safari Technology Preview version.
+
+OpenCV for Python 3.
 
 To run as any user != Public must create ~/qa_credentials.json file with
 list of objects containing username and password fields:
