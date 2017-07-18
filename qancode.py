@@ -349,8 +349,11 @@ class SignIn(object):
             self.driver.wait.until(EC.presence_of_element_located(
                 (By.CLASS_NAME, SignInModal.login_modal_class)))
         except TimeoutException:
+            login_button = self.driver.wait.until(EC.element_to_be_clickable(
+                (By.PARTIAL_LINK_TEXT, FrontPage.login_button_text)))
             login_button.click()
         try:
+            time.sleep(1)
             google_button = self.driver.wait.until(EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, SignInModal.google_button_css)))
             google_button.click()
@@ -366,8 +369,8 @@ class SignIn(object):
             user_id = self.driver.wait.until(EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, SignInModal.user_id_input_css)))
         except TimeoutException:
-            new_window_handle = [
-                h for h in self.driver.window_handles if h != original_window_handle][0]
+            new_window_handle = [h for h in self.driver.window_handles
+                                 if h != original_window_handle][0]
             self.driver.switch_to_window(new_window_handle)
             user_id = self.driver.wait.until(EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, SignInModal.user_id_input_css)))
@@ -381,19 +384,22 @@ class SignIn(object):
             pw.send_keys(self.creds[0]['password'])
             next_button = self.driver.wait.until(EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, SignInModal.password_next_button_css)))
+            time.sleep(0.5)
             next_button.click()
+            time.sleep(0.5)
         except TimeoutException:
             if self.is_two_step():
                 self.login_two_step()
             else:
-                new_window_handle = [
-                    h for h in self.driver.window_handles if h != original_window_handle][0]
+                new_window_handle = [h for h in self.driver.window_handles
+                                     if h != original_window_handle][0]
                 self.driver.switch_to_window(new_window_handle)
                 next_button = self.driver.wait.until(EC.element_to_be_clickable(
                     (By.CSS_SELECTOR, SignInModal.password_next_button_css)))
                 next_button.click()
-        self.wait_for_modal_to_quit()
         self.driver.switch_to_window(original_window_handle)
+        # self.wait_for_modal_to_quit()
+        # self.driver.switch_to_window(original_window_handle)
         return self.signed_in()
 
 
@@ -496,20 +502,16 @@ class GetScreenShot(SeleniumTask):
         while True:
             scroll_top = self.driver.execute_script(
                 'return document.body.scrollTop || document.documentElement.scrollTop;')
+            time.sleep(1)
             image = Image.open(
                 BytesIO(self.driver.get_screenshot_as_png())).convert('RGB')
-            print(client_height + scroll_top)
             if ((((2 * client_height) + scroll_top) > scroll_height)
                     and (scroll_height != (client_height + scroll_top))):
                 # Get difference for cropping next image.
                 difference_to_keep = abs(
                     2 * (scroll_height - (client_height + scroll_top)))
-                print('diff to keep', difference_to_keep)
-                print('current_position', (scroll_top + client_height))
-            print(scroll_height)
             if np.allclose(scroll_height, (client_height + scroll_top), rtol=0.0025):
                 image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-                print(image.shape)
                 y_bound_low = image.shape[0] - difference_to_keep
                 image = image[y_bound_low:, :]
                 image_slices.append(image)
@@ -555,21 +557,29 @@ class GetScreenShot(SeleniumTask):
         testing_warning_banner_button.click()
 
     def get_data(self):
-        if self.item_type is not None:
+        time.sleep(2)
+        if ((self.item_type is not None)
+                and (self.item_type != '/')):
             type_url = self.driver.current_url + self.item_type
             print('Getting type: {}'.format(self.item_type))
             self.driver.get(type_url)
+        time.sleep(2)
         self.driver.wait.until(
-            EC.presence_of_element_located((By.ID, 'navbar')))
+            EC.element_to_be_clickable((By.ID, 'navbar')))
         try:
             self.make_experiment_pages_look_the_same()
         except:
             pass
         try:
             self.get_rid_of_test_warning_banner()
+            pass
         except:
             pass
-        time.sleep(3)
+        self.driver.execute_script(
+            'window.scrollTo(0,document.body.scrollHeight);')
+        time.sleep(1)
+        self.driver.execute_script('window.scrollTo(0, 0);')
+        time.sleep(1)
         image_path = self.take_screenshot()
         return image_path
 
@@ -731,7 +741,7 @@ class CompareScreenShots(URLComparison):
             print('Creating directory on Desktop')
             os.makedirs(directory)
         path_name = '{}{}prod_rc_diff.png'.format(
-            self.browser, sub_name).lower()
+            self.browser.lower(), sub_name.upper())
         image_one = cv2.imread(self.prod_data[0])
         image_two = cv2.imread(self.rc_data[0])
         if image_one.shape[0] != image_two.shape[0]:
@@ -754,6 +764,12 @@ class CompareScreenShots(URLComparison):
         return (self.diff_found, path_name)
 
     def compare_data(self):
+        print('\nComparing screenshots between URLs.')
+        print('As user: {}'.format(self.user))
+        print('Browser: {}'.format(self.browser))
+        print('First URL: {}'.format(self.prod_url))
+        print('Second URL: {}'.format(self.rc_url))
+        print('Item type: {}'.format(self.item_type))
         result = self.compute_image_difference()
         print('Distance metric: {}'.format(self.diff_distance_metric))
         return result
@@ -783,6 +799,8 @@ class DataWorker(object):
             self.new_driver()
             if self.user != 'Public':
                 signed_in = SignIn(self.driver, self.user)
+                print('Refreshing.')
+                self.driver.refresh()
                 if not signed_in:
                     raise ValueError('Login stalled.')
             new_task = self.task(self.driver,
@@ -950,7 +968,7 @@ class QANCODE(object):
         """
         Does image diff for given item_types.
         """
-        all_item_types = [' ',
+        all_item_types = ['/',
                           '/experiments/ENCSR502NRF/',
                           '/biosamples/ENCBS632MTU/',
                           '/annotations/ENCSR790GQB/',
