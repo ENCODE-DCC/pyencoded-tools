@@ -174,8 +174,10 @@ class ExperimentPage(object):
     """
     Page object model.
     """
-    graph_close_button_css = '#content > div > div:nth-child(4) > div > div:nth-child(2) > div.file-gallery-graph-header.collapsing-title > button'
-    sort_by_accession_x_path = '//*[@id="content"]/div/div[3]/div/div[3]/div[2]/div/table[2]/thead/tr[2]/th[1]'
+    done_panel_class = 'done'
+    title_tag_name = 'h4'
+    graph_close_button_css = 'div > div:nth-child(2) > div.file-gallery-graph-header.collapsing-title > button'
+    sort_by_accession_x_path = '//div/div[3]/div[2]/div/table[2]/thead/tr[2]/th[1]'
 
 
 class NavBar(object):
@@ -564,11 +566,18 @@ class GetScreenShot(SeleniumTask):
         return image_path
 
     def make_experiment_pages_look_the_same(self):
-        graph_close_button = self.driver.wait.until(EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, ExperimentPage.graph_close_button_css)))
-        graph_close_button.click()
-        self.driver.find_element_by_xpath(
-            ExperimentPage.sort_by_accession_x_path).click()
+        for y in self.driver.wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, ExperimentPage.done_panel_class))):
+            try:
+                title = y.find_element_by_tag_name(
+                    ExperimentPage.title_tag_name).text
+                if title == 'Files':
+                    graph_close_button = WebDriverWait(y, 3).until(
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, ExperimentPage.graph_close_button_css)))
+                    graph_close_button.click()
+                    y.find_element_by_xpath(
+                        ExperimentPage.sort_by_accession_x_path).click()
+            except:
+                pass
 
     def get_rid_of_test_warning_banner(self):
         testing_warning_banner_button = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable(
@@ -755,7 +764,7 @@ class CompareScreenShots(URLComparison):
             sub_name = '_front_page_'
         else:
             sub_name = self.item_type.replace(
-                '/', '_').replace('?', '').replace('=', '_')
+                '/', '_').replace('?', '').replace('=', '_').replace('&', '_')
         if not os.path.exists(directory):
             print('Creating directory on Desktop')
             os.makedirs(directory)
@@ -989,10 +998,23 @@ class QANCODE(object):
         """
         all_item_types = ['/',
                           '/experiments/ENCSR502NRF/',
+                          '/experiments/ENCSR000AEH/',
+                          '/search/?searchTerm=ENCSR000AEH&type=Experiment',
+                          '/experiments/ENCSR000CPG/',
+                          '/search/?searchTerm=ENCSR000CPG&type=Experiment',
+                          '/experiments/ENCSR000BPF/',
+                          '/search/?searchTerm=ENCSR000BPF&type=Experiment',
+                          '/experiments/ENCSR178NTX/',
+
                           '/biosamples/ENCBS632MTU/',
                           '/annotations/ENCSR790GQB/',
                           'publications/b2e859e6-3ee7-4274-90be-728e0faaa8b9/',
                           'data/annotations/']
+
+        admin_only_types = ['/experiments/ENCSR651NGR/',
+                            'search/?searchTerm=ENCSR651NGR&type=Experiment',
+
+                            ]
         if browsers == 'all':
             browsers = self.browsers
         if users == 'all':
@@ -1011,6 +1033,8 @@ class QANCODE(object):
             dm.run_tasks()
             for browser in browsers:
                 for user in users:
+                    if user == 'encoded.test4@gmail.com':
+                        item_types = item_types.extend(admin_only_types)
                     for item_type in item_types:
                         css = CompareScreenShots(browser=browser,
                                                  user=user,
