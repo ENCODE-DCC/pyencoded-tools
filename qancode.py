@@ -17,6 +17,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, WebDriverException, NoSuchElementException
 from selenium.webdriver.common.by import By
+from tqdm import tqdm
 
 
 """
@@ -185,6 +186,13 @@ class NavBar(object):
     Page object model.
     """
     testing_warning_banner_button_css = '#navbar > div.test-warning > div > p > button'
+
+
+class LoadingSpinner(object):
+    """
+    Page object model.
+    """
+    loading_spinner_class = 'loading-spinner'
 
 
 ##################################################################
@@ -580,9 +588,28 @@ class GetScreenShot(SeleniumTask):
                 pass
 
     def get_rid_of_test_warning_banner(self):
-        testing_warning_banner_button = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable(
+        testing_warning_banner_button = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable(
             (By.CSS_SELECTOR, NavBar.testing_warning_banner_button_css)))
         testing_warning_banner_button.click()
+
+    def wait_for_loading_spinner(self):
+        if any([y.is_displayed() for y in self.driver.find_elements_by_class_name(LoadingSpinner.loading_spinner_class)]):
+            print('Waiting for spinner')
+            browser = self.driver.capabilities['browserName'].title()
+            for tries in tqdm(range(10)):
+                if any([y.is_displayed() for y in self.driver.find_elements_by_class_name(LoadingSpinner.loading_spinner_class)]):
+                    time.sleep(1)
+                else:
+                    print('Loading complete')
+                    break
+            else:
+                print('{} WARNING: Loading spinner still visible'
+                      ' on {} in {} after ten seconds. Taking screenshot.{}'.format(bcolors.FAIL,
+                                                                                    self.driver.current_url,
+                                                                                    browser,
+                                                                                    bcolors.ENDC))
+        else:
+            print('Loading complete')
 
     def get_data(self):
         time.sleep(2)
@@ -592,12 +619,14 @@ class GetScreenShot(SeleniumTask):
             print('Getting type: {}'.format(self.item_type))
             self.driver.get(type_url)
         time.sleep(2)
+        self.wait_for_loading_spinner()
         self.driver.wait.until(
             EC.element_to_be_clickable((By.ID, 'navbar')))
-        try:
-            self.make_experiment_pages_look_the_same()
-        except:
-            pass
+        if 'experiment' in self.driver.current_url:
+            try:
+                self.make_experiment_pages_look_the_same()
+            except:
+                pass
         try:
             self.get_rid_of_test_warning_banner()
             pass
@@ -764,7 +793,7 @@ class CompareScreenShots(URLComparison):
             sub_name = '_front_page_'
         else:
             sub_name = self.item_type.replace(
-                '/', '_').replace('?', '').replace('=', '_').replace('&', '_')
+                '/', '_').replace('?', '_').replace('=', '_').replace('&', '_')
         if not os.path.exists(directory):
             print('Creating directory on Desktop')
             os.makedirs(directory)
@@ -1005,22 +1034,23 @@ class QANCODE(object):
                           '/experiments/ENCSR000BPF/',
                           '/search/?searchTerm=ENCSR000BPF&type=Experiment',
                           '/experiments/ENCSR178NTX/',
-
+                          '/experiments/ENCSR651NGR/',
+                          'search/?searchTerm=ENCSR651NGR&type=Experiment',
+                          '/antibodies/ENCAB000AEH/',
                           '/biosamples/ENCBS632MTU/',
                           '/annotations/ENCSR790GQB/',
                           'publications/b2e859e6-3ee7-4274-90be-728e0faaa8b9/',
                           'data/annotations/']
 
-        admin_only_types = ['/experiments/ENCSR651NGR/',
-                            'search/?searchTerm=ENCSR651NGR&type=Experiment',
-
-                            ]
+        admin_only_types = []
         if browsers == 'all':
             browsers = self.browsers
         if users == 'all':
             users = self.users
         if item_types == 'all':
             item_types = [t for t in all_item_types]
+        elif item_types == 'admin':
+            item_types = [t for t in admin_only_types]
         urls = [self.prod_url, self.rc_url]
         results = []
         with tempfile.TemporaryDirectory() as td:
@@ -1033,8 +1063,6 @@ class QANCODE(object):
             dm.run_tasks()
             for browser in browsers:
                 for user in users:
-                    if user == 'encoded.test4@gmail.com':
-                        item_types = item_types.extend(admin_only_types)
                     for item_type in item_types:
                         css = CompareScreenShots(browser=browser,
                                                  user=user,
