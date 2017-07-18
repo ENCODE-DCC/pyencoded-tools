@@ -166,6 +166,21 @@ class SearchPageMatrix(object):
     facets_left_class = 'facet'
 
 
+class ExperimentPage(object):
+    """
+    Page object model.
+    """
+    graph_close_button_css = '#content > div > div:nth-child(4) > div > div:nth-child(2) > div.file-gallery-graph-header.collapsing-title > button'
+    sort_by_accession_x_path = '//*[@id="content"]/div/div[3]/div/div[3]/div[2]/div/table[2]/thead/tr[2]/th[1]'
+
+
+class NavBar(object):
+    """
+    Page object model.
+    """
+    testing_warning_banner_button_css = '#navbar > div.test-warning > div > p > button'
+
+
 ##################################################################
 # Abstract methods for data gathering and data comparison tasks. #
 ##################################################################
@@ -546,14 +561,14 @@ class GetScreenShot(SeleniumTask):
 
     def make_experiment_pages_look_the_same(self):
         graph_close_button = self.driver.wait.until(EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, '#content > div > div:nth-child(4) > div > div:nth-child(2) > div.file-gallery-graph-header.collapsing-title > button')))
+            (By.CSS_SELECTOR, ExperimentPage.graph_close_button_css)))
         graph_close_button.click()
         self.driver.find_element_by_xpath(
-            '//*[@id="content"]/div/div[3]/div/div[3]/div[2]/div/table[2]/thead/tr[2]/th[1]').click()
+            ExperimentPage.sort_by_accession_x_path).click()
 
     def get_rid_of_test_warning_banner(self):
         testing_warning_banner_button = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, '#navbar > div.test-warning > div > p > button')))
+            (By.CSS_SELECTOR, NavBar.testing_warning_banner_button_css)))
         testing_warning_banner_button.click()
 
     def get_data(self):
