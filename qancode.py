@@ -205,11 +205,12 @@ class SeleniumTask(metaclass=ABCMeta):
     ABC for defining a Selenium task.
     """
 
-    def __init__(self, driver, item_type, temp_dir=None, server_name=None):
+    def __init__(self, driver, item_type, click_path, server_name=None, **kwargs):
         self.driver = driver
         self.item_type = item_type
-        self.temp_dir = temp_dir
+        self.click_path = click_path
         self.server_name = server_name
+        self.temp_dir = kwargs.get('temp_dir', None)
 
     @abstractmethod
     def get_data(self):
@@ -629,9 +630,10 @@ class GetScreenShot(SeleniumTask):
                 pass
         try:
             self.get_rid_of_test_warning_banner()
-            pass
         except:
             pass
+        if self.click_path is not None:
+            print('click path activated')
         self.driver.execute_script(
             'window.scrollTo(0,document.body.scrollHeight);')
         time.sleep(1)
@@ -839,15 +841,16 @@ class CompareScreenShots(URLComparison):
 
 
 class DataWorker(object):
-    def __init__(self, browser, url, user, task, item_type, temp_dir, server_name):
+    def __init__(self, browser, url, user, task, item_type, click_path, server_name, **kwargs):
         self.task_completed = False
         self.browser = browser
         self.task = task
         self.url = url
         self.user = user
         self.item_type = item_type
-        self.temp_dir = temp_dir
+        self.click_path = click_path
         self.server_name = server_name
+        self.kwargs = kwargs
 
     def new_driver(self):
         self.driver = NewDriver(self.browser, self.url).driver
@@ -863,8 +866,9 @@ class DataWorker(object):
                     raise ValueError('Login stalled.')
             new_task = self.task(self.driver,
                                  self.item_type,
-                                 self.temp_dir,
-                                 self.server_name)
+                                 self.click_path,
+                                 self.server_name,
+                                 **self.kwargs)
             data = new_task.get_data()
             self.task_completed = True
             return data
@@ -880,20 +884,21 @@ class DataWorker(object):
 
 
 class DataManager(object):
-    def __init__(self, browsers, urls, users, task, item_types=[None], temp_dir=None):
+    def __init__(self, browsers, urls, users, task, item_types=[None], click_paths=[None], **kwargs):
         self.browsers = browsers
         self.urls = urls
         self.users = users
         self.task = task
         self.item_types = item_types
+        self.click_paths = click_paths
         self.all_data = []
-        self.temp_dir = temp_dir
+        self.kwargs = kwargs
 
     def run_tasks(self):
         for user in self.users:
             for browser in self.browsers:
                 for url in self.urls:
-                    for item_type in self.item_types:
+                    for item_type, click_path in zip(self.item_types, self.click_paths):
                         retry = 10
                         while retry > 0:
                             if self.urls[0] == url:
@@ -905,14 +910,16 @@ class DataManager(object):
                                             user=user,
                                             task=self.task,
                                             item_type=item_type,
-                                            temp_dir=self.temp_dir,
-                                            server_name=server_name)
+                                            click_path=click_path,
+                                            server_name=server_name,
+                                            **self.kwargs)
                             data = dw.run_task()
                             if dw.task_completed:
                                 self.all_data.append({'browser': browser,
                                                       'url': url,
                                                       'user': user,
                                                       'item_type': item_type,
+                                                      'click_path': click_path,
                                                       'data': data,
                                                       'server_name': server_name})
                                 break
@@ -1018,107 +1025,130 @@ class QANCODE(object):
                                                                          all_data=dm.all_data)
                         cfn_browser.compare_data()
 
+    @staticmethod
+    def _expand_action_list(actions):
+        """
+        Returns item_types and click_paths given list of tuples.
+        """
+        item_types = [t[0] for t in actions]
+        click_paths = [p[1] for p in actions]
+        return item_types, click_paths
+
     def find_differences(self,
                          browsers='all',
                          users='all',
                          item_types='all',
+                         click_paths=[None],
                          task=GetScreenShot):
         """
-        Does image diff for given item_types.
+        Does image diff for given item_types. If click_path defined will
+        perform that action before taking screenshot.
         """
-        all_item_types = ['/',
-                          '/targets/?status=deleted',
-                          '/antibodies/?status=deleted',
-                          '/search/?type=Biosample&status=deleted',
-                          '/experiments/ENCSR000CWD/',
-                          '/biosamples/ENCBS574ZRE/',
-                          '/biosamples/ENCBS883DWI/',
-                          '/experiments/ENCSR985KAT/',
-                          '/human-donors/ENCDO999JZG/',
-                          '/biosamples/ENCBS615YKY/',
-                          '/search/?searchTerm=puf60&type=Target',
-                          '/experiments/ENCSR502NRF/',
-                          '/experiments/ENCSR000AEH/',
-                          '/search/?searchTerm=ENCSR000AEH&type=Experiment',
-                          '/experiments/ENCSR000CPG/',
-                          '/search/?searchTerm=ENCSR000CPG&type=Experiment',
-                          '/experiments/ENCSR000BPF/',
-                          '/search/?searchTerm=ENCSR000BPF&type=Experiment',
-                          '/experiments/ENCSR178NTX/',
-                          '/experiments/ENCSR651NGR/',
-                          '/search/?searchTerm=ENCSR651NGR&type=Experiment',
-                          '/antibodies/ENCAB000AEH/',
-                          '/search/?searchTerm=ENCAB000AEH&type=AntibodyLot',
-                          '/antibodies/ENCAB000AIW/',
-                          '/search/?searchTerm=ENCAB000AIW&type=AntibodyLot',
-                          '/biosamples/ENCBS000AAA/',
-                          '/search/?searchTerm=ENCBS000AAA&type=Biosample',
-                          '/biosamples/ENCBS030ENC/',
-                          '/search/?searchTerm=ENCBS030ENC',
-                          '/biosamples/ENCBS098ENC/',
-                          '/search/?searchTerm=ENCBS098ENC&type=Biosample',
-                          '/biosamples/ENCBS619ENC/',
-                          '/search/?searchTerm=ENCBS619ENC&type=Biosample',
-                          '/biosamples/ENCBS286AAA/',
-                          '/search/?searchTerm=ENCBS286AAA&type=Biosample',
-                          '/biosamples/ENCBS314VPT/',
-                          '/search/?searchTerm=ENCBS314VPT&type=Biosample',
-                          '/biosamples/ENCBS808BUA/',
-                          '/search/?searchTerm=ENCBS808BUA&type=Biosample',
-                          '/targets/AARS-human/',
-                          '/targets/FLAG-GABP-human/',
-                          '/search/?type=Target&name=AARS-human',
-                          '/ucsc-browser-composites/ENCSR707NXZ/',
-                          '/treatment-time-series/ENCSR210PYP/',
-                          '/search/?searchTerm=WASP&type=Software',
-                          '/publications/67e606ae-abe7-4510-8ebb-cfa1fefe5cfa/',
-                          '/search/?searchTerm=PMID%3A25164756',
-                          '/biosamples/ENCBS632MTU/',
-                          '/biosamples/ENCBS464EKT/',
-                          '/annotations/ENCSR790GQB/',
-                          '/publications/b2e859e6-3ee7-4274-90be-728e0faaa8b9/',
-                          '/pipelines/',
-                          '/pipelines/ENCPL210QWH/',
-                          '/pipelines/ENCPL002LPE/',
-                          '/pipelines/ENCPL002LSE/',
-                          '/rna-seq/long-rnas/',
-                          '/pipelines/ENCPL337CSA/',
-                          '/rna-seq/small-rnas/',
-                          '/pipelines/ENCPL444CYA/',
-                          '/microrna/microrna-seq/',
-                          '/pipelines/ENCPL278BTI/',
-                          '/microrna/microrna-counts/',
-                          '/pipelines/ENCPL122WIM/',
-                          '/rampage/',
-                          '/pipelines/ENCPL220NBH/',
-                          '/pipelines/ENCPL272XAE/',
-                          '/pipelines/ENCPL272XAE/',
-                          '/chip-seq/histone/',
-                          '/pipelines/ENCPL138KID/',
-                          '/pipelines/ENCPL493SGC/',
-                          '/chip-seq/transcription_factor/',
-                          '/pipelines/ENCPL001DNS/',
-                          '/pipelines/ENCPL002DNS/',
-                          '/data-standards/dnase-seq/',
-                          '/atac-seq/',
-                          '/pipelines/ENCPL985BLO/',
-                          '/data/annotations/',
-                          '/help/rest-api/',
-                          '/about/experiment-guidelines/',
-                          '/data-standards/terms/']
-        admin_only_types = ['/biosamples/ENCBS681LAC/',
-                            '/search/?searchTerm=ENCBS681LAC&type=Biosample']
-        public_only_types = ['/experiments/?status=deleted']
+        # Tuple of (item_type, click_path)
+        actions = [('/', None),
+                   ('/targets/?status=deleted', None),
+                   ('/antibodies/?status=deleted', None),
+                   ('/search/?type=Biosample&status=deleted', None),
+                   ('/experiments/ENCSR000CWD/', None),
+                   ('/biosamples/ENCBS574ZRE/', None),
+                   ('/biosamples/ENCBS883DWI/', None),
+                   ('/experiments/ENCSR985KAT/', None),
+                   ('/human-donors/ENCDO999JZG/', None),
+                   ('/biosamples/ENCBS615YKY/', None),
+                   ('/search/?searchTerm=puf60&type=Target', None),
+                   ('/experiments/ENCSR502NRF/', None),
+                   ('/experiments/ENCSR000AEH/', None),
+                   ('/search/?searchTerm=ENCSR000AEH&type=Experiment', None),
+                   ('/experiments/ENCSR000CPG/', None),
+                   ('/search/?searchTerm=ENCSR000CPG&type=Experiment', None),
+                   ('/experiments/ENCSR000BPF/', None),
+                   ('/search/?searchTerm=ENCSR000BPF&type=Experiment', None),
+                   ('/experiments/ENCSR178NTX/', None),
+                   ('/experiments/ENCSR651NGR/', None),
+                   ('/search/?searchTerm=ENCSR651NGR&type=Experiment', None),
+                   ('/antibodies/ENCAB000AEH/', None),
+                   ('/search/?searchTerm=ENCAB000AEH&type=AntibodyLot', None),
+                   ('/antibodies/ENCAB000AIW/', None),
+                   ('/search/?searchTerm=ENCAB000AIW&type=AntibodyLot', None),
+                   ('/biosamples/ENCBS000AAA/', None),
+                   ('/search/?searchTerm=ENCBS000AAA&type=Biosample', None),
+                   ('/biosamples/ENCBS030ENC/', None),
+                   ('/search/?searchTerm=ENCBS030ENC', None),
+                   ('/biosamples/ENCBS098ENC/', None),
+                   ('/search/?searchTerm=ENCBS098ENC&type=Biosample', None),
+                   ('/biosamples/ENCBS619ENC/', None),
+                   ('/search/?searchTerm=ENCBS619ENC&type=Biosample', None),
+                   ('/biosamples/ENCBS286AAA/', None),
+                   ('/search/?searchTerm=ENCBS286AAA&type=Biosample', None),
+                   ('/biosamples/ENCBS314VPT/', None),
+                   ('/search/?searchTerm=ENCBS314VPT&type=Biosample', None),
+                   ('/biosamples/ENCBS808BUA/', None),
+                   ('/search/?searchTerm=ENCBS808BUA&type=Biosample', None),
+                   ('/targets/AARS-human/', None),
+                   ('/targets/FLAG-GABP-human/', None),
+                   ('/search/?type=Target&name=AARS-human', None),
+                   ('/ucsc-browser-composites/ENCSR707NXZ/', None),
+                   ('/treatment-time-series/ENCSR210PYP/', None),
+                   ('/search/?searchTerm=WASP&type=Software', None),
+                   ('/publications/67e606ae-abe7-4510-8ebb-cfa1fefe5cfa/', None),
+                   ('/search/?searchTerm=PMID%3A25164756', None),
+                   ('/biosamples/ENCBS632MTU/', None),
+                   ('/biosamples/ENCBS464EKT/', None),
+                   ('/annotations/ENCSR790GQB/', None),
+                   ('/publications/b2e859e6-3ee7-4274-90be-728e0faaa8b9/', None),
+                   ('/pipelines/', None),
+                   ('/pipelines/ENCPL210QWH/', None),
+                   ('/pipelines/ENCPL002LPE/', None),
+                   ('/pipelines/ENCPL002LSE/', None),
+                   ('/rna-seq/long-rnas/', None),
+                   ('/pipelines/ENCPL337CSA/', None),
+                   ('/rna-seq/small-rnas/', None),
+                   ('/pipelines/ENCPL444CYA/', None),
+                   ('/microrna/microrna-seq/', None),
+                   ('/pipelines/ENCPL278BTI/', None),
+                   ('/microrna/microrna-counts/', None),
+                   ('/pipelines/ENCPL122WIM/', None),
+                   ('/rampage/', None),
+                   ('/pipelines/ENCPL220NBH/', None),
+                   ('/pipelines/ENCPL272XAE/', None),
+                   ('/pipelines/ENCPL272XAE/', None),
+                   ('/chip-seq/histone/', None),
+                   ('/pipelines/ENCPL138KID/', None),
+                   ('/pipelines/ENCPL493SGC/', None),
+                   ('/chip-seq/transcription_factor/', None),
+                   ('/pipelines/ENCPL001DNS/', None),
+                   ('/pipelines/ENCPL002DNS/', None),
+                   ('/data-standards/dnase-seq/', None),
+                   ('/atac-seq/', None),
+                   ('/pipelines/ENCPL985BLO/', None),
+                   ('/data/annotations/', None),
+                   ('/help/rest-api/', None),
+                   ('/about/experiment-guidelines/', None),
+                   ('/data-standards/terms/', None)]
+        admin_only_actions = [('/biosamples/ENCBS681LAC/', None),
+                              ('/search/?searchTerm=ENCBS681LAC&type=Biosample', None)]
+        public_only_actions = [('/experiments/?status=deleted', None)]
         if browsers == 'all':
             browsers = self.browsers
         if users == 'all':
             users = self.users
         if item_types == 'all':
-            item_types = [t for t in all_item_types]
+            item_types, click_paths = self._expand_action_list(actions)
         elif item_types == 'admin':
-            item_types = [t for t in admin_only_types]
+            item_types, click_paths = self._expand_action_list(
+                admin_only_actions)
         elif item_types == 'public':
-            item_types = [t for t in public_only_types]
+            item_types, click_paths = self._expand_action_list(
+                public_only_actions)
+        else:
+            if len(item_types) == len(click_paths):
+                pass
+            elif len(click_paths) == 1:
+                # Broadcast single click_path (e.g. None) to all user-defined item_types.
+                click_paths = [click_paths[0] for t in item_types]
+            else:
+                raise ValueError(
+                    'item_types and click_paths must have same length')
         urls = [self.prod_url, self.rc_url]
         results = []
         with tempfile.TemporaryDirectory() as td:
@@ -1126,6 +1156,7 @@ class QANCODE(object):
                              urls=urls,
                              users=users,
                              item_types=item_types,
+                             click_paths=click_paths,
                              task=task,
                              temp_dir=td)
             dm.run_tasks()
