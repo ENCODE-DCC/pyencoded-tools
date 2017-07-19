@@ -793,7 +793,7 @@ class CompareScreenShots(URLComparison):
             sub_name = '_front_page_'
         else:
             sub_name = self.item_type.replace(
-                '/', '_').replace('?', '_').replace('=', '_').replace('&', '_')
+                '/', '_').replace('?', '_').replace('=', '_').replace('&', '_').replace('__', '_')
         user_name = self.user.split('@')[0].replace('.', '_').lower()
         if not os.path.exists(directory):
             print('Creating directory on Desktop')
@@ -1027,6 +1027,16 @@ class QANCODE(object):
         Does image diff for given item_types.
         """
         all_item_types = ['/',
+                          '/targets/?status=deleted',
+                          '/antibodies/?status=deleted',
+                          '/search/?type=Biosample&status=deleted',
+                          '/experiments/ENCSR000CWD/',
+                          '/biosamples/ENCBS574ZRE/',
+                          '/biosamples/ENCBS883DWI/',
+                          '/experiments/ENCSR985KAT/',
+                          '/human-donors/ENCDO999JZG/',
+                          '/biosamples/ENCBS615YKY/',
+                          '/search/?searchTerm=puf60&type=Target',
                           '/experiments/ENCSR502NRF/',
                           '/experiments/ENCSR000AEH/',
                           '/search/?searchTerm=ENCSR000AEH&type=Experiment',
@@ -1036,14 +1046,69 @@ class QANCODE(object):
                           '/search/?searchTerm=ENCSR000BPF&type=Experiment',
                           '/experiments/ENCSR178NTX/',
                           '/experiments/ENCSR651NGR/',
-                          'search/?searchTerm=ENCSR651NGR&type=Experiment',
+                          '/search/?searchTerm=ENCSR651NGR&type=Experiment',
                           '/antibodies/ENCAB000AEH/',
+                          '/search/?searchTerm=ENCAB000AEH&type=AntibodyLot',
+                          '/antibodies/ENCAB000AIW/',
+                          '/search/?searchTerm=ENCAB000AIW&type=AntibodyLot',
+                          '/biosamples/ENCBS000AAA/',
+                          '/search/?searchTerm=ENCBS000AAA&type=Biosample',
+                          '/biosamples/ENCBS030ENC/',
+                          '/search/?searchTerm=ENCBS030ENC',
+                          '/biosamples/ENCBS098ENC/',
+                          '/search/?searchTerm=ENCBS098ENC&type=Biosample',
+                          '/biosamples/ENCBS619ENC/',
+                          '/search/?searchTerm=ENCBS619ENC&type=Biosample',
+                          '/biosamples/ENCBS286AAA/',
+                          '/search/?searchTerm=ENCBS286AAA&type=Biosample',
+                          '/biosamples/ENCBS314VPT/',
+                          '/search/?searchTerm=ENCBS314VPT&type=Biosample',
+                          '/biosamples/ENCBS808BUA/',
+                          '/search/?searchTerm=ENCBS808BUA&type=Biosample',
+                          '/targets/AARS-human/',
+                          '/targets/FLAG-GABP-human/',
+                          '/search/?type=Target&name=AARS-human',
+                          '/ucsc-browser-composites/ENCSR707NXZ/',
+                          '/treatment-time-series/ENCSR210PYP/',
+                          '/search/?searchTerm=WASP&type=Software',
+                          '/publications/67e606ae-abe7-4510-8ebb-cfa1fefe5cfa/',
+                          '/search/?searchTerm=PMID%3A25164756',
                           '/biosamples/ENCBS632MTU/',
+                          '/biosamples/ENCBS464EKT/',
                           '/annotations/ENCSR790GQB/',
-                          'publications/b2e859e6-3ee7-4274-90be-728e0faaa8b9/',
-                          'data/annotations/']
-
-        admin_only_types = []
+                          '/publications/b2e859e6-3ee7-4274-90be-728e0faaa8b9/',
+                          '/pipelines/',
+                          '/pipelines/ENCPL210QWH/',
+                          '/pipelines/ENCPL002LPE/',
+                          '/pipelines/ENCPL002LSE/',
+                          '/rna-seq/long-rnas/',
+                          '/pipelines/ENCPL337CSA/',
+                          '/rna-seq/small-rnas/',
+                          '/pipelines/ENCPL444CYA/',
+                          '/microrna/microrna-seq/',
+                          '/pipelines/ENCPL278BTI/',
+                          '/microrna/microrna-counts/',
+                          '/pipelines/ENCPL122WIM/',
+                          '/rampage/',
+                          '/pipelines/ENCPL220NBH/',
+                          '/pipelines/ENCPL272XAE/',
+                          '/pipelines/ENCPL272XAE/',
+                          '/chip-seq/histone/',
+                          '/pipelines/ENCPL138KID/',
+                          '/pipelines/ENCPL493SGC/',
+                          '/chip-seq/transcription_factor/',
+                          '/pipelines/ENCPL001DNS/',
+                          '/pipelines/ENCPL002DNS/',
+                          '/data-standards/dnase-seq/',
+                          '/atac-seq/',
+                          '/pipelines/ENCPL985BLO/',
+                          '/data/annotations/',
+                          '/help/rest-api/',
+                          '/about/experiment-guidelines/',
+                          '/data-standards/terms/']
+        admin_only_types = ['/biosamples/ENCBS681LAC/',
+                            '/search/?searchTerm=ENCBS681LAC&type=Biosample']
+        public_only_types = ['/experiments/?status=deleted']
         if browsers == 'all':
             browsers = self.browsers
         if users == 'all':
@@ -1052,6 +1117,8 @@ class QANCODE(object):
             item_types = [t for t in all_item_types]
         elif item_types == 'admin':
             item_types = [t for t in admin_only_types]
+        elif item_types == 'public':
+            item_types = [t for t in public_only_types]
         urls = [self.prod_url, self.rc_url]
         results = []
         with tempfile.TemporaryDirectory() as td:
