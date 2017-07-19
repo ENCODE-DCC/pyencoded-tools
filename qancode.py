@@ -195,6 +195,12 @@ class LoadingSpinner(object):
     loading_spinner_class = 'loading-spinner'
 
 
+class DocumentPreview(object):
+    """
+    Page object model.
+    """
+    document_expand_buttons_class = 'document__file-detail-switch'
+
 ##################################################################
 # Abstract methods for data gathering and data comparison tasks. #
 ##################################################################
@@ -588,6 +594,15 @@ class GetScreenShot(SeleniumTask):
             except:
                 pass
 
+    def expand_document_details(self):
+        expand_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
+            (By.CLASS_NAME, DocumentPreview.document_expand_buttons_class)))
+        for button in expand_buttons:
+            try:
+                button.click()
+            except:
+                pass
+
     def get_rid_of_test_warning_banner(self):
         testing_warning_banner_button = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable(
             (By.CSS_SELECTOR, NavBar.testing_warning_banner_button_css)))
@@ -628,6 +643,10 @@ class GetScreenShot(SeleniumTask):
                 self.make_experiment_pages_look_the_same()
             except:
                 pass
+        try:
+            self.expand_document_details()
+        except:
+            pass
         try:
             self.get_rid_of_test_warning_banner()
         except:
