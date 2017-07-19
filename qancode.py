@@ -794,11 +794,12 @@ class CompareScreenShots(URLComparison):
         else:
             sub_name = self.item_type.replace(
                 '/', '_').replace('?', '_').replace('=', '_').replace('&', '_')
+        user_name = self.user.split('@')[0].replace('.', '_').lower()
         if not os.path.exists(directory):
             print('Creating directory on Desktop')
             os.makedirs(directory)
-        path_name = '{}{}prod_rc_diff.png'.format(
-            self.browser.lower(), sub_name.upper())
+        path_name = '{}{}{}_prod_rc_diff.png'.format(
+            self.browser.lower(), sub_name.upper(), user_name)
         image_one = cv2.imread(self.prod_data[0])
         image_two = cv2.imread(self.rc_data[0])
         if image_one.shape[0] != image_two.shape[0]:
