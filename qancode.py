@@ -69,7 +69,19 @@ Second:
 
 Will output image showing difference if found.
 
->>>
+# Perform action before taking screenshot.
+>>> qa.find_differences(browsers=['Chrome'],
+                        users=['Public'],
+                        action_tuples=[('/experiments/ENCSR985KAT/', OpenUCSCGenomeBrowserFromExperimentPageHG19)])
+
+Will open UCSC Genome Browser for hg19 assembly from Experiment page and then
+take screenshot to compare.
+
+# Equivalently can pass item_type and click_path instead of action_tuple:
+>>> qa.find_differences(browsers=['Chrome'],
+                        users=['Public'],
+                        item_types=['/experiments/ENCSR985KAT/'],
+                        click_paths=[OpenUCSCGenomeBrowserFromExperimentPageHG19])
 
 
 Required
@@ -248,23 +260,26 @@ class URLComparison(metaclass=ABCMeta):
     ABC for comparing data between prod and RC given browser and user.
     """
 
-    def __init__(self, browser, user, prod_url, rc_url, item_type, all_data):
+    def __init__(self, browser, user, prod_url, rc_url, item_type, click_path, all_data):
         self.browser = browser
         self.user = user
         self.all_data = all_data
         self.prod_url = prod_url
         self.rc_url = rc_url
         self.item_type = item_type
+        self.click_path = click_path
         self.prod_data = [d['data'] for d in all_data
                           if ((d['url'] == prod_url)
                               and (d['user'] == user)
                               and (d['browser'] == browser)
-                              and (d['item_type'] == item_type))]
+                              and (d['item_type'] == item_type)
+                              and (d['click_path'] == click_path))]
         self.rc_data = [d['data'] for d in all_data
                         if ((d['url'] == rc_url)
                             and (d['user'] == user)
                             and (d['browser'] == browser)
-                            and (d['item_type'] == item_type))]
+                            and (d['item_type'] == item_type)
+                            and (d['click_path'] == click_path))]
         assert len(self.prod_data) == len(self.rc_data)
 
     @abstractmethod
@@ -531,7 +546,7 @@ class GetScreenShot(SeleniumTask):
         print('Stitching screenshot')
         self.driver.execute_script('window.scrollTo(0, {});'.format(0))
         client_height = self.driver.execute_script(
-            'return document.body.clientHeight;')
+            'return document.documentElement.clientHeight;')
         scroll_height = self.driver.execute_script(
             'return document.body.scrollHeight;')
         image_slices = []
@@ -556,8 +571,11 @@ class GetScreenShot(SeleniumTask):
             image_slices.append(image)
             self.driver.execute_script(
                 'window.scrollTo(0, {});'.format(client_height + scroll_top))
-            self.driver.execute_script(
-                'document.getElementById("navbar").style.visibility = "hidden";')
+            try:
+                self.driver.execute_script(
+                    'document.getElementById("navbar").style.visibility = "hidden";')
+            except:
+                pass
         stitched = np.concatenate(*[image_slices], axis=0)
         # Crop stitched rightside a bit so scrollbar doesn't influence diff.
         stitched = stitched[:, :stitched.shape[1] - 20]
@@ -570,7 +588,7 @@ class GetScreenShot(SeleniumTask):
         image_path = os.path.join(self.temp_dir, filename)
         print(image_path)
         client_height = self.driver.execute_script(
-            'return document.body.clientHeight;')
+            'return document.documentElement.clientHeight;')
         scroll_height = self.driver.execute_script(
             'return document.body.scrollHeight;')
         if ((self.driver.capabilities['browserName'] == 'safari')
@@ -638,6 +656,9 @@ class GetScreenShot(SeleniumTask):
         self.wait_for_loading_spinner()
         self.driver.wait.until(
             EC.element_to_be_clickable((By.ID, 'navbar')))
+        if self.click_path is not None:
+            print('Performing click path: {}'.format(self.click_path.__name__))
+            self.click_path(self.driver)
         if 'experiment' in self.driver.current_url:
             try:
                 self.make_experiment_pages_look_the_same()
@@ -651,8 +672,6 @@ class GetScreenShot(SeleniumTask):
             self.get_rid_of_test_warning_banner()
         except:
             pass
-        if self.click_path is not None:
-            print('click path activated')
         self.driver.execute_script(
             'window.scrollTo(0,document.body.scrollHeight);')
         time.sleep(1)
@@ -819,8 +838,9 @@ class CompareScreenShots(URLComparison):
         if not os.path.exists(directory):
             print('Creating directory on Desktop')
             os.makedirs(directory)
-        path_name = '{}{}{}_prod_rc_diff.png'.format(
-            self.browser.lower(), sub_name.upper(), user_name)
+        click_path = None if self.click_path is None else self.click_path.__name__
+        path_name = '{}{}{}_{}_prod_rc_diff.png'.format(
+            self.browser.lower(), sub_name.upper(), user_name, click_path)
         image_one = cv2.imread(self.prod_data[0])
         image_two = cv2.imread(self.rc_data[0])
         if image_one.shape[0] != image_two.shape[0]:
@@ -837,8 +857,8 @@ class CompareScreenShots(URLComparison):
             cv2.imwrite(os.path.join(directory, path_name), all_viz)
         else:
             self.diff_found = False
-            # cv2.imwrite(os.path.join(directory, path_name), image_one)
-            # cv2.imwrite(os.path.join(directory, path_name), image_two)
+            #cv2.imwrite(os.path.join(directory, 'match_one.png'), image_one)
+            #cv2.imwrite(os.path.join(directory, 'match_two.png'), image_two)
             print('{}MATCH{}'.format(bcolors.OKBLUE, bcolors.ENDC))
         return (self.diff_found, path_name)
 
@@ -849,9 +869,133 @@ class CompareScreenShots(URLComparison):
         print('First URL: {}'.format(self.prod_url))
         print('Second URL: {}'.format(self.rc_url))
         print('Item type: {}'.format(self.item_type))
+        print('Click path: {}'.format(
+            None if self.click_path is None else self.click_path.__name__))
         result = self.compute_image_difference()
         print('Distance metric: {}'.format(self.diff_distance_metric))
         return result
+
+
+################
+# Click paths. #
+################
+
+class OpenUCSCGenomeBrowserFromExperimentPage(object):
+    """
+    Defines clicks required to open UCSC trackhub from Experiment page for
+    given assembly.
+    """
+
+    def __init__(self, driver, assembly):
+        self.driver = driver
+        self.assembly = assembly
+        self.perform_action()
+
+    def perform_action(self):
+        current_window = self.driver.current_window_handle
+        time.sleep(1)
+        for y in self.driver.find_elements_by_tag_name('button'):
+            try:
+                if y.text == 'Visualize':
+                    y.click()
+                    self.driver.wait.until(EC.element_to_be_clickable(
+                        (By.CLASS_NAME, 'modal-content')))
+                    break
+            except:
+                pass
+        modal = self.driver.wait.until(
+            EC.element_to_be_clickable((By.CLASS_NAME, 'modal-content')))
+        UCSC_links = modal.find_elements_by_partial_link_text('UCSC')
+        for link in UCSC_links:
+            if self.assembly in link.get_attribute("href"):
+                print('Opening genome browser')
+                link.click()
+                break
+        time.sleep(1)
+        self.driver.switch_to_window([h for h in self.driver.window_handles
+                                      if h != current_window][0])
+        self.driver.wait.until(EC.element_to_be_clickable((By.ID, 'hgt.in1')))
+
+
+class OpenUCSCGenomeBrowserFromExperimentPageGRCh38(object):
+    """
+    Opens UCSC browser with GRCh38 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'hg38')
+
+
+class OpenUCSCGenomeBrowserFromExperimentPageHG19(object):
+    """
+    Opens UCSC browser with hg19 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'hg19')
+
+
+class OpenUCSCGenomeBrowserFromExperimentPageMM9(object):
+    """
+    Opens UCSC browser with mm9 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'mm9')
+
+
+class OpenUCSCGenomeBrowserFromExperimentPageMM10(object):
+    """
+    Opens UCSC browser with mm10 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'mm10')
+
+
+class OpenUCSCGenomeBrowserFromExperimentPageMM10Minimal(object):
+    """
+    Opens UCSC browser with mm10-minimal assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'mm10')
+
+
+class OpenUCSCGenomeBrowserFromExperimentPageDM3(object):
+    """
+    Opens UCSC browser with dm3 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'dm3')
+
+
+class OpenUCSCGenomeBrowserFromExperimentPageDM6(object):
+    """
+    Opens UCSC browser with dm6 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'dm6')
+
+
+class OpenUCSCGenomeBrowserFromExperimentPageCE10(object):
+    """
+    Opens UCSC browser with ce10 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'ce10')
+
+
+class OpenUCSCGenomeBrowserFromExperimentPageCE11(object):
+    """
+    Opens UCSC browser with ce11 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'ce11')
 
 
 ################################################
@@ -1056,6 +1200,7 @@ class QANCODE(object):
     def find_differences(self,
                          browsers='all',
                          users='all',
+                         action_tuples=None,
                          item_types='all',
                          click_paths=[None],
                          task=GetScreenShot):
@@ -1143,7 +1288,28 @@ class QANCODE(object):
                    ('/data/annotations/', None),
                    ('/help/rest-api/', None),
                    ('/about/experiment-guidelines/', None),
-                   ('/data-standards/terms/', None)]
+                   ('/data-standards/terms/', None),
+                   ('/experiments/ENCSR502NRF/',
+                    OpenUCSCGenomeBrowserFromExperimentPageGRCh38),
+                   ('/experiments/ENCSR502NRF/',
+                    OpenUCSCGenomeBrowserFromExperimentPageHG19),
+                   ('/experiments/ENCSR985KAT/',
+                    OpenUCSCGenomeBrowserFromExperimentPageHG19),
+                   ('/experiments/ENCSR426UUG/',
+                    OpenUCSCGenomeBrowserFromExperimentPageGRCh38),
+                   ('/experiments/ENCSR293WTN/',
+                    OpenUCSCGenomeBrowserFromExperimentPageMM9),
+                   ('/experiments/ENCSR335LKF/',
+                    OpenUCSCGenomeBrowserFromExperimentPageMM10),
+                   ('/experiments/ENCSR066DPD/',
+                    OpenUCSCGenomeBrowserFromExperimentPageMM10Minimal),
+                   ('/experiments/ENCSR922ESH/',
+                    OpenUCSCGenomeBrowserFromExperimentPageDM3),
+                   ('/experiments/ENCSR671XAK/',
+                    OpenUCSCGenomeBrowserFromExperimentPageDM6),
+                   ('/experiments/ENCSR422XRE/',
+                    OpenUCSCGenomeBrowserFromExperimentPageCE10),
+                   ('/experiments/ENCSR686FKU/', OpenUCSCGenomeBrowserFromExperimentPageCE11)]
         admin_only_actions = [('/biosamples/ENCBS681LAC/', None),
                               ('/search/?searchTerm=ENCBS681LAC&type=Biosample', None)]
         public_only_actions = [('/experiments/?status=deleted', None)]
@@ -1151,23 +1317,26 @@ class QANCODE(object):
             browsers = self.browsers
         if users == 'all':
             users = self.users
-        if item_types == 'all':
-            item_types, click_paths = self._expand_action_list(actions)
-        elif item_types == 'admin':
-            item_types, click_paths = self._expand_action_list(
-                admin_only_actions)
-        elif item_types == 'public':
-            item_types, click_paths = self._expand_action_list(
-                public_only_actions)
+        if action_tuples is not None:
+            item_types, click_paths = self._expand_action_list(action_tuples)
         else:
-            if len(item_types) == len(click_paths):
-                pass
-            elif len(click_paths) == 1:
-                # Broadcast single click_path (e.g. None) to all user-defined item_types.
-                click_paths = [click_paths[0] for t in item_types]
+            if item_types == 'all':
+                item_types, click_paths = self._expand_action_list(actions)
+            elif item_types == 'admin':
+                item_types, click_paths = self._expand_action_list(
+                    admin_only_actions)
+            elif item_types == 'public':
+                item_types, click_paths = self._expand_action_list(
+                    public_only_actions)
             else:
-                raise ValueError(
-                    'item_types and click_paths must have same length')
+                if len(item_types) == len(click_paths):
+                    pass
+                elif len(click_paths) == 1:
+                    # Broadcast single click_path (e.g. None) to all user-defined item_types.
+                    click_paths = [click_paths[0] for t in item_types]
+                else:
+                    raise ValueError(
+                        'item_types and click_paths must have same length')
         urls = [self.prod_url, self.rc_url]
         results = []
         with tempfile.TemporaryDirectory() as td:
@@ -1181,12 +1350,13 @@ class QANCODE(object):
             dm.run_tasks()
             for browser in browsers:
                 for user in users:
-                    for item_type in item_types:
+                    for item_type, click_path in zip(item_types, click_paths):
                         css = CompareScreenShots(browser=browser,
                                                  user=user,
                                                  prod_url=self.prod_url,
                                                  rc_url=self.rc_url,
                                                  item_type=item_type,
+                                                 click_path=click_path,
                                                  all_data=dm.all_data)
                         result = css.compare_data()
                         results.append(result)
