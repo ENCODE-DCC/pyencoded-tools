@@ -191,6 +191,15 @@ class ExperimentPage(object):
     title_tag_name = 'h4'
     graph_close_button_css = 'div > div:nth-child(2) > div.file-gallery-graph-header.collapsing-title > button'
     sort_by_accession_x_path = '//div/div[3]/div[2]/div/table[2]/thead/tr[2]/th[1]'
+    all_buttons_tag_name = 'button'
+
+
+class VisualizeModal(object):
+    """
+    Page object model.
+    """
+    modal_class = 'modal-content'
+    UCSC_link_partial_link_text = 'UCSC'
 
 
 class NavBar(object):
@@ -212,6 +221,13 @@ class DocumentPreview(object):
     Page object model.
     """
     document_expand_buttons_class = 'document__file-detail-switch'
+
+
+class UCSCGenomeBrowser(object):
+    """
+    Page object model.
+    """
+    zoom_one_id = 'hgt.in1'
 
 ##################################################################
 # Abstract methods for data gathering and data comparison tasks. #
@@ -894,18 +910,19 @@ class OpenUCSCGenomeBrowserFromExperimentPage(object):
     def perform_action(self):
         current_window = self.driver.current_window_handle
         time.sleep(1)
-        for y in self.driver.find_elements_by_tag_name('button'):
+        for y in self.driver.find_elements_by_tag_name(ExperimentPage.all_buttons_tag_name):
             try:
                 if y.text == 'Visualize':
                     y.click()
                     self.driver.wait.until(EC.element_to_be_clickable(
-                        (By.CLASS_NAME, 'modal-content')))
+                        (By.CLASS_NAME, VisualizeModal.modal_class)))
                     break
             except:
                 pass
         modal = self.driver.wait.until(
-            EC.element_to_be_clickable((By.CLASS_NAME, 'modal-content')))
-        UCSC_links = modal.find_elements_by_partial_link_text('UCSC')
+            EC.element_to_be_clickable((By.CLASS_NAME, VisualizeModal.modal_class)))
+        UCSC_links = modal.find_elements_by_partial_link_text(
+            VisualizeModal.UCSC_link_partial_link_text)
         for link in UCSC_links:
             if self.assembly in link.get_attribute("href"):
                 print('Opening genome browser')
@@ -914,7 +931,8 @@ class OpenUCSCGenomeBrowserFromExperimentPage(object):
         time.sleep(1)
         self.driver.switch_to_window([h for h in self.driver.window_handles
                                       if h != current_window][0])
-        self.driver.wait.until(EC.element_to_be_clickable((By.ID, 'hgt.in1')))
+        self.driver.wait.until(EC.element_to_be_clickable(
+            (By.ID, UCSCGenomeBrowser.zoom_one_id)))
 
 
 class OpenUCSCGenomeBrowserFromExperimentPageGRCh38(object):
