@@ -72,7 +72,7 @@ Will output image showing difference if found.
 # Perform action before taking screenshot.
 >>> qa.find_differences(browsers=['Chrome'],
                         users=['Public'],
-                        action_tuples=[('/experiments/ENCSR985KAT/', OpenUCSCGenomeBrowserFromExperimentPageHG19)])
+                        action_tuples=[('/experiments/ENCSR985KAT/', OpenUCSCGenomeBrowserHG19)])
 
 Will open UCSC Genome Browser for hg19 assembly from Experiment page and then
 take screenshot to compare.
@@ -81,7 +81,7 @@ take screenshot to compare.
 >>> qa.find_differences(browsers=['Chrome'],
                         users=['Public'],
                         item_types=['/experiments/ENCSR985KAT/'],
-                        click_paths=[OpenUCSCGenomeBrowserFromExperimentPageHG19])
+                        click_paths=[OpenUCSCGenomeBrowserHG19])
 
 
 Required
@@ -849,7 +849,7 @@ class CompareScreenShots(URLComparison):
             sub_name = '_front_page_'
         else:
             sub_name = self.item_type.replace(
-                '/', '_').replace('?', '_').replace('=', '_').replace('&', '_').replace('__', '_')
+                '/', '_').replace('?', '_').replace('=', '_').replace('&', '_').replace('+', '_').replace('.', '_').replace('__', '_')
         user_name = self.user.split('@')[0].replace('.', '_').lower()
         if not os.path.exists(directory):
             print('Creating directory on Desktop')
@@ -896,7 +896,7 @@ class CompareScreenShots(URLComparison):
 # Click paths. #
 ################
 
-class OpenUCSCGenomeBrowserFromExperimentPage(object):
+class OpenUCSCGenomeBrowser(object):
     """
     Defines clicks required to open UCSC trackhub from Experiment page for
     given assembly.
@@ -933,87 +933,88 @@ class OpenUCSCGenomeBrowserFromExperimentPage(object):
                                       if h != current_window][0])
         self.driver.wait.until(EC.element_to_be_clickable(
             (By.ID, UCSCGenomeBrowser.zoom_one_id)))
+        time.sleep(3)
 
 
-class OpenUCSCGenomeBrowserFromExperimentPageGRCh38(object):
+class OpenUCSCGenomeBrowserGRCh38(object):
     """
     Opens UCSC browser with GRCh38 assembly.
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'hg38')
+        OpenUCSCGenomeBrowser(driver, 'hg38')
 
 
-class OpenUCSCGenomeBrowserFromExperimentPageHG19(object):
+class OpenUCSCGenomeBrowserHG19(object):
     """
     Opens UCSC browser with hg19 assembly.
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'hg19')
+        OpenUCSCGenomeBrowser(driver, 'hg19')
 
 
-class OpenUCSCGenomeBrowserFromExperimentPageMM9(object):
+class OpenUCSCGenomeBrowserMM9(object):
     """
     Opens UCSC browser with mm9 assembly.
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'mm9')
+        OpenUCSCGenomeBrowser(driver, 'mm9')
 
 
-class OpenUCSCGenomeBrowserFromExperimentPageMM10(object):
+class OpenUCSCGenomeBrowserMM10(object):
     """
     Opens UCSC browser with mm10 assembly.
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'mm10')
+        OpenUCSCGenomeBrowser(driver, 'mm10')
 
 
-class OpenUCSCGenomeBrowserFromExperimentPageMM10Minimal(object):
+class OpenUCSCGenomeBrowserMM10Minimal(object):
     """
     Opens UCSC browser with mm10-minimal assembly.
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'mm10')
+        OpenUCSCGenomeBrowser(driver, 'mm10')
 
 
-class OpenUCSCGenomeBrowserFromExperimentPageDM3(object):
+class OpenUCSCGenomeBrowserDM3(object):
     """
     Opens UCSC browser with dm3 assembly.
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'dm3')
+        OpenUCSCGenomeBrowser(driver, 'dm3')
 
 
-class OpenUCSCGenomeBrowserFromExperimentPageDM6(object):
+class OpenUCSCGenomeBrowserDM6(object):
     """
     Opens UCSC browser with dm6 assembly.
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'dm6')
+        OpenUCSCGenomeBrowser(driver, 'dm6')
 
 
-class OpenUCSCGenomeBrowserFromExperimentPageCE10(object):
+class OpenUCSCGenomeBrowserCE10(object):
     """
     Opens UCSC browser with ce10 assembly.
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'ce10')
+        OpenUCSCGenomeBrowser(driver, 'ce10')
 
 
-class OpenUCSCGenomeBrowserFromExperimentPageCE11(object):
+class OpenUCSCGenomeBrowserCE11(object):
     """
     Opens UCSC browser with ce11 assembly.
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowserFromExperimentPage(driver, 'ce11')
+        OpenUCSCGenomeBrowser(driver, 'ce11')
 
 
 ################################################
@@ -1307,27 +1308,37 @@ class QANCODE(object):
                    ('/help/rest-api/', None),
                    ('/about/experiment-guidelines/', None),
                    ('/data-standards/terms/', None),
-                   ('/experiments/ENCSR502NRF/',
-                    OpenUCSCGenomeBrowserFromExperimentPageGRCh38),
-                   ('/experiments/ENCSR502NRF/',
-                    OpenUCSCGenomeBrowserFromExperimentPageHG19),
-                   ('/experiments/ENCSR985KAT/',
-                    OpenUCSCGenomeBrowserFromExperimentPageHG19),
-                   ('/experiments/ENCSR426UUG/',
-                    OpenUCSCGenomeBrowserFromExperimentPageGRCh38),
-                   ('/experiments/ENCSR293WTN/',
-                    OpenUCSCGenomeBrowserFromExperimentPageMM9),
-                   ('/experiments/ENCSR335LKF/',
-                    OpenUCSCGenomeBrowserFromExperimentPageMM10),
-                   ('/experiments/ENCSR066DPD/',
-                    OpenUCSCGenomeBrowserFromExperimentPageMM10Minimal),
-                   ('/experiments/ENCSR922ESH/',
-                    OpenUCSCGenomeBrowserFromExperimentPageDM3),
-                   ('/experiments/ENCSR671XAK/',
-                    OpenUCSCGenomeBrowserFromExperimentPageDM6),
-                   ('/experiments/ENCSR422XRE/',
-                    OpenUCSCGenomeBrowserFromExperimentPageCE10),
-                   ('/experiments/ENCSR686FKU/', OpenUCSCGenomeBrowserFromExperimentPageCE11)]
+                   ('/experiments/ENCSR502NRF/', OpenUCSCGenomeBrowserGRCh38),
+                   ('/experiments/ENCSR502NRF/', OpenUCSCGenomeBrowserHG19),
+                   ('/experiments/ENCSR985KAT/', OpenUCSCGenomeBrowserHG19),
+                   ('/experiments/ENCSR426UUG/', OpenUCSCGenomeBrowserGRCh38),
+                   ('/experiments/ENCSR293WTN/', OpenUCSCGenomeBrowserMM9),
+                   ('/experiments/ENCSR335LKF/', OpenUCSCGenomeBrowserMM10),
+                   ('/experiments/ENCSR066DPD/', OpenUCSCGenomeBrowserMM10Minimal),
+                   ('/experiments/ENCSR922ESH/', OpenUCSCGenomeBrowserDM3),
+                   ('/experiments/ENCSR671XAK/', OpenUCSCGenomeBrowserDM6),
+                   ('/experiments/ENCSR422XRE/', OpenUCSCGenomeBrowserCE10),
+                   ('/experiments/ENCSR686FKU/', OpenUCSCGenomeBrowserCE11),
+                   ('/publication-data/ENCSR764APB/', OpenUCSCGenomeBrowserHG19),
+                   ('/projects/ENCSR295OIE/', OpenUCSCGenomeBrowserHG19),
+                   ('/annotations/ENCSR212BHV/', OpenUCSCGenomeBrowserHG19),
+                   ('/experiments/ENCSR000CJR/', OpenUCSCGenomeBrowserHG19),
+                   ('/search/?type=Experiment&assembly=hg19&target.investigated_as=RNA+binding+protein&assay_title=ChIP-seq&replicates.library.biosample.biosample_type=primary+cell', OpenUCSCGenomeBrowserHG19),
+                   ('/search/?type=Experiment&assembly=GRCh38&assay_title=shRNA+RNA-seq&target.investigated_as=transcription+factor&month_released=October%2C+2014', OpenUCSCGenomeBrowserGRCh38),
+                   ('/search/?type=Experiment&assembly=mm9&assay_title=Repli-chip',
+                    OpenUCSCGenomeBrowserMM9),
+                   ('/search/?type=Experiment&assembly=mm10&assay_title=microRNA-seq&month_released=January%2C+2016',
+                    OpenUCSCGenomeBrowserMM10),
+                   ('/search/?type=Experiment&assembly=mm10-minimal&assay_title=DNase-seq',
+                    OpenUCSCGenomeBrowserMM10),
+                   ('/search/?type=Experiment&assembly=dm3&status=released&replicates.library.biosample.biosample_type=whole+organisms&assay_title=total+RNA-seq', OpenUCSCGenomeBrowserDM3),
+                   ('/search/?type=Experiment&assembly=dm6&replicates.library.biosample.life_stage=wandering+third+instar+larva',
+                    OpenUCSCGenomeBrowserDM6),
+                   ('/search/?type=Experiment&assembly=ce10&target.investigated_as=transcription+factor&replicates.library.biosample.life_stage=L4+larva', OpenUCSCGenomeBrowserCE10),
+                   ('/search/?type=Experiment&assembly=ce11&target.investigated_as=recombinant+protein&replicates.library.biosample.life_stage=late+embryonic&replicates.library.biosample.life_stage=L4+larva', OpenUCSCGenomeBrowserCE11),
+                   ('/search/?searchTerm=hippocampus&type=Experiment',
+                    OpenUCSCGenomeBrowserGRCh38),
+                   ('/search/?searchTerm=hippocampus&type=Experiment', OpenUCSCGenomeBrowserHG19)]
         admin_only_actions = [('/biosamples/ENCBS681LAC/', None),
                               ('/search/?searchTerm=ENCBS681LAC&type=Biosample', None)]
         public_only_actions = [('/experiments/?status=deleted', None)]
