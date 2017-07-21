@@ -173,8 +173,8 @@ def main():
         for x in x_buckets:
             full_list.append(x["key"])
     else:
-        full_list = ["RNA-seq", "microRNA profiling by array assay", "microRNA-seq",
-                     "DNase-seq", "whole-genome shotgun bisulfite sequencing", "RAMPAGE", "CAGE"]
+        full_list = ["polyA mRNA RNA-seq", "total RNA-seq", "small RNA-seq", "polyA depleted RNA-seq", "ChIP-seq", "RNA-seq",
+                     "microRNA profiling by array assay", "microRNA-seq", "DNase-seq", "whole-genome shotgun bisulfite sequencing", "RAMPAGE", "CAGE"]
     temp_list = list(full_list)
     if "RNA-seq" in temp_list:
         temp_list.remove("RNA-seq")
@@ -212,9 +212,9 @@ def main():
                     if assay_name in full_list:
                         if assay_list[x] > 0:
                             search = "/search/?type=Experiment&biosample_term_name=" + \
-                                quote(bio_name) + "&assay_term_name=" + \
+                                quote(bio_name) + "&assay_title=" + \
                                 assay_name + full_string
-                            if assay_name == "RNA-seq":
+                            if 'RNA' in assay_name:
                                 short_search = search + "&replicates.library.size_range=<200"
                                 long_search = search + "&replicates.library.size_range!=<200"
 
