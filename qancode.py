@@ -317,6 +317,18 @@ class NewDriver(object):
         if browser == 'Safari':
             self.driver = webdriver.Safari(
                 port=0, executable_path='/Applications/Safari Technology Preview.app/Contents/MacOS/safaridriver')
+        elif browser == 'Firefox':
+            # Allow automatic downloading of specified MIME types.
+            mime_types = 'binary/octet-stream,application/x-gzip,application/gzip,application/pdf,text/plain,text/tsv'
+            fp = webdriver.FirefoxProfile()
+            fp.set_preference(
+                'browser.download.manager.showWhenStarting', False)
+            fp.set_preference(
+                'browser.helperApps.neverAsk.saveToDisk', mime_types)
+            fp.set_preference(
+                'plugin.disable_full_page_plugin_for_types', mime_types)
+            fp.set_preference('pdfjs.disabled', True)
+            self.driver = webdriver.Firefox(firefox_profile=fp)
         else:
             self.driver = getattr(webdriver, browser)()
         self.driver.wait = WebDriverWait(self.driver, 5)
