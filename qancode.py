@@ -91,7 +91,7 @@ Selenium webdriver for Chrome, Firefox.
 
 Safari Technology Preview version.
 
-OpenCV for Python 3.
+OpenCV and PIL for Python 3.
 
 To run as any user != Public must create ~/qa_credentials.json file with
 list of objects containing username and password fields:
@@ -277,7 +277,7 @@ class URLComparison(metaclass=ABCMeta):
     ABC for comparing data between prod and RC given browser and user.
     """
 
-    def __init__(self, browser, user, prod_url, rc_url, item_type, click_path, all_data):
+    def __init__(self, browser, user, prod_url, rc_url, item_type, all_data, click_path=None):
         self.browser = browser
         self.user = user
         self.all_data = all_data
@@ -1145,8 +1145,8 @@ class QANCODE(object):
         """
         List all possible tests.
         """
-        print(*[f for f in dir(QANCODE) if callable(getattr(QANCODE, f))
-                and not f.startswith('__')], sep='\n')
+        print(*[f for f in sorted(dir(QANCODE)) if callable(getattr(QANCODE, f))
+                and not f.startswith('__') and not f.startswith('_')], sep='\n')
 
     def compare_facets(self,
                        browsers='all',
@@ -1192,10 +1192,12 @@ class QANCODE(object):
         if item_types == 'all':
             item_types = [t for t in all_item_types]
         urls = [self.prod_url, self.rc_url]
+        click_paths = [None for c in item_types]
         dm = DataManager(browsers=browsers,
                          urls=urls,
                          users=users,
                          item_types=item_types,
+                         click_paths=click_paths,
                          task=task)
         dm.run_tasks()
         if url_comparison:
@@ -1207,6 +1209,7 @@ class QANCODE(object):
                                                                  prod_url=self.prod_url,
                                                                  rc_url=self.rc_url,
                                                                  item_type=item_type,
+                                                                 click_path=None,
                                                                  all_data=dm.all_data)
                         cfn_url.compare_data()
         if browser_comparison:
@@ -1471,3 +1474,36 @@ class QANCODE(object):
                               ('/2017-06-09-release/', None)]
         self.find_differences(users=users, browsers=browsers,
                               action_tuples=permission_actions)
+
+    def _find_downloaded_file(self, filename, time_download_started):
+        """
+        Returns True if downloaded file found in download directory else False.
+        """
+        print('Checking for downloaded file')
+        for tries in tqdm(range(10)):
+            files = os.listdir(os.path.join(
+                os.path.expanduser('~'), 'Downloads'))
+            if filename in files:
+                full_path = os.path.join(
+                    os.path.expanduser('~'), 'Downloads', filename)
+                time_created = os.stat(full_path).st_birthtime
+                # Make sure it's a recent file.
+                if (time_created - time_download_started) / 60 < 5:
+                    # No need to keep it around.
+                    os.remove(full_path)
+                    print('{}DOWNLOAD SUCCESS: {}{}'.format(
+                        bcolors.OKBLUE, filename, bcolors.ENDC))
+                    return True
+                else:
+                    # Get rid of old file and try again.
+                    os.remove(full_path)
+            time.sleep(5)
+        print('{}DOWNLOAD FAILURE: {}{}'.format(
+            bcolors.FAIL, filename, bcolors.ENDC))
+        return False
+
+    def check_downloads(self, browsers=['Safari'], users=['Public']):
+        """
+        Clicks download button and checks download folder for file.
+        """
+        print('Running check downloads')
