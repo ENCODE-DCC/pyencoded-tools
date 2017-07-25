@@ -1397,8 +1397,6 @@ class QANCODE(object):
                              OpenUCSCGenomeBrowserMM9),
                             ('/experiments/ENCSR335LKF/',
                              OpenUCSCGenomeBrowserMM10),
-                            ('/experiments/ENCSR066DPD/',
-                             OpenUCSCGenomeBrowserMM10Minimal),
                             ('/experiments/ENCSR922ESH/',
                              OpenUCSCGenomeBrowserDM3),
                             ('/experiments/ENCSR671XAK/',
