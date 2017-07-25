@@ -873,8 +873,8 @@ class CompareScreenShots(URLComparison):
             cv2.imwrite(os.path.join(directory, path_name), all_viz)
         else:
             self.diff_found = False
-            #cv2.imwrite(os.path.join(directory, 'match_one.png'), image_one)
-            #cv2.imwrite(os.path.join(directory, 'match_two.png'), image_two)
+            # cv2.imwrite(os.path.join(directory, 'match_one.png'), image_one)
+            # cv2.imwrite(os.path.join(directory, 'match_two.png'), image_two)
             print('{}MATCH{}'.format(bcolors.OKBLUE, bcolors.ENDC))
         return (self.diff_found, path_name)
 
@@ -1310,38 +1310,7 @@ class QANCODE(object):
                    ('/data/annotations/', None),
                    ('/help/rest-api/', None),
                    ('/about/experiment-guidelines/', None),
-                   ('/data-standards/terms/', None),
-                   ('/experiments/ENCSR502NRF/', OpenUCSCGenomeBrowserGRCh38),
-                   ('/experiments/ENCSR502NRF/', OpenUCSCGenomeBrowserHG19),
-                   ('/experiments/ENCSR985KAT/', OpenUCSCGenomeBrowserHG19),
-                   ('/experiments/ENCSR426UUG/', OpenUCSCGenomeBrowserGRCh38),
-                   ('/experiments/ENCSR293WTN/', OpenUCSCGenomeBrowserMM9),
-                   ('/experiments/ENCSR335LKF/', OpenUCSCGenomeBrowserMM10),
-                   ('/experiments/ENCSR066DPD/', OpenUCSCGenomeBrowserMM10Minimal),
-                   ('/experiments/ENCSR922ESH/', OpenUCSCGenomeBrowserDM3),
-                   ('/experiments/ENCSR671XAK/', OpenUCSCGenomeBrowserDM6),
-                   ('/experiments/ENCSR422XRE/', OpenUCSCGenomeBrowserCE10),
-                   ('/experiments/ENCSR686FKU/', OpenUCSCGenomeBrowserCE11),
-                   ('/publication-data/ENCSR764APB/', OpenUCSCGenomeBrowserHG19),
-                   ('/projects/ENCSR295OIE/', OpenUCSCGenomeBrowserHG19),
-                   ('/annotations/ENCSR212BHV/', OpenUCSCGenomeBrowserHG19),
-                   ('/experiments/ENCSR000CJR/', OpenUCSCGenomeBrowserHG19),
-                   ('/search/?type=Experiment&assembly=hg19&target.investigated_as=RNA+binding+protein&assay_title=ChIP-seq&replicates.library.biosample.biosample_type=primary+cell', OpenUCSCGenomeBrowserHG19),
-                   ('/search/?type=Experiment&assembly=GRCh38&assay_title=shRNA+RNA-seq&target.investigated_as=transcription+factor&month_released=October%2C+2014', OpenUCSCGenomeBrowserGRCh38),
-                   ('/search/?type=Experiment&assembly=mm9&assay_title=Repli-chip',
-                    OpenUCSCGenomeBrowserMM9),
-                   ('/search/?type=Experiment&assembly=mm10&assay_title=microRNA-seq&month_released=January%2C+2016',
-                    OpenUCSCGenomeBrowserMM10),
-                   ('/search/?type=Experiment&assembly=mm10-minimal&assay_title=DNase-seq',
-                    OpenUCSCGenomeBrowserMM10),
-                   ('/search/?type=Experiment&assembly=dm3&status=released&replicates.library.biosample.biosample_type=whole+organisms&assay_title=total+RNA-seq', OpenUCSCGenomeBrowserDM3),
-                   ('/search/?type=Experiment&assembly=dm6&replicates.library.biosample.life_stage=wandering+third+instar+larva',
-                    OpenUCSCGenomeBrowserDM6),
-                   ('/search/?type=Experiment&assembly=ce10&target.investigated_as=transcription+factor&replicates.library.biosample.life_stage=L4+larva', OpenUCSCGenomeBrowserCE10),
-                   ('/search/?type=Experiment&assembly=ce11&target.investigated_as=recombinant+protein&replicates.library.biosample.life_stage=late+embryonic&replicates.library.biosample.life_stage=L4+larva', OpenUCSCGenomeBrowserCE11),
-                   ('/search/?searchTerm=hippocampus&type=Experiment',
-                    OpenUCSCGenomeBrowserGRCh38),
-                   ('/search/?searchTerm=hippocampus&type=Experiment', OpenUCSCGenomeBrowserHG19)]
+                   ('/data-standards/terms/', None)]
         admin_only_actions = [('/biosamples/ENCBS681LAC/', None),
                               ('/search/?searchTerm=ENCBS681LAC&type=Biosample', None)]
         public_only_actions = [('/experiments/?status=deleted', None)]
@@ -1393,3 +1362,99 @@ class QANCODE(object):
                         result = css.compare_data()
                         results.append(result)
         return results
+
+    def check_trackhubs(self, browsers=['Safari'], users=['Public']):
+        """
+        Runs find_differences() image diff for selected list of trackhub
+        actions.
+        """
+        print('Running check trackhubs')
+        trackhub_actions = [('/experiments/ENCSR502NRF/',
+                             OpenUCSCGenomeBrowserGRCh38),
+                            ('/experiments/ENCSR502NRF/',
+                             OpenUCSCGenomeBrowserHG19),
+                            ('/experiments/ENCSR985KAT/',
+                             OpenUCSCGenomeBrowserHG19),
+                            ('/experiments/ENCSR426UUG/',
+                             OpenUCSCGenomeBrowserGRCh38),
+                            ('/experiments/ENCSR293WTN/',
+                             OpenUCSCGenomeBrowserMM9),
+                            ('/experiments/ENCSR335LKF/',
+                             OpenUCSCGenomeBrowserMM10),
+                            ('/experiments/ENCSR066DPD/',
+                             OpenUCSCGenomeBrowserMM10Minimal),
+                            ('/experiments/ENCSR922ESH/',
+                             OpenUCSCGenomeBrowserDM3),
+                            ('/experiments/ENCSR671XAK/',
+                             OpenUCSCGenomeBrowserDM6),
+                            ('/experiments/ENCSR422XRE/',
+                             OpenUCSCGenomeBrowserCE10),
+                            ('/experiments/ENCSR686FKU/',
+                             OpenUCSCGenomeBrowserCE11),
+                            ('/publication-data/vENCSR764APB/',
+                             OpenUCSCGenomeBrowserHG19),
+                            ('/projects/ENCSR295OIE/',
+                             OpenUCSCGenomeBrowserHG19),
+                            ('/annotations/ENCSR212BHV/',
+                             OpenUCSCGenomeBrowserHG19),
+                            ('/experiments/ENCSR000CJR/',
+                             OpenUCSCGenomeBrowserHG19),
+                            ('/search/?type=Experiment&assembly=hg19&target.investigated_as=RNA+binding+protein&assay_title=ChIP-seq&replicates.library.biosample.biosample_type=primary+cell',
+                             OpenUCSCGenomeBrowserHG19),
+                            ('/search/?type=Experiment&assembly=GRCh38&assay_title=shRNA+RNA-seq&target.investigated_as=transcription+factor&month_released=October%2C+2014',
+                             OpenUCSCGenomeBrowserGRCh38),
+                            ('/search/?type=Experiment&assembly=mm9&assay_title=Repli-chip',
+                             OpenUCSCGenomeBrowserMM9),
+                            ('/search/?type=Experiment&assembly=mm10&assay_title=microRNA-seq&month_released=January%2C+2016',
+                             OpenUCSCGenomeBrowserMM10),
+                            ('/search/?type=Experiment&assembly=mm10-minimal&assay_title=DNase-seq',
+                             OpenUCSCGenomeBrowserMM10),
+                            ('/search/?type=Experiment&assembly=dm3&status=released&replicates.library.biosample.biosample_type=whole+organisms&assay_title=total+RNA-seq',
+                             OpenUCSCGenomeBrowserDM3),
+                            ('/search/?type=Experiment&assembly=dm6&replicates.library.biosample.life_stage=wandering+third+instar+larva',
+                             OpenUCSCGenomeBrowserDM6),
+                            ('/search/?type=Experiment&assembly=ce10&target.investigated_as=transcription+factor&replicates.library.biosample.life_stage=L4+larva',
+                             OpenUCSCGenomeBrowserCE10),
+                            ('/search/?type=Experiment&assembly=ce11&target.investigated_as=recombinant+protein&replicates.library.biosample.life_stage=late+embryonic&replicates.library.biosample.life_stage=L4+larva',
+                             OpenUCSCGenomeBrowserCE11),
+                            ('/search/?searchTerm=hippocampus&type=Experiment',
+                             OpenUCSCGenomeBrowserGRCh38),
+                            ('/search/?searchTerm=hippocampus&type=Experiment',
+                             OpenUCSCGenomeBrowserHG19)]
+        self.find_differences(users=users, browsers=browsers,
+                              action_tuples=trackhub_actions)
+
+    def check_permissions(self, browsers=['Safari'], users=['Public']):
+        """
+        Runs find_differences() image diff on permission check pages.
+        """
+        print('Running check permissions')
+        permission_actions = [('/experiments/ENCSR524OCB/', None),
+                              ('/experiments/ENCSR000EFT/', None),
+                              ('/biosamples/ENCBS643IYW/', None),
+                              ('/experiments/ENCSR466YGC/', None),
+                              ('/experiments/ENCSR255XZG/', None),
+                              ('/experiments/ENCSR115BCB/', None),
+                              ('/files/ENCFF752JWY/', None),
+                              ('/targets/2L52.1-celegans/', None),
+                              ('/targets/CG15455-dmelanogaster/', None),
+                              ('/software/dnase-eval-bam-se/', None),
+                              ('/software/atac-seq-software-tools/', None),
+                              ('/software/trimAdapters.py/', None),
+                              ('/software/bigwigaverageoverbed/', None),
+                              ('/pipelines/ENCPL493SGC/', None),
+                              ('/pipelines/ENCPL035XIO/', None),
+                              ('/pipelines/ENCPL568PWV/', None),
+                              ('/pipelines/e02448b1-9706-4e7c-b31b-78c921d58f0b/', None),
+                              ('/pipelines/ENCPL734EDH/', None),
+                              ('/pipelines/ENCPL983UFZ/', None),
+                              ('/pipelines/ENCPL631XPY/', None),
+                              ('/publications/b2e859e6-3ee7-4274-90be-728e0faaa8b9/', None),
+                              ('/publications/a4db2c6d-d1a3-4e31-b37b-5cc7d6277548/', None),
+                              ('/publications/16c77add-1bfb-424b-8cab-498ac1e5f6ed/', None),
+                              ('/publications/da2f7542-3d99-48f6-a95d-9907dd5e2f81/', None),
+                              ('/internal-data-use-policy/', None),
+                              ('/tutorials/encode-users-meeting-2016/logistics/', None),
+                              ('/2017-06-09-release/', None)]
+        self.find_differences(users=users, browsers=browsers,
+                              action_tuples=permission_actions)
