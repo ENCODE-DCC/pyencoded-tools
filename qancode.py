@@ -1405,7 +1405,7 @@ class QANCODE(object):
                              OpenUCSCGenomeBrowserCE10),
                             ('/experiments/ENCSR686FKU/',
                              OpenUCSCGenomeBrowserCE11),
-                            ('/publication-data/vENCSR764APB/',
+                            ('/publication-data/ENCSR764APB/',
                              OpenUCSCGenomeBrowserHG19),
                             ('/projects/ENCSR295OIE/',
                              OpenUCSCGenomeBrowserHG19),
