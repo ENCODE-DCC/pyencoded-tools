@@ -5,6 +5,7 @@ import tempfile
 import time
 import numpy as np
 import os
+import re
 import uuid
 
 from abc import ABCMeta, abstractmethod
@@ -860,8 +861,8 @@ class CompareScreenShots(URLComparison):
         if len(self.item_type) <= 1:
             sub_name = '_front_page_'
         else:
-            sub_name = self.item_type.replace(
-                '/', '_').replace('?', '_').replace('=', '_').replace('&', '_').replace('+', '_').replace('.', '_').replace('__', '_')
+            sub_name = re.sub(
+                '[/?=&+.]', '_', self.item_type).replace('__', '_')
         user_name = self.user.split('@')[0].replace('.', '_').lower()
         if not os.path.exists(directory):
             print('Creating directory on Desktop')
