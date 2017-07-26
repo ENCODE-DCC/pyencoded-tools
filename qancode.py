@@ -1273,6 +1273,41 @@ class QANCODE(object):
         click_paths = [p[1] for p in actions]
         return item_types, click_paths
 
+    def _parse_arguments(self,
+                         browsers,
+                         users,
+                         item_types,
+                         click_paths,
+                         action_tuples,
+                         actions,
+                         admin_only_actions,
+                         public_only_actions):
+        if browsers == 'all':
+            browsers = self.browsers
+        if users == 'all':
+            users = self.users
+        if action_tuples is not None:
+            item_types, click_paths = self._expand_action_list(action_tuples)
+        else:
+            if item_types == 'all':
+                item_types, click_paths = self._expand_action_list(actions)
+            elif item_types == 'admin':
+                item_types, click_paths = self._expand_action_list(
+                    admin_only_actions)
+            elif item_types == 'public':
+                item_types, click_paths = self._expand_action_list(
+                    public_only_actions)
+            else:
+                if len(item_types) == len(click_paths):
+                    pass
+                elif len(click_paths) == 1:
+                    # Broadcast single click_path (e.g. None) to all user-defined item_types.
+                    click_paths = [click_paths[0] for t in item_types]
+                else:
+                    raise ValueError(
+                        'item_types and click_paths must have same length')
+        return browsers, users, item_types, click_paths
+
     def find_differences(self,
                          browsers='all',
                          users='all',
@@ -1371,30 +1406,14 @@ class QANCODE(object):
         admin_only_actions = [('/biosamples/ENCBS681LAC/', None),
                               ('/search/?searchTerm=ENCBS681LAC&type=Biosample', None)]
         public_only_actions = [('/experiments/?status=deleted', None)]
-        if browsers == 'all':
-            browsers = self.browsers
-        if users == 'all':
-            users = self.users
-        if action_tuples is not None:
-            item_types, click_paths = self._expand_action_list(action_tuples)
-        else:
-            if item_types == 'all':
-                item_types, click_paths = self._expand_action_list(actions)
-            elif item_types == 'admin':
-                item_types, click_paths = self._expand_action_list(
-                    admin_only_actions)
-            elif item_types == 'public':
-                item_types, click_paths = self._expand_action_list(
-                    public_only_actions)
-            else:
-                if len(item_types) == len(click_paths):
-                    pass
-                elif len(click_paths) == 1:
-                    # Broadcast single click_path (e.g. None) to all user-defined item_types.
-                    click_paths = [click_paths[0] for t in item_types]
-                else:
-                    raise ValueError(
-                        'item_types and click_paths must have same length')
+        browsers, users, item_types, click_paths = self._parse_arguments(browsers=browsers,
+                                                                         users=users,
+                                                                         item_types=item_types,
+                                                                         click_paths=click_paths,
+                                                                         action_tuples=action_tuples,
+                                                                         actions=actions,
+                                                                         admin_only_actions=admin_only_actions,
+                                                                         public_only_actions=public_only_actions)
         urls = [self.prod_url, self.rc_url]
         results = []
         with tempfile.TemporaryDirectory() as td:
@@ -1522,21 +1541,13 @@ class QANCODE(object):
         """
         print('Running check downloads')
         actions = []
-        if browsers == 'all':
-            browsers = self.browsers
-        if users == 'all':
-            users = self.users
-        if action_tuples is not None:
-            item_types, click_paths = self._expand_action_list(action_tuples)
-        else:
-            if item_types == 'all':
-                item_types, click_paths = self._expand_action_list(actions)
-            else:
-                if len(item_types) == len(click_paths):
-                    pass
-                elif len(click_paths) == 1:
-                    # Broadcast single click_path (e.g. None) to all user-defined item_types.
-                    click_paths = [click_paths[0] for t in item_types]
-                else:
-                    raise ValueError(
-                        'item_types and click_paths must have same length')
+        admin_only_actions = []
+        public_only_actions = []
+        browsers, users, item_types, click_paths = self._parse_arguments(browsers=browsers,
+                                                                         users=users,
+                                                                         item_types=item_types,
+                                                                         click_paths=click_paths,
+                                                                         action_tuples=action_tuples,
+                                                                         actions=actions,
+                                                                         admin_only_actions=admin_only_actions,
+                                                                         public_only_actions=public_only_actions)
