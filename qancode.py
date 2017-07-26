@@ -266,6 +266,23 @@ class SeleniumTask(metaclass=ABCMeta):
         else:
             print('Loading complete')
 
+    def _try_load_item_type(self):
+        time.sleep(2)
+        if ((self.item_type is not None)
+                and (self.item_type != '/')):
+            type_url = self.driver.current_url + self.item_type
+            print('Getting type: {}'.format(self.item_type))
+            self.driver.get(type_url)
+        time.sleep(2)
+        self._wait_for_loading_spinner()
+        self.driver.wait.until(
+            EC.element_to_be_clickable((By.ID, 'navbar')))
+
+    def _try_perform_click_path(self):
+        if self.click_path is not None:
+            print('Performing click path: {}'.format(self.click_path.__name__))
+            self.click_path(self.driver)
+
     @abstractmethod
     def get_data(self):
         pass
@@ -675,19 +692,8 @@ class GetScreenShot(SeleniumTask):
         testing_warning_banner_button.click()
 
     def get_data(self):
-        time.sleep(2)
-        if ((self.item_type is not None)
-                and (self.item_type != '/')):
-            type_url = self.driver.current_url + self.item_type
-            print('Getting type: {}'.format(self.item_type))
-            self.driver.get(type_url)
-        time.sleep(2)
-        self._wait_for_loading_spinner()
-        self.driver.wait.until(
-            EC.element_to_be_clickable((By.ID, 'navbar')))
-        if self.click_path is not None:
-            print('Performing click path: {}'.format(self.click_path.__name__))
-            self.click_path(self.driver)
+        self._try_load_item_type()
+        self._try_perform_click_path()
         if 'experiment' in self.driver.current_url:
             try:
                 self.make_experiment_pages_look_the_same()
