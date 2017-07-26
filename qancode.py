@@ -247,6 +247,25 @@ class SeleniumTask(metaclass=ABCMeta):
         self.server_name = server_name
         self.temp_dir = kwargs.get('temp_dir', None)
 
+    def _wait_for_loading_spinner(self):
+        if any([y.is_displayed() for y in self.driver.find_elements_by_class_name(LoadingSpinner.loading_spinner_class)]):
+            print('Waiting for spinner')
+            browser = self.driver.capabilities['browserName'].title()
+            for tries in tqdm(range(10)):
+                if any([y.is_displayed() for y in self.driver.find_elements_by_class_name(LoadingSpinner.loading_spinner_class)]):
+                    time.sleep(1)
+                else:
+                    print('Loading complete')
+                    break
+            else:
+                print('{} WARNING: Loading spinner still visible'
+                      ' on {} in {} after ten seconds.{}'.format(bcolors.FAIL,
+                                                                 self.driver.current_url,
+                                                                 browser,
+                                                                 bcolors.ENDC))
+        else:
+            print('Loading complete')
+
     @abstractmethod
     def get_data(self):
         pass
@@ -655,25 +674,6 @@ class GetScreenShot(SeleniumTask):
             (By.CSS_SELECTOR, NavBar.testing_warning_banner_button_css)))
         testing_warning_banner_button.click()
 
-    def wait_for_loading_spinner(self):
-        if any([y.is_displayed() for y in self.driver.find_elements_by_class_name(LoadingSpinner.loading_spinner_class)]):
-            print('Waiting for spinner')
-            browser = self.driver.capabilities['browserName'].title()
-            for tries in tqdm(range(10)):
-                if any([y.is_displayed() for y in self.driver.find_elements_by_class_name(LoadingSpinner.loading_spinner_class)]):
-                    time.sleep(1)
-                else:
-                    print('Loading complete')
-                    break
-            else:
-                print('{} WARNING: Loading spinner still visible'
-                      ' on {} in {} after ten seconds. Taking screenshot.{}'.format(bcolors.FAIL,
-                                                                                    self.driver.current_url,
-                                                                                    browser,
-                                                                                    bcolors.ENDC))
-        else:
-            print('Loading complete')
-
     def get_data(self):
         time.sleep(2)
         if ((self.item_type is not None)
@@ -682,7 +682,7 @@ class GetScreenShot(SeleniumTask):
             print('Getting type: {}'.format(self.item_type))
             self.driver.get(type_url)
         time.sleep(2)
-        self.wait_for_loading_spinner()
+        self._wait_for_loading_spinner()
         self.driver.wait.until(
             EC.element_to_be_clickable((By.ID, 'navbar')))
         if self.click_path is not None:
@@ -709,6 +709,41 @@ class GetScreenShot(SeleniumTask):
         image_path = self.take_screenshot()
         return image_path
 
+
+class DownloadFiles(SeleniumTask):
+    """
+    Download file given click_path.
+    """
+
+    def _find_downloaded_file(self, filename, time_download_started):
+        """
+        Returns True if downloaded file found in download directory else False.
+        """
+        print('Checking for downloaded file')
+        for tries in tqdm(range(10)):
+            files = os.listdir(os.path.join(
+                os.path.expanduser('~'), 'Downloads'))
+            if filename in files:
+                full_path = os.path.join(
+                    os.path.expanduser('~'), 'Downloads', filename)
+                time_created = os.stat(full_path).st_birthtime
+                # Make sure it's a recent file.
+                if (time_created - time_download_started) / 60 < 3:
+                    # No need to keep it around.
+                    os.remove(full_path)
+                    print('{}DOWNLOAD SUCCESS: {}{}'.format(
+                        bcolors.OKBLUE, filename, bcolors.ENDC))
+                    return True
+                else:
+                    # Get rid of old file and try again.
+                    os.remove(full_path)
+            time.sleep(5)
+        print('{}DOWNLOAD FAILURE: {}{}'.format(
+            bcolors.FAIL, filename, bcolors.ENDC))
+        return False
+
+    def get_data(self):
+        pass
 
 ##########################
 # Data comparison tasks. #
@@ -862,7 +897,7 @@ class CompareScreenShots(URLComparison):
             sub_name = '_front_page_'
         else:
             sub_name = re.sub(
-                '[/?=&+.]', '_', self.item_type).replace('__', '_')
+                '[/?=&+.%]', '_', self.item_type).replace('__', '_')
         user_name = self.user.split('@')[0].replace('.', '_').lower()
         if not os.path.exists(directory):
             print('Creating directory on Desktop')
@@ -1421,8 +1456,6 @@ class QANCODE(object):
                              OpenUCSCGenomeBrowserMM9),
                             ('/search/?type=Experiment&assembly=mm10&assay_title=microRNA-seq&month_released=January%2C+2016',
                              OpenUCSCGenomeBrowserMM10),
-                            ('/search/?type=Experiment&assembly=mm10-minimal&assay_title=DNase-seq',
-                             OpenUCSCGenomeBrowserMM10),
                             ('/search/?type=Experiment&assembly=dm3&status=released&replicates.library.biosample.biosample_type=whole+organisms&assay_title=total+RNA-seq',
                              OpenUCSCGenomeBrowserDM3),
                             ('/search/?type=Experiment&assembly=dm6&replicates.library.biosample.life_stage=wandering+third+instar+larva',
@@ -1431,8 +1464,6 @@ class QANCODE(object):
                              OpenUCSCGenomeBrowserCE10),
                             ('/search/?type=Experiment&assembly=ce11&target.investigated_as=recombinant+protein&replicates.library.biosample.life_stage=late+embryonic&replicates.library.biosample.life_stage=L4+larva',
                              OpenUCSCGenomeBrowserCE11),
-                            ('/search/?searchTerm=hippocampus&type=Experiment',
-                             OpenUCSCGenomeBrowserGRCh38),
                             ('/search/?searchTerm=hippocampus&type=Experiment',
                              OpenUCSCGenomeBrowserHG19)]
         self.find_differences(users=users, browsers=browsers,
@@ -1473,35 +1504,33 @@ class QANCODE(object):
         self.find_differences(users=users, browsers=browsers,
                               action_tuples=permission_actions)
 
-    def _find_downloaded_file(self, filename, time_download_started):
-        """
-        Returns True if downloaded file found in download directory else False.
-        """
-        print('Checking for downloaded file')
-        for tries in tqdm(range(10)):
-            files = os.listdir(os.path.join(
-                os.path.expanduser('~'), 'Downloads'))
-            if filename in files:
-                full_path = os.path.join(
-                    os.path.expanduser('~'), 'Downloads', filename)
-                time_created = os.stat(full_path).st_birthtime
-                # Make sure it's a recent file.
-                if (time_created - time_download_started) / 60 < 5:
-                    # No need to keep it around.
-                    os.remove(full_path)
-                    print('{}DOWNLOAD SUCCESS: {}{}'.format(
-                        bcolors.OKBLUE, filename, bcolors.ENDC))
-                    return True
-                else:
-                    # Get rid of old file and try again.
-                    os.remove(full_path)
-            time.sleep(5)
-        print('{}DOWNLOAD FAILURE: {}{}'.format(
-            bcolors.FAIL, filename, bcolors.ENDC))
-        return False
-
-    def check_downloads(self, browsers=['Safari'], users=['Public']):
+    def check_downloads(self,
+                        browsers='all',
+                        users='all',
+                        action_tuples=None,
+                        item_types='all',
+                        click_paths=[None],
+                        task=DownloadFiles):
         """
         Clicks download button and checks download folder for file.
         """
         print('Running check downloads')
+        actions = []
+        if browsers == 'all':
+            browsers = self.browsers
+        if users == 'all':
+            users = self.users
+        if action_tuples is not None:
+            item_types, click_paths = self._expand_action_list(action_tuples)
+        else:
+            if item_types == 'all':
+                item_types, click_paths = self._expand_action_list(actions)
+            else:
+                if len(item_types) == len(click_paths):
+                    pass
+                elif len(click_paths) == 1:
+                    # Broadcast single click_path (e.g. None) to all user-defined item_types.
+                    click_paths = [click_paths[0] for t in item_types]
+                else:
+                    raise ValueError(
+                        'item_types and click_paths must have same length')
