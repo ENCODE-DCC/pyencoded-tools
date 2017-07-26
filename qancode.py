@@ -721,7 +721,7 @@ class DownloadFiles(SeleniumTask):
     Download file given click_path.
     """
 
-    def _find_downloaded_file(self, filename, time_download_started):
+    def _find_downloaded_file(self):
         """
         Returns True if downloaded file found in download directory else False.
         """
@@ -729,27 +729,29 @@ class DownloadFiles(SeleniumTask):
         for tries in tqdm(range(10)):
             files = os.listdir(os.path.join(
                 os.path.expanduser('~'), 'Downloads'))
-            if filename in files:
+            if self.filename in files:
                 full_path = os.path.join(
-                    os.path.expanduser('~'), 'Downloads', filename)
+                    os.path.expanduser('~'), 'Downloads', self.filename)
                 time_created = os.stat(full_path).st_birthtime
                 # Make sure it's a recent file.
-                if (time_created - time_download_started) / 60 < 3:
+                if (time_created - self.time_download_started) / 60 < 3:
                     # No need to keep it around.
                     os.remove(full_path)
                     print('{}DOWNLOAD SUCCESS: {}{}'.format(
-                        bcolors.OKBLUE, filename, bcolors.ENDC))
+                        bcolors.OKBLUE, self.filename, bcolors.ENDC))
                     return True
                 else:
                     # Get rid of old file and try again.
                     os.remove(full_path)
             time.sleep(5)
         print('{}DOWNLOAD FAILURE: {}{}'.format(
-            bcolors.FAIL, filename, bcolors.ENDC))
+            bcolors.FAIL, self.filename, bcolors.ENDC))
         return False
 
     def get_data(self):
-        pass
+        self._try_load_item_type()
+        self._try_perform_click_path()
+        self._find_downloaded_file()
 
 ##########################
 # Data comparison tasks. #
@@ -1551,3 +1553,11 @@ class QANCODE(object):
                                                                          actions=actions,
                                                                          admin_only_actions=admin_only_actions,
                                                                          public_only_actions=public_only_actions)
+        urls = [self.prod_url, self.rc_url]
+        dm = DataManager(browsers=browsers,
+                         urls=urls,
+                         users=users,
+                         item_types=item_types,
+                         click_paths=click_paths,
+                         task=task)
+        dm.run_tasks()
