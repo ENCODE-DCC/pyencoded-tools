@@ -191,9 +191,16 @@ class ExperimentPage(object):
     done_panel_class = 'done'
     title_tag_name = 'h4'
     graph_close_button_css = 'div > div:nth-child(2) > div.file-gallery-graph-header.collapsing-title > button'
-    sort_by_accession_x_path = '//div/div[3]/div[2]/div/table[2]/thead/tr[2]/th[1]'
+    sort_by_accession_xpath = '//div/div[3]/div[2]/div/table[2]/thead/tr[2]/th[1]'
     all_buttons_tag_name = 'button'
     download_graph_png_button_xpath = '//*[contains(text(), "Download Graph")]'
+
+
+class AntibodyPage(object):
+    """
+    Page object model.
+    """
+    expanded_document_panels_xpath = '//div[@class="document__detail active"]//a[@href]'
 
 
 class VisualizeModal(object):
@@ -223,6 +230,7 @@ class DocumentPreview(object):
     Page object model.
     """
     document_expand_buttons_class = 'document__file-detail-switch'
+    document_files_xpath = '//div[@class="document__file"]//a[@href]'
 
 
 class UCSCGenomeBrowser(object):
@@ -687,7 +695,7 @@ class GetScreenShot(SeleniumTask):
                         EC.element_to_be_clickable((By.CSS_SELECTOR, ExperimentPage.graph_close_button_css)))
                     graph_close_button.click()
                     y.find_element_by_xpath(
-                        ExperimentPage.sort_by_accession_x_path).click()
+                        ExperimentPage.sort_by_accession_xpath).click()
             except:
                 pass
 
@@ -1110,8 +1118,8 @@ class DownloadFileFromTable(object):
         for elem in elems:
             # Find and click on first link with filetype.
             if self.filetype in elem.get_attribute('href'):
-                filename = elem.get_attribute('href').split(
-                    '/')[-1].replace('%20', ' ')
+                filename = urllib.request.unquote(elem.get_attribute('href').split(
+                    '/')[-1])
                 download_start_time = time.time()
                 elem.click()
                 print('Downloading {} from {}'.format(
@@ -1166,7 +1174,7 @@ class DownloadDocuments(object):
         self.filenames = []
         self.download_start_times = []
         elems = self.driver.find_elements_by_xpath(
-            '//div[@class="document__file"]//a[@href]')
+            DocumentPreview.document_files_xpath)
         for elem in elems:
             filename = urllib.request.unquote(
                 elem.get_attribute('href').split('/')[-1])
@@ -1192,7 +1200,7 @@ class DownloadDocumentsFromAntibodyPage(object):
         self.filenames = []
         self.download_start_times = []
         elems = self.driver.find_elements_by_xpath(
-            '//div[@class="document__detail active"]//a[@href]')
+            AntibodyPage.expanded_document_panels_xpath)
         for elem in elems:
             key = elem.get_attribute('href')
             # Filter out non-files.
