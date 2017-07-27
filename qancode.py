@@ -247,6 +247,7 @@ class SeleniumTask(metaclass=ABCMeta):
         self.click_path = click_path
         self.server_name = server_name
         self.temp_dir = kwargs.get('temp_dir', None)
+        self.kwargs = kwargs
 
     def _wait_for_loading_spinner(self):
         if any([y.is_displayed() for y in self.driver.find_elements_by_class_name(LoadingSpinner.loading_spinner_class)]):
@@ -750,10 +751,11 @@ class DownloadFiles(SeleniumTask):
             if result[0]:
                 print('{}DOWNLOAD SUCCESS: {}{}'.format(
                     bcolors.OKBLUE, result[2], bcolors.ENDC))
-                try:
-                    os.remove(result[1])
-                except:
-                    pass
+                if self.kwargs.get('delete'):
+                    try:
+                        os.remove(result[1])
+                    except:
+                        pass
             else:
                 print('{}DOWNLOAD FAILURE: {}{}'.format(
                     bcolors.FAIL, result[2], bcolors.ENDC))
@@ -1683,7 +1685,8 @@ class QANCODE(object):
                         item_types='all',
                         click_paths=[None],
                         task=DownloadFiles,
-                        urls='all'):
+                        urls='all',
+                        delete=True):
         """
         Clicks download button and checks download folder for file.
         """
@@ -1691,7 +1694,8 @@ class QANCODE(object):
         actions = [('/experiments/ENCSR810WXH/', DownloadBEDFileFromTable),
                    ('/experiments/ENCSR810WXH/', DownloadGraphFromExperimentPage),
                    ('/experiments/ENCSR810WXH/', DownloadDocuments),
-                   ('/antibodies/ENCAB749XQY/', DownloadDocumentsFromAntibodyPage)]
+                   ('/antibodies/ENCAB749XQY/', DownloadDocumentsFromAntibodyPage),
+                   ('/ucsc-browser-composites/ENCSR707NXZ/', DownloadDocuments)]
         admin_only_actions = []
         public_only_actions = []
         browsers, users, item_types, click_paths = self._parse_arguments(browsers=browsers,
@@ -1709,5 +1713,6 @@ class QANCODE(object):
                          users=users,
                          item_types=item_types,
                          click_paths=click_paths,
-                         task=task)
+                         task=task,
+                         delete=delete)
         dm.run_tasks()
