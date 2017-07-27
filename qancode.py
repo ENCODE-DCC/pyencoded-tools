@@ -281,7 +281,7 @@ class SeleniumTask(metaclass=ABCMeta):
     def _try_perform_click_path(self):
         if self.click_path is not None:
             print('Performing click path: {}'.format(self.click_path.__name__))
-            self.click_path(self.driver)
+            return self.click_path(self.driver)
 
     @abstractmethod
     def get_data(self):
@@ -721,36 +721,49 @@ class DownloadFiles(SeleniumTask):
     Download file given click_path.
     """
 
+    @staticmethod
+    def _check_download_folder(filename, download_start_time):
+        files = os.listdir(os.path.join(
+            os.path.expanduser('~'), 'Downloads'))
+        if filename in files:
+            print('Filename found')
+            full_path = os.path.join(
+                os.path.expanduser('~'), 'Downloads', filename)
+            time_created = os.stat(full_path).st_birthtime
+            # Make sure it was created after download started.
+            if download_start_time < time_created:
+                # No need to keep it around.
+                os.remove(full_path)
+                print('{}DOWNLOAD SUCCESS: {}{}'.format(
+                    bcolors.OKBLUE, filename, bcolors.ENDC))
+                return True
+            else:
+                # Get rid of old file.
+                os.remove(full_path)
+        return False
+
     def _find_downloaded_file(self):
         """
         Returns True if downloaded file found in download directory else False.
         """
         print('Checking for downloaded file')
-        for tries in tqdm(range(10)):
-            files = os.listdir(os.path.join(
-                os.path.expanduser('~'), 'Downloads'))
-            if self.filename in files:
-                full_path = os.path.join(
-                    os.path.expanduser('~'), 'Downloads', self.filename)
-                time_created = os.stat(full_path).st_birthtime
-                # Make sure it's a recent file.
-                if (time_created - self.time_download_started) / 60 < 3:
-                    # No need to keep it around.
-                    os.remove(full_path)
-                    print('{}DOWNLOAD SUCCESS: {}{}'.format(
-                        bcolors.OKBLUE, self.filename, bcolors.ENDC))
-                    return True
-                else:
-                    # Get rid of old file and try again.
-                    os.remove(full_path)
-            time.sleep(5)
-        print('{}DOWNLOAD FAILURE: {}{}'.format(
-            bcolors.FAIL, self.filename, bcolors.ENDC))
-        return False
+        time.sleep(2)
+        for filename, download_start_time in zip(self.filenames, self.download_start_times):
+            if self._check_download_folder(filename, download_start_time):
+                continue
+            else:
+                for tries in tqdm(range(10)):
+                    self._check_download_folder(
+                        filename, download_start_time)
+                    time.sleep(5)
+                print('{}DOWNLOAD FAILURE: {}{}'.format(
+                    bcolors.FAIL, filename, bcolors.ENDC))
 
     def get_data(self):
         self._try_load_item_type()
-        self._try_perform_click_path()
+        cp = self._try_perform_click_path()
+        self.filenames = cp.filenames
+        self.download_start_times = cp.download_start_times
         self._find_downloaded_file()
 
 ##########################
@@ -952,6 +965,8 @@ class CompareScreenShots(URLComparison):
 # Click paths. #
 ################
 
+# --- Genome browsers. ---
+
 class OpenUCSCGenomeBrowser(object):
     """
     Defines clicks required to open UCSC trackhub from Experiment page for
@@ -1071,6 +1086,48 @@ class OpenUCSCGenomeBrowserCE11(object):
 
     def __init__(self, driver):
         OpenUCSCGenomeBrowser(driver, 'ce11')
+
+
+# --- File downloads. ---
+
+class DownloadFileFromTable(object):
+    """
+    Download specified filetype from file table.
+    """
+
+    def __init__(self, driver, filetype):
+        self.driver = driver
+        self.filetype = filetype
+
+    def perform_action(self):
+        filenames = []
+        download_start_times = []
+        # Get all links on page.
+        elems = self.driver.find_elements_by_xpath('//span/a')
+        for elem in elems:
+            # Find first and click on first link with filetype.
+            if self.filetype in elem.get_attribute('href'):
+                filename = elem.get_attribute('href').split('/')[-1]
+                # Hack because os.stat rounds creation time.
+                download_start_time = time.time() - 10
+                elem.click()
+                print('Downloading {} from {}'.format(
+                    filename, elem.get_attribute('href')))
+                filenames.append(filename)
+                download_start_times.append(download_start_time)
+                time.sleep(2)
+                break
+        return filenames, download_start_times
+
+
+class DownloadBEDFileFromTable(object):
+    """
+    Download bed.gz file from file table.
+    """
+
+    def __init__(self, driver):
+        self.filenames, self.download_start_times = DownloadFileFromTable(
+            driver, 'bed.gz').perform_action()
 
 
 ################################################
@@ -1542,7 +1599,7 @@ class QANCODE(object):
         Clicks download button and checks download folder for file.
         """
         print('Running check downloads')
-        actions = []
+        actions = [('/experiments/ENCSR810WXH/', DownloadBEDFileFromTable)]
         admin_only_actions = []
         public_only_actions = []
         browsers, users, item_types, click_paths = self._parse_arguments(browsers=browsers,
