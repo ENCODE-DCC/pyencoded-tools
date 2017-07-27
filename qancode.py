@@ -85,7 +85,6 @@ take screenshot to compare.
                         item_types=['/experiments/ENCSR985KAT/'],
                         click_paths=[OpenUCSCGenomeBrowserHG19])
 
-
 Required
 --------
 Selenium webdriver for Chrome, Firefox.
@@ -1586,7 +1585,7 @@ class QANCODE(object):
                         results.append(result)
         return results
 
-    def check_trackhubs(self, browsers=['Safari'], users=['Public']):
+    def check_trackhubs(self, browsers=['Safari'], users=['Public'], action_tuples=None):
         """
         Runs find_differences() image diff for selected list of trackhub
         actions.
@@ -1638,8 +1637,10 @@ class QANCODE(object):
                              OpenUCSCGenomeBrowserCE11),
                             ('/search/?searchTerm=hippocampus&type=Experiment',
                              OpenUCSCGenomeBrowserHG19)]
+        if action_tuples is None:
+            action_tuples = trackhub_actions
         self.find_differences(users=users, browsers=browsers,
-                              action_tuples=trackhub_actions)
+                              action_tuples=action_tuples)
 
     def check_permissions(self, browsers=['Safari'], users=['Public']):
         """
