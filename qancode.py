@@ -6,6 +6,7 @@ import time
 import numpy as np
 import os
 import re
+import urllib
 import uuid
 
 from abc import ABCMeta, abstractmethod
@@ -284,6 +285,20 @@ class SeleniumTask(metaclass=ABCMeta):
             print('Performing click path: {}'.format(self.click_path.__name__))
             return self.click_path(self.driver)
 
+    def _expand_document_details(self):
+        expand_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
+            (By.CLASS_NAME, DocumentPreview.document_expand_buttons_class)))
+        for button in expand_buttons:
+            try:
+                button.click()
+            except:
+                pass
+
+    def _get_rid_of_test_warning_banner(self):
+        testing_warning_banner_button = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable(
+            (By.CSS_SELECTOR, NavBar.testing_warning_banner_button_css)))
+        testing_warning_banner_button.click()
+
     @abstractmethod
     def get_data(self):
         pass
@@ -357,7 +372,7 @@ class NewDriver(object):
                 port=0, executable_path='/Applications/Safari Technology Preview.app/Contents/MacOS/safaridriver')
         elif browser == 'Firefox':
             # Allow automatic downloading of specified MIME types.
-            mime_types = 'binary/octet-stream,application/x-gzip,application/gzip,application/pdf,text/plain,text/tsv'
+            mime_types = 'binary/octet-stream,application/x-gzip,application/gzip,application/pdf,text/plain,text/tsv,image/png,image/jpeg'
             fp = webdriver.FirefoxProfile()
             fp.set_preference(
                 'browser.download.manager.showWhenStarting', False)
@@ -676,20 +691,6 @@ class GetScreenShot(SeleniumTask):
             except:
                 pass
 
-    def expand_document_details(self):
-        expand_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
-            (By.CLASS_NAME, DocumentPreview.document_expand_buttons_class)))
-        for button in expand_buttons:
-            try:
-                button.click()
-            except:
-                pass
-
-    def get_rid_of_test_warning_banner(self):
-        testing_warning_banner_button = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, NavBar.testing_warning_banner_button_css)))
-        testing_warning_banner_button.click()
-
     def get_data(self):
         self._try_load_item_type()
         self._try_perform_click_path()
@@ -699,11 +700,11 @@ class GetScreenShot(SeleniumTask):
             except:
                 pass
         try:
-            self.expand_document_details()
+            self._expand_document_details()
         except:
             pass
         try:
-            self.get_rid_of_test_warning_banner()
+            self._get_rid_of_test_warning_banner()
         except:
             pass
         self.driver.execute_script(
@@ -725,13 +726,14 @@ class DownloadFiles(SeleniumTask):
         files = os.listdir(os.path.join(
             os.path.expanduser('~'), 'Downloads'))
         for file in files:
-            if file.startswith(filename):
+            # Inexact match.
+            if file.startswith(filename[:len(filename) - 10]):
                 full_path = os.path.join(
                     os.path.expanduser('~'), 'Downloads', file)
                 time_created = os.stat(full_path).st_birthtime
                 # Make sure it was created after download started. Subtracting ten
                 # because os.stat rounds creation time.
-                if (download_start_time - 10) < time_created:
+                if (download_start_time - 100) < time_created:
                     # No need to keep it around.
                     os.remove(full_path)
                     print('{}DOWNLOAD SUCCESS: {}{}'.format(
@@ -747,9 +749,9 @@ class DownloadFiles(SeleniumTask):
         """
         Returns True if downloaded file found in download directory else False.
         """
-        print('Checking for downloaded file')
         time.sleep(2)
         for filename, download_start_time in zip(self.filenames, self.download_start_times):
+            print('Checking for downloaded file {}'.format(filename))
             if self._check_download_folder(filename, download_start_time):
                 continue
             else:
@@ -762,6 +764,8 @@ class DownloadFiles(SeleniumTask):
 
     def get_data(self):
         self._try_load_item_type()
+        if self.click_path == DownloadDocumentsFromAntibodyPage:
+            self._expand_document_details()
         cp = self._try_perform_click_path()
         self.filenames = cp.filenames
         self.download_start_times = cp.download_start_times
@@ -1148,12 +1152,12 @@ class DownloadGraphFromExperimentPage(object):
             self.driver.current_url.split('/')[-2])]
         self.download_start_times = [time.time()]
         button.click()
-        time.sleep(2)
+        time.sleep(5)
 
 
 class DownloadDocuments(object):
     """
-    Download all files from documents panel.
+    Download all files from documents panel (except Antibody pages).
     """
 
     def __init__(self, driver):
@@ -1166,8 +1170,8 @@ class DownloadDocuments(object):
         elems = self.driver.find_elements_by_xpath(
             '//div[@class="document__file"]//a[@href]')
         for elem in elems:
-            filename = elem.get_attribute('href').split(
-                '/')[-1].replace('%20', ' ')
+            filename = urllib.request.unquote(
+                elem.get_attribute('href').split('/')[-1])
             download_start_time = time.time()
             elem.click()
             print('Downloading {} from {}'.format(
@@ -1175,6 +1179,41 @@ class DownloadDocuments(object):
             self.filenames.append(filename)
             self.download_start_times.append(download_start_time)
             time.sleep(2)
+
+
+class DownloadDocumentsFromAntibodyPage(object):
+    """
+    Download all files from document panel on Antibody page.
+    """
+
+    def __init__(self, driver):
+        self.driver = driver
+        self.perform_action()
+
+    def perform_action(self):
+        self.filenames = []
+        self.download_start_times = []
+        elems = self.driver.find_elements_by_xpath(
+            '//div[@class="document__detail active"]//a[@href]')
+        for elem in elems:
+            key = elem.get_attribute('href')
+            # Filter out non-files.
+            if not key.endswith('/'):
+                # Selenium Safari won't download PDFs from Antibody Page.
+                if ((self.driver.capabilities['browserName'] == 'safari')
+                        and key.endswith('pdf')):
+                    continue
+                filename = urllib.request.unquote(key.split('/')[-1])
+                download_start_time = time.time()
+                try:
+                    elem.click()
+                except:
+                    print('Error clicking on {}'.format(key))
+                    continue
+                print('Downloading {} from {}'.format(filename, key))
+                self.filenames.append(filename)
+                self.download_start_times.append(download_start_time)
+                time.sleep(2)
 
 
 ################################################
@@ -1643,14 +1682,16 @@ class QANCODE(object):
                         action_tuples=None,
                         item_types='all',
                         click_paths=[None],
-                        task=DownloadFiles):
+                        task=DownloadFiles,
+                        urls='all'):
         """
         Clicks download button and checks download folder for file.
         """
         print('Running check downloads')
         actions = [('/experiments/ENCSR810WXH/', DownloadBEDFileFromTable),
                    ('/experiments/ENCSR810WXH/', DownloadGraphFromExperimentPage),
-                   ('/experiments/ENCSR810WXH/', DownloadDocuments)]
+                   ('/experiments/ENCSR810WXH/', DownloadDocuments),
+                   ('/antibodies/ENCAB749XQY/', DownloadDocumentsFromAntibodyPage)]
         admin_only_actions = []
         public_only_actions = []
         browsers, users, item_types, click_paths = self._parse_arguments(browsers=browsers,
@@ -1661,7 +1702,8 @@ class QANCODE(object):
                                                                          actions=actions,
                                                                          admin_only_actions=admin_only_actions,
                                                                          public_only_actions=public_only_actions)
-        urls = [self.prod_url, self.rc_url]
+        if urls == 'all':
+            urls = [self.prod_url, self.rc_url]
         dm = DataManager(browsers=browsers,
                          urls=urls,
                          users=users,
