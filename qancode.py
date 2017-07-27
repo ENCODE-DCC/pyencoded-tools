@@ -720,46 +720,43 @@ class DownloadFiles(SeleniumTask):
     Download file given click_path.
     """
 
-    @staticmethod
-    def _check_download_folder(filename, download_start_time):
+    def _check_download_folder(self, filename, download_start_time, results):
         files = os.listdir(os.path.join(
             os.path.expanduser('~'), 'Downloads'))
         for file in files:
-            # Inexact match.
-            if file.startswith(filename[:len(filename) - 10]):
-                full_path = os.path.join(
-                    os.path.expanduser('~'), 'Downloads', file)
-                time_created = os.stat(full_path).st_birthtime
-                # Make sure it was created after download started. Subtracting ten
-                # because os.stat rounds creation time.
-                if (download_start_time - 100) < time_created:
-                    # No need to keep it around.
-                    os.remove(full_path)
-                    print('{}DOWNLOAD SUCCESS: {}{}'.format(
-                        bcolors.OKBLUE, filename, bcolors.ENDC))
-                    return True
-                else:
-                    # Get rid of old file.
-                    print('Found old file\nDeleting')
-                    os.remove(full_path)
-        return False
+            full_path = os.path.join(
+                os.path.expanduser('~'), 'Downloads', file)
+            # Inexact match to deal with multiple download of same file.
+            # Safari overwrites multiple downloads of same file so filepath
+            # not unique.
+            if ((file.startswith(filename[:len(filename) - 8]))
+                    and ((self.driver.capabilities['browserName'] == 'safari')
+                         or (file not in [r[3] for r in results]))):
+                return (True, full_path, filename, file)
+        return (False, full_path, filename, None)
 
     def _find_downloaded_file(self):
         """
-        Returns True if downloaded file found in download directory else False.
+        Checks for downloaded file in Downloads directory.
         """
         time.sleep(2)
+        results = []
         for filename, download_start_time in zip(self.filenames, self.download_start_times):
-            print('Checking for downloaded file {}'.format(filename))
-            if self._check_download_folder(filename, download_start_time):
-                continue
+            results.append(self._check_download_folder(
+                filename, download_start_time, results))
+        # Clean up.
+        for result in results:
+            print('Checking for downloaded file {}'.format(result[2]))
+            if result[0]:
+                print('{}DOWNLOAD SUCCESS: {}{}'.format(
+                    bcolors.OKBLUE, result[2], bcolors.ENDC))
+                try:
+                    os.remove(result[1])
+                except:
+                    pass
             else:
-                for tries in tqdm(range(10)):
-                    self._check_download_folder(
-                        filename, download_start_time)
-                    time.sleep(5)
                 print('{}DOWNLOAD FAILURE: {}{}'.format(
-                    bcolors.FAIL, filename, bcolors.ENDC))
+                    bcolors.FAIL, result[2], bcolors.ENDC))
 
     def get_data(self):
         self._try_load_item_type()
@@ -1144,8 +1141,8 @@ class DownloadGraphFromExperimentPage(object):
         self.perform_action()
 
     def perform_action(self):
-        button = self.driver.find_element_by_xpath(
-            '//*[contains(text(), {})]'.format(ExperimentPage.download_graph_png_button_xpath))
+        button = self.driver.wait.until(EC.element_to_be_clickable(
+            (By.XPATH, ExperimentPage.download_graph_png_button_xpath)))
         # Filename is accession.png.
         self.filenames = ['{}.png'.format(
             self.driver.current_url.split('/')[-2])]
@@ -1198,14 +1195,16 @@ class DownloadDocumentsFromAntibodyPage(object):
             key = elem.get_attribute('href')
             # Filter out non-files.
             if not key.endswith('/'):
-                # Selenium Safari won't download PDFs from Antibody Page.
-                if ((self.driver.capabilities['browserName'] == 'safari')
-                        and key.endswith('pdf')):
-                    continue
                 filename = urllib.request.unquote(key.split('/')[-1])
                 download_start_time = time.time()
                 try:
-                    elem.click()
+                     # Safari bug workaround to download PDFs from Antibody page.
+                    if ((self.driver.capabilities['browserName'] == 'safari')
+                            and key.endswith('pdf')):
+                        self.driver.execute_script(
+                            'arguments[0].click();', elem)
+                    else:
+                        elem.click()
                 except:
                     print('Error clicking on {}'.format(key))
                     continue
