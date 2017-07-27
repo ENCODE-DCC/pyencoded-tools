@@ -193,6 +193,7 @@ class ExperimentPage(object):
     graph_close_button_css = 'div > div:nth-child(2) > div.file-gallery-graph-header.collapsing-title > button'
     sort_by_accession_x_path = '//div/div[3]/div[2]/div/table[2]/thead/tr[2]/th[1]'
     all_buttons_tag_name = 'button'
+    download_graph_png_button_xpath = '//*[contains(text(), "Download Graph")]'
 
 
 class VisualizeModal(object):
@@ -514,8 +515,6 @@ class SignIn(object):
                     (By.CSS_SELECTOR, SignInModal.password_next_button_css)))
                 next_button.click()
         self.driver.switch_to_window(original_window_handle)
-        # self.wait_for_modal_to_quit()
-        # self.driver.switch_to_window(original_window_handle)
         return self.signed_in()
 
 
@@ -725,21 +724,23 @@ class DownloadFiles(SeleniumTask):
     def _check_download_folder(filename, download_start_time):
         files = os.listdir(os.path.join(
             os.path.expanduser('~'), 'Downloads'))
-        if filename in files:
-            print('Filename found')
-            full_path = os.path.join(
-                os.path.expanduser('~'), 'Downloads', filename)
-            time_created = os.stat(full_path).st_birthtime
-            # Make sure it was created after download started.
-            if download_start_time < time_created:
-                # No need to keep it around.
-                os.remove(full_path)
-                print('{}DOWNLOAD SUCCESS: {}{}'.format(
-                    bcolors.OKBLUE, filename, bcolors.ENDC))
-                return True
-            else:
-                # Get rid of old file.
-                os.remove(full_path)
+        for file in files:
+            if file.startswith(filename):
+                full_path = os.path.join(
+                    os.path.expanduser('~'), 'Downloads', file)
+                time_created = os.stat(full_path).st_birthtime
+                # Make sure it was created after download started. Subtracting ten
+                # because os.stat rounds creation time.
+                if (download_start_time - 10) < time_created:
+                    # No need to keep it around.
+                    os.remove(full_path)
+                    print('{}DOWNLOAD SUCCESS: {}{}'.format(
+                        bcolors.OKBLUE, filename, bcolors.ENDC))
+                    return True
+                else:
+                    # Get rid of old file.
+                    print('Found old file\nDeleting')
+                    os.remove(full_path)
         return False
 
     def _find_downloaded_file(self):
@@ -1105,11 +1106,10 @@ class DownloadFileFromTable(object):
         # Get all links on page.
         elems = self.driver.find_elements_by_xpath('//span/a')
         for elem in elems:
-            # Find first and click on first link with filetype.
+            # Find and click on first link with filetype.
             if self.filetype in elem.get_attribute('href'):
                 filename = elem.get_attribute('href').split('/')[-1]
-                # Hack because os.stat rounds creation time.
-                download_start_time = time.time() - 10
+                download_start_time = time.time()
                 elem.click()
                 print('Downloading {} from {}'.format(
                     filename, elem.get_attribute('href')))
@@ -1128,6 +1128,26 @@ class DownloadBEDFileFromTable(object):
     def __init__(self, driver):
         self.filenames, self.download_start_times = DownloadFileFromTable(
             driver, 'bed.gz').perform_action()
+
+
+class DownloadGraphFromExperimentPage(object):
+    """
+    Download file graph from Experiment page.
+    """
+
+    def __init__(self, driver):
+        self.driver = driver
+        self.perform_action()
+
+    def perform_action(self):
+        button = self.driver.find_element_by_xpath(
+            '//*[contains(text(), {})]'.format(ExperimentPage.download_graph_png_button_xpath))
+        # Filename is accession.png.
+        self.filenames = ['{}.png'.format(
+            self.driver.current_url.split('/')[-2])]
+        self.download_start_times = [time.time()]
+        button.click()
+        time.sleep(2)
 
 
 ################################################
@@ -1194,8 +1214,8 @@ class DataManager(object):
             for browser in self.browsers:
                 for url in self.urls:
                     for item_type, click_path in zip(self.item_types, self.click_paths):
-                        retry = 10
-                        while retry > 0:
+                        retry = 5
+                        while True:
                             if self.urls[0] == url:
                                 server_name = 'prod'
                             else:
@@ -1221,7 +1241,9 @@ class DataManager(object):
                             time.sleep(2)
                             retry -= 1
                             if retry < 0:
-                                raise ValueError('Task incomplete.')
+                                print('{}WARNING: Task incomplete. Skipping.{}'.format(
+                                    bcolors.FAIL, bcolors.ENDC))
+                                break
 
 
 ################################################################
@@ -1599,7 +1621,8 @@ class QANCODE(object):
         Clicks download button and checks download folder for file.
         """
         print('Running check downloads')
-        actions = [('/experiments/ENCSR810WXH/', DownloadBEDFileFromTable)]
+        actions = [('/experiments/ENCSR810WXH/', DownloadBEDFileFromTable),
+                   ('/experiments/ENCSR810WXH/', DownloadGraphFromExperimentPage)]
         admin_only_actions = []
         public_only_actions = []
         browsers, users, item_types, click_paths = self._parse_arguments(browsers=browsers,
