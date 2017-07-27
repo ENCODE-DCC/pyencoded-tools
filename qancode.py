@@ -198,6 +198,13 @@ class ExperimentPage(object):
     download_graph_png_button_xpath = '//*[contains(text(), "Download Graph")]'
 
 
+class FilePage(object):
+    """
+    Page object model.
+    """
+    download_button_xpath = '//*[contains(text(), "Download")]'
+
+
 class AntibodyPage(object):
     """
     Page object model.
@@ -1253,6 +1260,12 @@ class DownloadMetaDataFromSearchPage(object):
             driver, DownloadModal.download_button_xpath, 'files.txt').perform_action()
 
 
+class DownloadFileFromFilePage(object):
+    def __init__(self, driver):
+        self.filenames, self.download_start_times = DownloadFileFromButton(driver, FilePage.download_button_xpath, driver.find_element_by_xpath(
+            FilePage.download_button_xpath).get_attribute('href').split('/')[-1]).perform_action()
+
+
 class DownloadDocuments(object):
     """
     Download all files from documents panel (except Antibody pages).
@@ -1798,7 +1811,10 @@ class QANCODE(object):
                    ('/ucsc-browser-composites/ENCSR707NXZ/', DownloadDocuments),
                    ('/report/?searchTerm=nose&type=Biosample',
                     DownloadTSVFromReportPage),
-                   ('/search/?type=Experiment&searchTerm=nose', DownloadMetaDataFromSearchPage)]
+                   ('/search/?type=Experiment&searchTerm=nose',
+                    DownloadMetaDataFromSearchPage),
+                   ('/files/ENCFF931OLL/', DownloadFileFromFilePage),
+                   ('/files/ENCFF105IGJ/', DownloadFileFromFilePage)]
         admin_only_actions = []
         public_only_actions = []
         browsers, users, item_types, click_paths = self._parse_arguments(browsers=browsers,
