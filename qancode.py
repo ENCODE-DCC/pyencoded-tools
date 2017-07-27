@@ -203,6 +203,13 @@ class AntibodyPage(object):
     expanded_document_panels_xpath = '//div[@class="document__detail active"]//a[@href]'
 
 
+class ReportPage(object):
+    """
+    Page object model.
+    """
+    download_tsv_report_button_xpath = '//*[contains(text(), "Download TSV")]'
+
+
 class VisualizeModal(object):
     """
     Page object model.
@@ -1141,24 +1148,42 @@ class DownloadBEDFileFromTable(object):
             driver, 'bed.gz').perform_action()
 
 
+class DownloadFileFromButton(object):
+    """
+    Download file based on button text.
+    """
+
+    def __init__(self, driver, button_xpath, filename):
+        self.driver = driver
+        self.button_xpath = button_xpath
+        self.filename = filename
+
+    def perform_action(self):
+        button = self.driver.wait.until(EC.element_to_be_clickable(
+            (By.XPATH, self.button_xpath)))
+        filenames = [self.filename]
+        download_start_times = [time.time()]
+        button.click()
+        time.sleep(5)
+        return filenames, download_start_times
+
+
 class DownloadGraphFromExperimentPage(object):
     """
     Download file graph from Experiment page.
     """
 
     def __init__(self, driver):
-        self.driver = driver
-        self.perform_action()
-
-    def perform_action(self):
-        button = self.driver.wait.until(EC.element_to_be_clickable(
-            (By.XPATH, ExperimentPage.download_graph_png_button_xpath)))
         # Filename is accession.png.
-        self.filenames = ['{}.png'.format(
-            self.driver.current_url.split('/')[-2])]
-        self.download_start_times = [time.time()]
-        button.click()
-        time.sleep(5)
+        self.filenames, self.download_start_times = DownloadFileFromButton(
+            driver, ExperimentPage.download_graph_png_button_xpath,
+            '{}.png'.format(driver.current_url.split('/')[-2])).perform_action()
+
+
+class DownloadTSVFromReportPage(object):
+    def __init__(self, driver):
+        self.filenames, self.download_start_times = DownloadFileFromButton(
+            driver, ReportPage.download_tsv_report_button_xpath, 'report.tsv').perform_action()
 
 
 class DownloadDocuments(object):
@@ -1703,7 +1728,8 @@ class QANCODE(object):
                    ('/experiments/ENCSR810WXH/', DownloadGraphFromExperimentPage),
                    ('/experiments/ENCSR810WXH/', DownloadDocuments),
                    ('/antibodies/ENCAB749XQY/', DownloadDocumentsFromAntibodyPage),
-                   ('/ucsc-browser-composites/ENCSR707NXZ/', DownloadDocuments)]
+                   ('/ucsc-browser-composites/ENCSR707NXZ/', DownloadDocuments),
+                   ('/report/?searchTerm=nose&type=Biosample', DownloadTSVFromReportPage)]
         admin_only_actions = []
         public_only_actions = []
         browsers, users, item_types, click_paths = self._parse_arguments(browsers=browsers,
