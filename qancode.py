@@ -1108,7 +1108,8 @@ class DownloadFileFromTable(object):
         for elem in elems:
             # Find and click on first link with filetype.
             if self.filetype in elem.get_attribute('href'):
-                filename = elem.get_attribute('href').split('/')[-1]
+                filename = elem.get_attribute('href').split(
+                    '/')[-1].replace('%20', ' ')
                 download_start_time = time.time()
                 elem.click()
                 print('Downloading {} from {}'.format(
@@ -1148,6 +1149,32 @@ class DownloadGraphFromExperimentPage(object):
         self.download_start_times = [time.time()]
         button.click()
         time.sleep(2)
+
+
+class DownloadDocuments(object):
+    """
+    Download all files from documents panel.
+    """
+
+    def __init__(self, driver):
+        self.driver = driver
+        self.perform_action()
+
+    def perform_action(self):
+        self.filenames = []
+        self.download_start_times = []
+        elems = self.driver.find_elements_by_xpath(
+            '//div[@class="document__file"]//a[@href]')
+        for elem in elems:
+            filename = elem.get_attribute('href').split(
+                '/')[-1].replace('%20', ' ')
+            download_start_time = time.time()
+            elem.click()
+            print('Downloading {} from {}'.format(
+                filename, elem.get_attribute('href')))
+            self.filenames.append(filename)
+            self.download_start_times.append(download_start_time)
+            time.sleep(2)
 
 
 ################################################
@@ -1622,7 +1649,8 @@ class QANCODE(object):
         """
         print('Running check downloads')
         actions = [('/experiments/ENCSR810WXH/', DownloadBEDFileFromTable),
-                   ('/experiments/ENCSR810WXH/', DownloadGraphFromExperimentPage)]
+                   ('/experiments/ENCSR810WXH/', DownloadGraphFromExperimentPage),
+                   ('/experiments/ENCSR810WXH/', DownloadDocuments)]
         admin_only_actions = []
         public_only_actions = []
         browsers, users, item_types, click_paths = self._parse_arguments(browsers=browsers,
