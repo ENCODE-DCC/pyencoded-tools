@@ -5,6 +5,7 @@ import tempfile
 import time
 import numpy as np
 import os
+import pandas as pd
 import re
 import urllib
 import uuid
@@ -170,6 +171,7 @@ class SearchPageList(object):
     facet_class = 'facet'
     category_title_class = 'facet-item'
     number_class = 'pull-right'
+    download_metadata_button_xpath = '//*[contains(text(), "Download")]'
 
 
 class SearchPageMatrix(object):
@@ -216,6 +218,13 @@ class VisualizeModal(object):
     """
     modal_class = 'modal-content'
     UCSC_link_partial_link_text = 'UCSC'
+
+
+class DownloadModal(object):
+    """
+    Page object model.
+    """
+    download_button_xpath = '/html/body/div[2]/div/div/div[1]/div/div/div[3]/div/a[2]'
 
 
 class NavBar(object):
@@ -736,6 +745,41 @@ class DownloadFiles(SeleniumTask):
     Download file given click_path.
     """
 
+    def _get_metadata_from_files_txt(self):
+        download_directory = os.path.join(os.path.expanduser('~'), 'Downloads')
+        file_path = os.path.join(download_directory, 'files.txt')
+        with open(file_path, 'r') as f:
+            meta_data_link = f.readline().strip()
+            accessions = [f.split('/files/')[1].split('/')[0]
+                          for f in f.readlines()]
+        # Get metadata.tsv.
+        print('Detected {} accessions'.format(len(accessions)))
+        print('Getting metadata.tsv from {}'.format(meta_data_link))
+        # Workaround for Safari.
+        if self.driver.capabilities['browserName'] == 'safari':
+            r = urllib.request.urlopen(meta_data_link)
+            data = r.read()
+            metadata = pd.read_table(BytesIO(data))
+        else:
+            self.driver.execute_script(
+                'window.open("{}");'.format(meta_data_link))
+            time.sleep(5)
+            metadata_path = os.path.join(download_directory, 'metadata.tsv')
+            metadata = pd.read_table(metadata_path)
+        if set(accessions) == set(metadata['File accession']):
+            print('{}Accessions match: files.txt and metadata.tsv{}'.format(
+                bcolors.OKBLUE, bcolors.ENDC))
+        else:
+            print('{}WARNING: Accession mismatch between files.txt and metadata.tsv{}'.format(
+                bcolors.FAIL, bcolors.ENDC))
+            print('{}{}{}'.format(bcolors.FAIL, set(accessions).symmetric_difference(
+                set(metadata['File accession'])), bcolors.ENDC))
+        if self.kwargs.get('delete'):
+            try:
+                os.remove(metadata_path)
+            except:
+                pass
+
     def _check_download_folder(self, filename, download_start_time, results):
         files = os.listdir(os.path.join(
             os.path.expanduser('~'), 'Downloads'))
@@ -766,6 +810,9 @@ class DownloadFiles(SeleniumTask):
             if result[0]:
                 print('{}DOWNLOAD SUCCESS: {}{}'.format(
                     bcolors.OKBLUE, result[2], bcolors.ENDC))
+                if ((result[2] == 'files.txt')
+                        and (self.click_path == DownloadMetaDataFromSearchPage)):
+                    self._get_metadata_from_files_txt()
                 if self.kwargs.get('delete'):
                     try:
                         os.remove(result[1])
@@ -1184,6 +1231,26 @@ class DownloadTSVFromReportPage(object):
     def __init__(self, driver):
         self.filenames, self.download_start_times = DownloadFileFromButton(
             driver, ReportPage.download_tsv_report_button_xpath, 'report.tsv').perform_action()
+
+
+class DownloadMetaDataFromSearchPage(object):
+    def __init__(self, driver):
+        # Get rid of any files.txt from Downloads.
+        download_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
+        for file in os.listdir(download_folder):
+            if ((file.startswith('files') and file.endswith('.txt'))
+                    or (file.startswith('metadata') and file.endswith('.tsv'))):
+                print('Deleting old files.txt/metadata.tsv')
+                try:
+                    os.remove(os.path.join(download_folder, file))
+                except:
+                    pass
+        # Click on page.
+        DownloadFileFromButton(
+            driver, SearchPageList.download_metadata_button_xpath, None).perform_action()
+        # Click on modal.
+        self.filenames, self.download_start_times = DownloadFileFromButton(
+            driver, DownloadModal.download_button_xpath, 'files.txt').perform_action()
 
 
 class DownloadDocuments(object):
@@ -1729,7 +1796,9 @@ class QANCODE(object):
                    ('/experiments/ENCSR810WXH/', DownloadDocuments),
                    ('/antibodies/ENCAB749XQY/', DownloadDocumentsFromAntibodyPage),
                    ('/ucsc-browser-composites/ENCSR707NXZ/', DownloadDocuments),
-                   ('/report/?searchTerm=nose&type=Biosample', DownloadTSVFromReportPage)]
+                   ('/report/?searchTerm=nose&type=Biosample',
+                    DownloadTSVFromReportPage),
+                   ('/search/?type=Experiment&searchTerm=nose', DownloadMetaDataFromSearchPage)]
         admin_only_actions = []
         public_only_actions = []
         browsers, users, item_types, click_paths = self._parse_arguments(browsers=browsers,
