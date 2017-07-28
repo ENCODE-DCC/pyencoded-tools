@@ -1434,8 +1434,8 @@ class DataManager(object):
                                 break
                             time.sleep(2)
                             retry -= 1
-                            if retry < 0:
-                                print('{}WARNING: Task incomplete. Skipping.{}'.format(
+                            if retry < 1:
+                                print('{}WARNING: Task incomplete.{}'.format(
                                     bcolors.FAIL, bcolors.ENDC))
                                 break
 
