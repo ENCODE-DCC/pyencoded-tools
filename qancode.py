@@ -802,12 +802,27 @@ class DownloadFiles(SeleniumTask):
                 return (True, full_path, filename, file)
         return (False, full_path, filename, None)
 
+    def _wait_for_download_to_finish(self):
+        # Wait for download completion.
+        print('Waiting for download to finish')
+        while True:
+            files = os.listdir(os.path.join(
+                os.path.expanduser('~'), 'Downloads'))
+            # Check for downloading files from different browsers.
+            if (any([('.part' in f) for f in files])
+                    or any([('.download' in f) for f in files])
+                    or any([('.crdownload' in f) for f in files])):
+                time.sleep(5)
+            else:
+                break
+
     def _find_downloaded_file(self):
         """
         Checks for downloaded file in Downloads directory.
         """
         time.sleep(2)
         results = []
+        self._wait_for_download_to_finish()
         for filename, download_start_time in zip(self.filenames, self.download_start_times):
             results.append(self._check_download_folder(
                 filename, download_start_time, results))
