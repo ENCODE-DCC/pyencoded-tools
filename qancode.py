@@ -196,6 +196,9 @@ class ExperimentPage(object):
     sort_by_accession_xpath = '//div/div[3]/div[2]/div/table[2]/thead/tr[2]/th[1]'
     all_buttons_tag_name = 'button'
     download_graph_png_button_xpath = '//*[contains(text(), "Download Graph")]'
+    file_type_column_xpath = '//div[@class="file-gallery-counts"]//..//table[@class="table table-sortable"]//tr//td[2]'
+    accession_column_relative_xpath = '..//td[1]//span//div//span//a'
+    information_button_relative_xpath = '..//td[1]//span//button//i'
 
 
 class FilePage(object):
@@ -232,6 +235,13 @@ class DownloadModal(object):
     Page object model.
     """
     download_button_xpath = '/html/body/div[2]/div/div/div[1]/div/div/div[3]/div/a[2]'
+
+
+class InformationModal(object):
+    """
+    Page object model.
+    """
+    download_icon_xpath = '/html/body/div[2]/div/div/div[1]/div/div/div[2]/div/dl/div[8]/dd/span/div/span/a/i'
 
 
 class NavBar(object):
@@ -1228,18 +1238,18 @@ class DownloadFileFromModal(object):
 
     def perform_action(self):
         elems = self.driver.find_elements_by_xpath(
-            '//div[@class="file-gallery-counts"]//..//table[@class="table table-sortable"]//tr//td[2]')
+            ExperimentPage.file_type_column_xpath)
         for elem in elems:
             if elem.text == self.full_file_type:
                 filename = urllib.request.unquote(elem.find_element_by_xpath(
-                    '..//td[1]//span//div//span//a').get_attribute('href').split('/')[-1])
+                    ExperimentPage.accession_column_relative_xpath).get_attribute('href').split('/')[-1])
                 download_start_time = time.time()
                 elem.find_element_by_xpath(
-                    '..//td[1]//span//button//i').click()
+                    ExperimentPage.information_button_relative_xpath).click()
                 break
         time.sleep(2)
         self.driver.find_element_by_xpath(
-            '/html/body/div[2]/div/div/div[1]/div/div/div[2]/div/dl/div[8]/dd/span/div/span/a/i').click()
+            InformationModal.download_icon_xpath).click()
         time.sleep(5)
         print(filename)
         return [filename], [download_start_time]
@@ -1858,17 +1868,17 @@ class QANCODE(object):
         """
         print('Running check downloads')
         actions = [('/experiments/ENCSR810WXH/', DownloadBEDFileFromTable),
+                   ('/experiments/ENCSR966YYJ/', DownloadBEDFileFromModal),
                    ('/experiments/ENCSR810WXH/', DownloadGraphFromExperimentPage),
                    ('/experiments/ENCSR810WXH/', DownloadDocuments),
-                   ('/antibodies/ENCAB749XQY/', DownloadDocumentsFromAntibodyPage),
                    ('/ucsc-browser-composites/ENCSR707NXZ/', DownloadDocuments),
+                   ('/antibodies/ENCAB749XQY/', DownloadDocumentsFromAntibodyPage),
                    ('/report/?searchTerm=nose&type=Biosample',
                     DownloadTSVFromReportPage),
                    ('/search/?type=Experiment&searchTerm=nose',
                     DownloadMetaDataFromSearchPage),
                    ('/files/ENCFF931OLL/', DownloadFileFromFilePage),
-                   ('/files/ENCFF291ELS/', DownloadFileFromFilePage),
-                   ('/experiments/ENCSR966YYJ/', DownloadBEDFileFromModal)]
+                   ('/files/ENCFF291ELS/', DownloadFileFromFilePage)]
         admin_only_actions = []
         public_only_actions = []
         browsers, users, item_types, click_paths = self._parse_arguments(browsers=browsers,
