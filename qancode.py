@@ -1217,6 +1217,44 @@ class DownloadBEDFileFromTable(object):
             driver, 'bed.gz').perform_action()
 
 
+class DownloadFileFromModal(object):
+    """
+    Download file from information modal on file table.
+    """
+
+    def __init__(self, driver, full_file_type):
+        self.driver = driver
+        self.full_file_type = full_file_type
+
+    def perform_action(self):
+        elems = self.driver.find_elements_by_xpath(
+            '//div[@class="file-gallery-counts"]//..//table[@class="table table-sortable"]//tr//td[2]')
+        for elem in elems:
+            if elem.text == self.full_file_type:
+                filename = urllib.request.unquote(elem.find_element_by_xpath(
+                    '..//td[1]//span//div//span//a').get_attribute('href').split('/')[-1])
+                download_start_time = time.time()
+                elem.find_element_by_xpath(
+                    '..//td[1]//span//button//i').click()
+                break
+        time.sleep(2)
+        self.driver.find_element_by_xpath(
+            '/html/body/div[2]/div/div/div[1]/div/div/div[2]/div/dl/div[8]/dd/span/div/span/a/i').click()
+        time.sleep(5)
+        print(filename)
+        return [filename], [download_start_time]
+
+
+class DownloadBEDFileFromModal(object):
+    """
+    Download bed narrowPeak file from information modal.
+    """
+
+    def __init__(self, driver):
+        self.filenames, self.download_start_times = DownloadFileFromModal(
+            driver, 'bed narrowPeak').perform_action()
+
+
 class DownloadFileFromButton(object):
     """
     Download file based on button text.
@@ -1829,7 +1867,8 @@ class QANCODE(object):
                    ('/search/?type=Experiment&searchTerm=nose',
                     DownloadMetaDataFromSearchPage),
                    ('/files/ENCFF931OLL/', DownloadFileFromFilePage),
-                   ('/files/ENCFF105IGJ/', DownloadFileFromFilePage)]
+                   ('/files/ENCFF291ELS/', DownloadFileFromFilePage),
+                   ('/experiments/ENCSR966YYJ/', DownloadBEDFileFromModal)]
         admin_only_actions = []
         public_only_actions = []
         browsers, users, item_types, click_paths = self._parse_arguments(browsers=browsers,
