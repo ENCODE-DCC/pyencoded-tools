@@ -1928,54 +1928,67 @@ class QANCODE(object):
         # List of tuples:
         # ('suburl', [{payloads}], [(user, expected_status_code)])
         action_dict = {
-            'patch': [('/experiments/ENCSR000CUS/',
-                       [{'description': 'test'}], [(lab_submitter, 200)]),
-                      ('/experiments/ENCSR000CUS/',
-                       [{'status': 'deleted'},
-                        {'status': 'in progress'},
-                           {'status': 'preliminary'},
-                           {'status': 'proposed'},
-                           {'status': 'release ready'},
-                           {'status': 'released'},
-                           {'status': 'started'},
-                           {'status': 'submitted'},
-                           {'status': 'verified'},
-                           {'status': 'replaced'}], [(admin, 200)]),
-                      ('/experiments/ENCSR035DLJ/',
-                       [{'alternate_accessions': ['ENCSR000CUS']},
-                        {'alternate_accessions': []}], [(admin, 200)]),
-                      ('35f91f16-dcef-4ab2-90bd-3928b0db9a60',
-                       [{'status': 'revoked'}], [(admin, 200)]),
-                      ('/files/ENCFF002BYE/',
-                       [{'status': 'deleted'},
-                        {'status': 'in progress'},
-                           {'status': 'released'},
-                           {'status': 'replaced'}], [(admin, 200)]),
-                      ('4dc1fbd3-6692-42fa-b710-03eaba9263c1',
-                       [{'status': 'revoked'}], [(admin, 200)])],
-            'post': [('/experiments/',
-                      [{'description': 'test post experiment',
-                        'assay_term_name': 'ChIP-seq',
-                        'biosample_term_name': 'Stromal cell of bone marrow',
-                        'target': '/targets/SMAD6-human/',
-                        'award': '/awards/U41HG006992/',
-                        'lab': '/labs/thomas-gingeras/',
-                        'references': ['PMID:18229687',
-                                       'PMID:25677182']}], [('Public', 400),
-                                                            (lab_submitter, 200),
-                                                            (admin, 200)])],
-            'get': [('/experiments/ENCSR082IHY/',
-                     [], [('Public', 403),
-                          (lab_submitter, 403),
-                          (admin, 200)]),
-                    ('/experiments/ENCSR000CUS',
-                     [], [('Public', 200),
-                          (lab_submitter, 200),
-                          (admin, 200)])]
+            'patch': [
+                ('/experiments/ENCSR000CUS/',
+                 [{'description': 'test'}],
+                 [('Public', 400),
+                  (lab_submitter, 403)]),
+                ('/experiments/ENCSR000CUS/',
+                 [{'status': 'deleted'},
+                  {'status': 'archived'},
+                  {'status': 'proposed'},
+                  {'status': 'ready for review'},
+                  {'status': 'released'},
+                  {'status': 'started'},
+                  {'status': 'submitted'},
+                  {'status': 'replaced'}],
+                 [(admin, 200)]),
+                ('/experiments/ENCSR035DLJ/',
+                 [{'alternate_accessions': ['ENCSR000CUS']},
+                  {'alternate_accessions': []}],
+                 [(admin, 200)]),
+                ('35f91f16-dcef-4ab2-90bd-3928b0db9a60',
+                 [{'status': 'revoked'}],
+                 [(admin, 200)]),
+                ('/files/ENCFF002BYE/',
+                 [{'status': 'deleted'},
+                  {'status': 'in progress'},
+                  {'status': 'released'},
+                  {'status': 'replaced'}],
+                 [(admin, 200)]),
+                ('4dc1fbd3-6692-42fa-b710-03eaba9263c1',
+                 [{'status': 'revoked'}],
+                 [(admin, 200)])
+            ],
+            'post': [
+                ('/experiments/',
+                 [{'description': 'test post experiment',
+                   'assay_term_name': 'ChIP-seq',
+                   'biosample_term_name': 'Stromal cell of bone marrow',
+                   'target': '/targets/SMAD6-human/',
+                   'award': '/awards/U41HG006992/',
+                   'lab': '/labs/thomas-gingeras/',
+                   'references': ['PMID:18229687', 'PMID:25677182']}],
+                 [('Public', 400),
+                  (lab_submitter, 201),
+                  (admin, 201)])
+            ],
+            'get': [
+                ('/experiments/ENCSR082IHY/',
+                 [None],
+                 [('Public', 403),
+                  (lab_submitter, 403),
+                  (admin, 200)]),
+                ('/experiments/ENCSR000CUS',
+                 [None],
+                 [('Public', 200),
+                  (lab_submitter, 200),
+                  (admin, 200)])
+            ]
         }
         for k, v in action_dict.items():
             for item in v:
-                url = urllib.parse.urljoin(url, item[0])
+                request_url = urllib.parse.urljoin(url, item[0])
                 for user, status_code in item[2]:
                     headers = {'content-type': 'application/json',
                                'accept': 'application/json'}
@@ -1983,6 +1996,17 @@ class QANCODE(object):
                     if authid is not None:
                         headers = self._create_authentication_header(
                             headers, authid, authpw)
-                    print(k, v)
-                    # r = requests.request(
-                    #    k, url, headers=headers, allow_redirects=True)
+                    for payload in item[1]:
+                        print('Trying to {} {} with {} as user {} (expecting status_code {})'.format(
+                            k, request_url, payload, user, status_code))
+                        r = requests.request(
+                            k, url=request_url, headers=headers, data=json.dumps(payload))
+                        try:
+                            print(r.status_code)
+                            assert r.status_code == status_code
+                            print('{}{} SUCCESSFUL{}'.format(
+                                bcolors.OKBLUE, k.upper(), bcolors.ENDC))
+                        except AssertionError:
+                            print('{}{} FAILURE{}'.format(
+                                bcolors.FAIL, k.upper(), bcolors.ENDC))
+                            print(r.text)
