@@ -1918,7 +1918,7 @@ class QANCODE(object):
             raise ValueError('User not found.')
         return creds[0]
 
-    def check_permissions(self):
+    def check_requests(self):
         url = self.rc_url
         # Don't test production.
         if 'encodeproject.org' in url:
