@@ -8,6 +8,8 @@ import os
 import pandas as pd
 import re
 import requests
+import subprocess
+import sys
 import urllib
 import uuid
 
@@ -1907,6 +1909,13 @@ class QANCODE(object):
             authid, authpw)
         return headers
 
+    @staticmethod
+    def _block_production_edit(url):
+        # Don't test production.
+        if 'encodeproject.org' in url:
+            raise SystemError('No editing production.')
+        return None
+
     def _get_auth_credentials(self, user):
         if user == 'Public':
             return None, None
@@ -1919,10 +1928,11 @@ class QANCODE(object):
         return creds[0]
 
     def check_requests(self):
+        """
+        Runs post, patch, and get requests as different users.
+        """
         url = self.rc_url
-        # Don't test production.
-        if 'encodeproject.org' in url:
-            raise ValueError('No patch tests on production.')
+        self._block_production_edit(url)
         lab_submitter = USERS[2]
         admin = 'admin'
         # List of tuples:
@@ -2010,3 +2020,70 @@ class QANCODE(object):
                             print('{}{} FAILURE{}'.format(
                                 bcolors.FAIL, k.upper(), bcolors.ENDC))
                             print(r.text)
+
+    def _add_rc_to_keypairs(self, url):
+        """
+        Gets production keypair and copies it to rc_url server.
+        """
+        keypairs = os.path.expanduser('~/keypairs.json')
+        try:
+            with open(keypairs, 'r') as f:
+                data = json.load(f)
+                prod_data = data['prod']
+                authid, authpw = prod_data['key'], prod_data['secret']
+                data['current_rc'] = {'server': url,
+                                      'key': authid,
+                                      'secret': authpw}
+            # Overwrite.
+            with open(keypairs, 'w') as f:
+                json.dump(data, f)
+        except Exception as e:
+            print(e)
+            raise
+
+    def check_tools(self):
+        """
+        Runs pyencoded-tools against RC.
+        """
+        url = self.rc_url
+        self._block_production_edit(url)
+        self._add_rc_to_keypairs(url)
+        key = '--key current_rc'
+        tools = [{'name': 'ENCODE_get_fields.py',
+                  'command': '{} {} {}  --infile ENCSR000CUS --field status',
+                  'expected_output': 'accession\tstatus\r\nENCSR000CUS\trevoked\r\n'},
+                 {'name': 'ENCODE_patch_set.py',
+                  'command': '{} {} {} --accession ENCSR000CUS --field status --data revoked',
+                  'expected_output': 'Running on https://test.encodedcc.org/\nThis is a test run,'
+                  ' nothing will be changed\nOBJECT: ENCSR000CUS\nOLD DATA: status'
+                  ' revoked\nNEW DATA: status revoked'},
+                 {'name': 'ENCODE_release.py',
+                  'command': '{} {} {} --infile ENCSR000CUS',
+                  'expected_output': 'Running on https://test.encodedcc.org/\nObject status'
+                  ' will be checked but not changed\nReleasenator version 1.3\nProcessing accession:'
+                  ' ENCSR000CUS\nData written to file Release_report.txt\n'},
+                 {'name': 'ENCODE_submit_files.py',
+                  'command': '{} {} permissions_qa_scripts/Test_submit_files.csv {}',
+                  'expected_output': "'file_size': 23972104"}
+                 ]
+        # Get relative Python executable.
+        python_executor = sys.executable
+        for tool in tools:
+            print('Running {}'.format(tool['name']))
+            command = tool['command'].format(
+                python_executor, tool['name'], key)
+            print(command)
+            output = subprocess.check_output(
+                command, shell=True).decode('utf-8').strip()
+            try:
+                assert ((output == tool['expected_output'].strip())
+                        or (tool['expected_output'] in output))
+                print('{}{} SUCCESSFUL{}'.format(
+                    bcolors.OKBLUE, tool['name'].upper(), bcolors.ENDC))
+            except AssertionError:
+                print('{}{} FAILURE{}'.format(
+                    bcolors.FAIL, tool['name'].upper(), bcolors.ENDC))
+                print('Expected: ')
+                print(tool['expected_output'])
+                print('Actual: ')
+                print(output)
