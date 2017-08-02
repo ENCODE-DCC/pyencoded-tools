@@ -1203,7 +1203,8 @@ class DownloadFileFromTable(object):
         filenames = []
         download_start_times = []
         # Get all links on page.
-        elems = self.driver.find_elements_by_xpath('//span/a')
+        elems = self.driver.wait.until(
+            EC.presence_of_all_elements_located((By.XPATH, '//span/a')))
         for elem in elems:
             # Find and click on first link with filetype.
             if self.filetype in elem.get_attribute('href'):
@@ -1217,6 +1218,9 @@ class DownloadFileFromTable(object):
                 download_start_times.append(download_start_time)
                 time.sleep(2)
                 break
+        else:
+            raise ValueError('{}WARNING: File not found{}'.format(
+                bcolors.FAIL, bcolors.ENDC))
         return filenames, download_start_times
 
 
@@ -1435,7 +1439,8 @@ class DataWorker(object):
         except (KeyboardInterrupt, SystemExit):
             raise
         except Exception as e:
-            print('Exception caught: {}.'.format(e))
+            print('{}Exception caught: {}{}'.format(
+                bcolors.FAIL, e, bcolors.ENDC))
         finally:
             try:
                 self.driver.quit()
