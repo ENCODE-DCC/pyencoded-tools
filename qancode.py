@@ -1986,6 +1986,8 @@ class QANCODE(object):
                 ('/experiments/',
                  [{'description': 'test post experiment',
                    'assay_term_name': 'ChIP-seq',
+                   'biosample_term_id': 'CL:0010001',
+                   'biosample_type': 'primary cell',
                    'biosample_term_name': 'Stromal cell of bone marrow',
                    'target': '/targets/SMAD6-human/',
                    'award': '/awards/U41HG006992/',
