@@ -202,6 +202,7 @@ class ExperimentPage(object):
     file_type_column_xpath = '//div[@class="file-gallery-counts"]//..//table[@class="table table-sortable"]//tr//td[2]'
     accession_column_relative_xpath = '..//td[1]//span//div//span//a'
     information_button_relative_xpath = '..//td[1]//span//button//i'
+    file_graph_tab_xpath = '//div[@class="tab-nav"]//li[2]'
 
 
 class FilePage(object):
@@ -679,7 +680,7 @@ class GetScreenShot(SeleniumTask):
             time.sleep(1)
             image = Image.open(
                 BytesIO(self.driver.get_screenshot_as_png())).convert('RGB')
-            if ((((2 * client_height) + scroll_top) > scroll_height)
+            if ((((2 * client_height) + scroll_top) >= scroll_height)
                     and (scroll_height != (client_height + scroll_top))):
                 # Get difference for cropping next image.
                 difference_to_keep = abs(
@@ -734,6 +735,12 @@ class GetScreenShot(SeleniumTask):
                         ExperimentPage.sort_by_accession_xpath).click()
             except:
                 pass
+            if self.click_path != DownloadGraphFromExperimentPage:
+                try:
+                    self.driver.find_elements_by_xpath(
+                        ExperimentPage.file_graph_tab_xpath)[0].click()
+                except:
+                    pass
 
     def get_data(self):
         self._try_load_item_type()
