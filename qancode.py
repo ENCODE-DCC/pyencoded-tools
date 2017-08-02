@@ -2063,19 +2063,17 @@ class QANCODE(object):
         self._block_production_edit(url)
         self._add_rc_to_keypairs(url)
         key = '--key current_rc'
+        # Expected outut a very weak check.
         tools = [{'name': 'ENCODE_get_fields.py',
                   'command': '{} {} {}  --infile ENCSR000CUS --field status',
                   'expected_output': 'accession\tstatus\r\nENCSR000CUS\trevoked\r\n'},
                  {'name': 'ENCODE_patch_set.py',
                   'command': '{} {} {} --accession ENCSR000CUS --field status --data revoked',
-                  'expected_output': 'Running on https://test.encodedcc.org/\nThis is a test run,'
-                  ' nothing will be changed\nOBJECT: ENCSR000CUS\nOLD DATA: status'
+                  'expected_output': 'OBJECT: ENCSR000CUS\nOLD DATA: status'
                   ' revoked\nNEW DATA: status revoked'},
                  {'name': 'ENCODE_release.py',
                   'command': '{} {} {} --infile ENCSR000CUS',
-                  'expected_output': 'Running on https://test.encodedcc.org/\nObject status'
-                  ' will be checked but not changed\nReleasenator version 1.3\nProcessing accession:'
-                  ' ENCSR000CUS\nData written to file Release_report.txt\n'},
+                  'expected_output': 'Data written to file Release_report.txt'},
                  {'name': 'ENCODE_submit_files.py',
                   'command': '{} {} permissions_qa_scripts/Test_submit_files.csv {}',
                   'expected_output': "'file_size': 23972104"}
