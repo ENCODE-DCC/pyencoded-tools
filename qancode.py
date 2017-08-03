@@ -944,12 +944,13 @@ class CompareFacetNumbersBetweenURLS(URLComparison):
     """
 
     def compare_data(self):
-        print('Comparing data between URLs.')
+        print('\nComparing data between URLs.')
         print('As user: {}'.format(self.user))
         print('Browser: {}'.format(self.browser))
         print('First URL: {}'.format(self.prod_url))
         print('Second URL: {}'.format(self.rc_url))
-        print('Item type: {}'.format(self.item_type))
+        print('Item type: {}{}{}'.format(
+            bcolors.OKGREEN, self.item_type, bcolors.ENDC))
         prod_data = self.prod_data[0]
         rc_data = self.rc_data[0]
         if prod_data.keys() != rc_data.keys():
