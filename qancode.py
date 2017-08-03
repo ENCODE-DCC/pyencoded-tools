@@ -1630,6 +1630,13 @@ class QANCODE(object):
         else:
             if item_types == 'all':
                 item_types, click_paths = self._expand_action_list(actions)
+            elif item_types == 'random':
+                # Choose random item_types from action list to check.
+                # Note np.random.choice won't work for tuples.
+                random_actions = [actions[i]
+                                  for i in np.random.randint(len(actions) - 1, size=3)]
+                item_types, click_paths = self._expand_action_list(
+                    random_actions)
             elif item_types == 'admin':
                 item_types, click_paths = self._expand_action_list(
                     admin_only_actions)
