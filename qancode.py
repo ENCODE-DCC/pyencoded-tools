@@ -649,7 +649,7 @@ class GetFacetNumbers(SeleniumTask):
                 'h5').text.replace(':', '').strip()
             categories = [
                 c.text for c in facet.find_elements_by_class_name(SearchPageList.category_title_class)]
-            print('Collecting values in {}.'.format(title))
+            #print('Collecting values in {}.'.format(title))
             numbers = [n.text for n in facet.find_elements_by_class_name(
                 SearchPageList.number_class) if n.text != '']
             assert len(categories) == len(numbers)
