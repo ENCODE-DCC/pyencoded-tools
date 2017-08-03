@@ -2021,19 +2021,21 @@ class QANCODE(object):
                         headers = self._create_authentication_header(
                             headers, authid, authpw)
                     for payload in item[1]:
-                        print('Trying to {} {} with {} as user {} (expecting status_code {})'.format(
-                            k, request_url, payload, user, status_code))
+                        print('Trying to {} {} with {} as user {}'.format(
+                            k, request_url, payload, user))
+                        print('Expected: {}'.format(status_code))
                         r = requests.request(
                             k, url=request_url, headers=headers, data=json.dumps(payload))
                         try:
-                            print(r.status_code)
+                            print('Actual: {}'.format(r.status_code))
                             assert r.status_code == status_code
                             print('{}{} SUCCESSFUL{}'.format(
                                 bcolors.OKBLUE, k.upper(), bcolors.ENDC))
                         except AssertionError:
-                            print('{}{} FAILURE{}'.format(
-                                bcolors.FAIL, k.upper(), bcolors.ENDC))
-                            print(r.text)
+                            print('{}{} FAILURE\n{}{}'.format(
+                                bcolors.FAIL, k.upper(), r.text, bcolors.ENDC))
+                        finally:
+                            print()
 
     def _add_rc_to_keypairs(self, url):
         """
