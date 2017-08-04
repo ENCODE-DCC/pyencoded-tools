@@ -649,7 +649,7 @@ class GetFacetNumbers(SeleniumTask):
                 'h5').text.replace(':', '').strip()
             categories = [
                 c.text for c in facet.find_elements_by_class_name(SearchPageList.category_title_class)]
-            #print('Collecting values in {}.'.format(title))
+            # print('Collecting values in {}.'.format(title))
             numbers = [n.text for n in facet.find_elements_by_class_name(
                 SearchPageList.number_class) if n.text != '']
             assert len(categories) == len(numbers)
@@ -1965,7 +1965,30 @@ class QANCODE(object):
                                                  all_data=dm.all_data)
                         result = css.compare_data()
                         results.append(result)
-        return results
+        self.find_differences_output = results
+        return self.find_differences_output
+
+    def show_differences(self):
+        """
+        This is a Jupyter notebook helper function that loads image diffs
+        into the notebook and displays them. Won't work in terminal.
+        """
+        try:
+            # In Jupyter notebook?
+            get_ipython().config
+        except NameError:
+            print('Must use in Jupyter notebook')
+            return
+        from IPython.core.display import display, HTML, Image
+        try:
+            for out in self.find_differences_output:
+                if out[0]:
+                    print('{}:'.format(out[1]))
+                    display(
+                        Image(filename='../../../image_diff/{}'.format(out[1])))
+                    print('\n')
+        except AttributeError:
+            print('No image diffs found')
 
     def check_trackhubs(self, browsers=['Safari'], users=['Public'], action_tuples=None):
         """
