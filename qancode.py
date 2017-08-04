@@ -888,10 +888,13 @@ class CompareFacetNumbersBetweenBrowsers(BrowserComparison):
         Return comparison of data between browsers given server (prod/RC),
         user, item_type.
         """
-        print('Comparing data between browsers: {}.'.format(self.browsers))
+        print()
+        print(' {} '.format(self.item_type.split('=')[1]).center(80, '-'))
+        print('Comparing data between browsers: {}'.format(self.browsers))
         print('As user: {}'.format(self.user))
         print('URL: {}'.format(self.url))
-        print('Item type: {}'.format(self.item_type))
+        print('Item type: {}{}{}'.format(
+            bcolors.OKGREEN, self.item_type, bcolors.ENDC))
         # Find keys that are not in all groups.
         all_keys = set.union(*[set(d['data'].keys()) for d in self.url_data])
         common_keys = set.intersection(*[set(d['data'].keys())
@@ -944,7 +947,9 @@ class CompareFacetNumbersBetweenURLS(URLComparison):
     """
 
     def compare_data(self):
-        print('\nComparing data between URLs.')
+        print()
+        print(' {} '.format(self.item_type.split('=')[1]).center(80, '-'))
+        print('Comparing data between URLs.')
         print('As user: {}'.format(self.user))
         print('Browser: {}'.format(self.browser))
         print('First URL: {}'.format(self.prod_url))
