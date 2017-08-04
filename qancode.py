@@ -1520,27 +1520,10 @@ class QANCODE(object):
         self.prod_url = prod_url
         self.browsers = [b for b in BROWSERS]
         self.users = [u for u in USERS]
+        self._init_default_actions()
 
-    def list_methods(self):
-        """
-        List all possible tests.
-        """
-        print(*[f for f in sorted(dir(QANCODE)) if callable(getattr(QANCODE, f))
-                and not f.startswith('__') and not f.startswith('_')], sep='\n')
-
-    def compare_facets(self,
-                       browsers='all',
-                       users='all',
-                       item_types='all',
-                       task=GetFacetNumbers,
-                       url_comparison=True,
-                       browser_comparison=True):
-        """
-        Gets RC URL facet numbers and compares them to production URL facet
-        numbers for given item_type, browser, user.
-        """
-        # Define item type pages (search and matrix views) to check.
-        all_item_types = [
+    def _init_default_actions(self):
+        self.compare_facets_default_actions = [
             '/search/?type=Experiment',
             '/search/?type=File',
             '/search/?type=AntibodyLot',
@@ -1565,6 +1548,287 @@ class QANCODE(object):
             '/matrix/?type=Experiment',
             '/matrix/?type=Annotation'
         ]
+        self.find_differences_default_actions = [
+            ('/', None),
+            ('/targets/?status=deleted', None),
+            ('/antibodies/?status=deleted', None),
+            ('/search/?type=Biosample&status=deleted', None),
+            ('/experiments/ENCSR000CWD/', None),
+            ('/biosamples/ENCBS574ZRE/', None),
+            ('/biosamples/ENCBS883DWI/', None),
+            ('/experiments/ENCSR985KAT/', None),
+            ('/biosamples/ENCBS298YPF/', None),
+            ('/biosamples/ENCBS142DVU/', None),
+            ('/biosamples/ENCBS562NPI/', None),
+            ('/human-donors/ENCDO999JZG/', None),
+            ('/biosamples/ENCBS615YKY/', None),
+            ('/search/?searchTerm=puf60&type=Target', None),
+            ('/experiments/ENCSR502NRF/', None),
+            ('/experiments/ENCSR000AEH/', None),
+            ('/search/?searchTerm=ENCSR000AEH&type=Experiment', None),
+            ('/experiments/ENCSR000CPG/', None),
+            ('/search/?searchTerm=ENCSR000CPG&type=Experiment', None),
+            ('/experiments/ENCSR000BPF/', None),
+            ('/search/?searchTerm=ENCSR000BPF&type=Experiment', None),
+            ('/experiments/ENCSR178NTX/', None),
+            ('/experiments/ENCSR651NGR/', None),
+            ('/search/?searchTerm=ENCSR651NGR&type=Experiment', None),
+            ('/antibodies/ENCAB000AEH/', None),
+            ('/search/?searchTerm=ENCAB000AEH&type=AntibodyLot', None),
+            ('/antibodies/ENCAB000AIW/', None),
+            ('/search/?searchTerm=ENCAB000AIW&type=AntibodyLot', None),
+            ('/biosamples/ENCBS000AAA/', None),
+            ('/search/?searchTerm=ENCBS000AAA&type=Biosample', None),
+            ('/biosamples/ENCBS030ENC/', None),
+            ('/search/?searchTerm=ENCBS030ENC', None),
+            ('/biosamples/ENCBS098ENC/', None),
+            ('/search/?searchTerm=ENCBS098ENC&type=Biosample', None),
+            ('/biosamples/ENCBS619ENC/', None),
+            ('/search/?searchTerm=ENCBS619ENC&type=Biosample', None),
+            ('/biosamples/ENCBS286AAA/', None),
+            ('/search/?searchTerm=ENCBS286AAA&type=Biosample', None),
+            ('/biosamples/ENCBS314VPT/', None),
+            ('/search/?searchTerm=ENCBS314VPT&type=Biosample', None),
+            ('/biosamples/ENCBS808BUA/', None),
+            ('/search/?searchTerm=ENCBS808BUA&type=Biosample', None),
+            ('/targets/AARS-human/', None),
+            ('/targets/FLAG-GABP-human/', None),
+            ('/search/?type=Target&name=AARS-human', None),
+            ('/ucsc-browser-composites/ENCSR707NXZ/', None),
+            ('/treatment-time-series/ENCSR210PYP/', None),
+            ('/search/?searchTerm=WASP&type=Software', None),
+            ('/publications/67e606ae-abe7-4510-8ebb-cfa1fefe5cfa/', None),
+            ('/search/?searchTerm=PMID%3A25164756', None),
+            ('/biosamples/ENCBS632MTU/', None),
+            ('/biosamples/ENCBS464EKT/', None),
+            ('/annotations/ENCSR790GQB/', None),
+            ('/publications/b2e859e6-3ee7-4274-90be-728e0faaa8b9/', None),
+            ('/pipelines/', None),
+            ('/pipelines/ENCPL210QWH/', None),
+            ('/pipelines/ENCPL002LPE/', None),
+            ('/pipelines/ENCPL002LSE/', None),
+            ('/rna-seq/long-rnas/', None),
+            ('/pipelines/ENCPL337CSA/', None),
+            ('/rna-seq/small-rnas/', None),
+            ('/pipelines/ENCPL444CYA/', None),
+            ('/microrna/microrna-seq/', None),
+            ('/pipelines/ENCPL278BTI/', None),
+            ('/microrna/microrna-counts/', None),
+            ('/pipelines/ENCPL122WIM/', None),
+            ('/rampage/', None),
+            ('/pipelines/ENCPL220NBH/', None),
+            ('/pipelines/ENCPL272XAE/', None),
+            ('/pipelines/ENCPL272XAE/', None),
+            ('/chip-seq/histone/', None),
+            ('/pipelines/ENCPL138KID/', None),
+            ('/pipelines/ENCPL493SGC/', None),
+            ('/chip-seq/transcription_factor/', None),
+            ('/pipelines/ENCPL001DNS/', None),
+            ('/pipelines/ENCPL002DNS/', None),
+            ('/data-standards/dnase-seq/', None),
+            ('/atac-seq/', None),
+            ('/pipelines/ENCPL985BLO/', None),
+            ('/data/annotations/', None),
+            ('/help/rest-api/', None),
+            ('/about/experiment-guidelines/', None),
+            ('/data-standards/terms/', None)
+        ]
+        self.check_trackhubs_default_actions = [
+            ('/experiments/ENCSR502NRF/',
+             OpenUCSCGenomeBrowserGRCh38),
+            ('/experiments/ENCSR502NRF/',
+             OpenUCSCGenomeBrowserHG19),
+            ('/experiments/ENCSR985KAT/',
+             OpenUCSCGenomeBrowserHG19),
+            ('/experiments/ENCSR426UUG/',
+             OpenUCSCGenomeBrowserGRCh38),
+            ('/experiments/ENCSR293WTN/',
+             OpenUCSCGenomeBrowserMM9),
+            ('/experiments/ENCSR335LKF/',
+             OpenUCSCGenomeBrowserMM10),
+            ('/experiments/ENCSR922ESH/',
+             OpenUCSCGenomeBrowserDM3),
+            ('/experiments/ENCSR671XAK/',
+             OpenUCSCGenomeBrowserDM6),
+            ('/experiments/ENCSR422XRE/',
+             OpenUCSCGenomeBrowserCE10),
+            ('/experiments/ENCSR686FKU/',
+             OpenUCSCGenomeBrowserCE11),
+            ('/publication-data/ENCSR764APB/',
+             OpenUCSCGenomeBrowserHG19),
+            ('/projects/ENCSR295OIE/',
+             OpenUCSCGenomeBrowserHG19),
+            ('/annotations/ENCSR212BHV/',
+             OpenUCSCGenomeBrowserHG19),
+            ('/experiments/ENCSR000CJR/',
+             OpenUCSCGenomeBrowserHG19),
+            ('/search/?type=Experiment&assembly=hg19&target.investigated_as=RNA+binding+protein&assay_title=ChIP-seq&replicates.library.biosample.biosample_type=primary+cell',
+             OpenUCSCGenomeBrowserHG19),
+            ('/search/?type=Experiment&assembly=GRCh38&assay_title=shRNA+RNA-seq&target.investigated_as=transcription+factor&month_released=October%2C+2014',
+             OpenUCSCGenomeBrowserGRCh38),
+            ('/search/?type=Experiment&assembly=mm9&assay_title=Repli-chip',
+             OpenUCSCGenomeBrowserMM9),
+            ('/search/?type=Experiment&assembly=mm10&assay_title=microRNA-seq&month_released=January%2C+2016',
+             OpenUCSCGenomeBrowserMM10),
+            ('/search/?type=Experiment&assembly=dm3&status=released&replicates.library.biosample.biosample_type=whole+organisms&assay_title=total+RNA-seq',
+             OpenUCSCGenomeBrowserDM3),
+            ('/search/?type=Experiment&assembly=dm6&replicates.library.biosample.life_stage=wandering+third+instar+larva',
+             OpenUCSCGenomeBrowserDM6),
+            ('/search/?type=Experiment&assembly=ce10&target.investigated_as=transcription+factor&replicates.library.biosample.life_stage=L4+larva',
+             OpenUCSCGenomeBrowserCE10),
+            ('/search/?type=Experiment&assembly=ce11&target.investigated_as=recombinant+protein&replicates.library.biosample.life_stage=late+embryonic&replicates.library.biosample.life_stage=L4+larva',
+             OpenUCSCGenomeBrowserCE11),
+            ('/search/?searchTerm=hippocampus&type=Experiment',
+             OpenUCSCGenomeBrowserHG19)
+        ]
+        self.check_permissions_default_actions = [
+            ('/experiments/ENCSR524OCB/', None),
+            ('/experiments/ENCSR000EFT/', None),
+            ('/biosamples/ENCBS643IYW/', None),
+            ('/experiments/ENCSR466YGC/', None),
+            ('/experiments/ENCSR255XZG/', None),
+            ('/experiments/ENCSR115BCB/', None),
+            ('/files/ENCFF752JWY/', None),
+            ('/targets/2L52.1-celegans/', None),
+            ('/targets/CG15455-dmelanogaster/', None),
+            ('/software/dnase-eval-bam-se/', None),
+            ('/software/atac-seq-software-tools/', None),
+            ('/software/trimAdapters.py/', None),
+            ('/software/bigwigaverageoverbed/', None),
+            ('/pipelines/ENCPL493SGC/', None),
+            ('/pipelines/ENCPL035XIO/', None),
+            ('/pipelines/ENCPL568PWV/', None),
+            ('/pipelines/e02448b1-9706-4e7c-b31b-78c921d58f0b/', None),
+            ('/pipelines/ENCPL734EDH/', None),
+            ('/pipelines/ENCPL983UFZ/', None),
+            ('/pipelines/ENCPL631XPY/', None),
+            ('/publications/b2e859e6-3ee7-4274-90be-728e0faaa8b9/', None),
+            ('/publications/a4db2c6d-d1a3-4e31-b37b-5cc7d6277548/', None),
+            ('/publications/16c77add-1bfb-424b-8cab-498ac1e5f6ed/', None),
+            ('/publications/da2f7542-3d99-48f6-a95d-9907dd5e2f81/', None),
+            ('/internal-data-use-policy/', None),
+            ('/tutorials/encode-users-meeting-2016/logistics/', None),
+            ('/2017-06-09-release/', None)
+        ]
+        self.check_downloads_default_actions = [
+            ('/experiments/ENCSR810WXH/', DownloadBEDFileFromTable),
+            ('/experiments/ENCSR966YYJ/',
+             DownloadBEDFileFromModal),
+            ('/experiments/ENCSR810WXH/',
+             DownloadGraphFromExperimentPage),
+            ('/experiments/ENCSR810WXH/',
+             DownloadDocuments),
+            ('/ucsc-browser-composites/ENCSR707NXZ/',
+             DownloadDocuments),
+            ('/antibodies/ENCAB749XQY/',
+             DownloadDocumentsFromAntibodyPage),
+            ('/report/?searchTerm=nose&type=Biosample',
+             DownloadTSVFromReportPage),
+            ('/search/?type=Experiment&searchTerm=nose',
+             DownloadMetaDataFromSearchPage),
+            ('/files/ENCFF931OLL/',
+             DownloadFileFromFilePage),
+            ('/files/ENCFF291ELS/', DownloadFileFromFilePage)
+        ]
+        # List of tuples:
+        # ('suburl', [{payloads}], [(user, expected_status_code)])
+        self.check_requests_default_actions = {
+            'patch': [
+                ('/experiments/ENCSR000CUS/',
+                 [{'description': 'test'}],
+                    [('Public', 400),
+                     (USERS[2], 403)]),
+                ('/experiments/ENCSR000CUS/',
+                 [{'status': 'deleted'},
+                  {'status': 'archived'},
+                     {'status': 'proposed'},
+                     {'status': 'ready for review'},
+                     {'status': 'released'},
+                     {'status': 'started'},
+                     {'status': 'submitted'},
+                     {'status': 'replaced'}],
+                    [('admin', 200)]),
+                ('/experiments/ENCSR035DLJ/',
+                 [{'alternate_accessions': ['ENCSR000CUS']},
+                  {'alternate_accessions': []}],
+                    [('admin', 200)]),
+                ('35f91f16-dcef-4ab2-90bd-3928b0db9a60',
+                 [{'status': 'revoked'}],
+                    [('admin', 200)]),
+                ('/files/ENCFF002BYE/',
+                 [{'status': 'deleted'},
+                  {'status': 'in progress'},
+                     {'status': 'released'},
+                     {'status': 'replaced'}],
+                    [('admin', 200)]),
+                ('4dc1fbd3-6692-42fa-b710-03eaba9263c1',
+                 [{'status': 'revoked'}],
+                    [('admin', 200)])
+            ],
+            'post': [
+                ('/experiments/',
+                 [{'description': 'test post experiment',
+                   'assay_term_name': 'ChIP-seq',
+                   'biosample_term_id': 'CL:0010001',
+                   'biosample_type': 'primary cell',
+                   'biosample_term_name': 'Stromal cell of bone marrow',
+                   'target': '/targets/SMAD6-human/',
+                   'award': '/awards/U41HG006992/',
+                   'lab': '/labs/thomas-gingeras/',
+                   'references': ['PMID:18229687', 'PMID:25677182']}],
+                    [('Public', 400),
+                     (USERS[2], 201),
+                     ('admin', 201)])
+            ],
+            'get': [
+                ('/experiments/ENCSR082IHY/',
+                 [None],
+                    [('Public', 403),
+                     (USERS[2], 403),
+                     ('admin', 200)]),
+                ('/experiments/ENCSR000CUS',
+                 [None],
+                    [('Public', 200),
+                     (USERS[2], 200),
+                     ('admin', 200)])
+            ]
+        }
+        self.check_tools_default_actions = [
+            {'name': 'ENCODE_get_fields.py',
+             'command': '{} {} {}  --infile ENCSR000CUS --field status',
+             'expected_output': 'accession\tstatus\r\nENCSR000CUS\trevoked\r\n'},
+            {'name': 'ENCODE_patch_set.py',
+             'command': '{} {} {} --accession ENCSR000CUS --field status --data revoked',
+             'expected_output': 'OBJECT: ENCSR000CUS\nOLD DATA: status'
+             ' revoked\nNEW DATA: status revoked'},
+            {'name': 'ENCODE_release.py',
+             'command': '{} {} {} --infile ENCSR000CUS',
+             'expected_output': 'Data written to file Release_report.txt'},
+            {'name': 'ENCODE_submit_files.py',
+             'command': '{} {} permissions_qa_scripts/Test_submit_files.csv {}',
+             'expected_output': "'file_size': 23972104"}
+        ]
+
+    def list_methods(self):
+        """
+        List all possible tests.
+        """
+        print(*[f for f in sorted(dir(QANCODE)) if callable(getattr(QANCODE, f))
+                and not f.startswith('__') and not f.startswith('_')], sep='\n')
+
+    def compare_facets(self,
+                       browsers='all',
+                       users='all',
+                       item_types='all',
+                       task=GetFacetNumbers,
+                       url_comparison=True,
+                       browser_comparison=True):
+        """
+        Gets RC URL facet numbers and compares them to production URL facet
+        numbers for given item_type, browser, user.
+        """
+        # Define item type pages (search and matrix views) to check.
+        all_item_types = self.compare_facets_default_actions
         if browsers == 'all':
             browsers = self.browsers
         if users == 'all':
@@ -1666,89 +1930,7 @@ class QANCODE(object):
         perform that action before taking screenshot.
         """
         # Tuple of (item_type, click_path)
-        actions = [('/', None),
-                   ('/targets/?status=deleted', None),
-                   ('/antibodies/?status=deleted', None),
-                   ('/search/?type=Biosample&status=deleted', None),
-                   ('/experiments/ENCSR000CWD/', None),
-                   ('/biosamples/ENCBS574ZRE/', None),
-                   ('/biosamples/ENCBS883DWI/', None),
-                   ('/experiments/ENCSR985KAT/', None),
-                   ('/biosamples/ENCBS298YPF/', None),
-                   ('/biosamples/ENCBS142DVU/', None),
-                   ('/biosamples/ENCBS562NPI/', None),
-                   ('/human-donors/ENCDO999JZG/', None),
-                   ('/biosamples/ENCBS615YKY/', None),
-                   ('/search/?searchTerm=puf60&type=Target', None),
-                   ('/experiments/ENCSR502NRF/', None),
-                   ('/experiments/ENCSR000AEH/', None),
-                   ('/search/?searchTerm=ENCSR000AEH&type=Experiment', None),
-                   ('/experiments/ENCSR000CPG/', None),
-                   ('/search/?searchTerm=ENCSR000CPG&type=Experiment', None),
-                   ('/experiments/ENCSR000BPF/', None),
-                   ('/search/?searchTerm=ENCSR000BPF&type=Experiment', None),
-                   ('/experiments/ENCSR178NTX/', None),
-                   ('/experiments/ENCSR651NGR/', None),
-                   ('/search/?searchTerm=ENCSR651NGR&type=Experiment', None),
-                   ('/antibodies/ENCAB000AEH/', None),
-                   ('/search/?searchTerm=ENCAB000AEH&type=AntibodyLot', None),
-                   ('/antibodies/ENCAB000AIW/', None),
-                   ('/search/?searchTerm=ENCAB000AIW&type=AntibodyLot', None),
-                   ('/biosamples/ENCBS000AAA/', None),
-                   ('/search/?searchTerm=ENCBS000AAA&type=Biosample', None),
-                   ('/biosamples/ENCBS030ENC/', None),
-                   ('/search/?searchTerm=ENCBS030ENC', None),
-                   ('/biosamples/ENCBS098ENC/', None),
-                   ('/search/?searchTerm=ENCBS098ENC&type=Biosample', None),
-                   ('/biosamples/ENCBS619ENC/', None),
-                   ('/search/?searchTerm=ENCBS619ENC&type=Biosample', None),
-                   ('/biosamples/ENCBS286AAA/', None),
-                   ('/search/?searchTerm=ENCBS286AAA&type=Biosample', None),
-                   ('/biosamples/ENCBS314VPT/', None),
-                   ('/search/?searchTerm=ENCBS314VPT&type=Biosample', None),
-                   ('/biosamples/ENCBS808BUA/', None),
-                   ('/search/?searchTerm=ENCBS808BUA&type=Biosample', None),
-                   ('/targets/AARS-human/', None),
-                   ('/targets/FLAG-GABP-human/', None),
-                   ('/search/?type=Target&name=AARS-human', None),
-                   ('/ucsc-browser-composites/ENCSR707NXZ/', None),
-                   ('/treatment-time-series/ENCSR210PYP/', None),
-                   ('/search/?searchTerm=WASP&type=Software', None),
-                   ('/publications/67e606ae-abe7-4510-8ebb-cfa1fefe5cfa/', None),
-                   ('/search/?searchTerm=PMID%3A25164756', None),
-                   ('/biosamples/ENCBS632MTU/', None),
-                   ('/biosamples/ENCBS464EKT/', None),
-                   ('/annotations/ENCSR790GQB/', None),
-                   ('/publications/b2e859e6-3ee7-4274-90be-728e0faaa8b9/', None),
-                   ('/pipelines/', None),
-                   ('/pipelines/ENCPL210QWH/', None),
-                   ('/pipelines/ENCPL002LPE/', None),
-                   ('/pipelines/ENCPL002LSE/', None),
-                   ('/rna-seq/long-rnas/', None),
-                   ('/pipelines/ENCPL337CSA/', None),
-                   ('/rna-seq/small-rnas/', None),
-                   ('/pipelines/ENCPL444CYA/', None),
-                   ('/microrna/microrna-seq/', None),
-                   ('/pipelines/ENCPL278BTI/', None),
-                   ('/microrna/microrna-counts/', None),
-                   ('/pipelines/ENCPL122WIM/', None),
-                   ('/rampage/', None),
-                   ('/pipelines/ENCPL220NBH/', None),
-                   ('/pipelines/ENCPL272XAE/', None),
-                   ('/pipelines/ENCPL272XAE/', None),
-                   ('/chip-seq/histone/', None),
-                   ('/pipelines/ENCPL138KID/', None),
-                   ('/pipelines/ENCPL493SGC/', None),
-                   ('/chip-seq/transcription_factor/', None),
-                   ('/pipelines/ENCPL001DNS/', None),
-                   ('/pipelines/ENCPL002DNS/', None),
-                   ('/data-standards/dnase-seq/', None),
-                   ('/atac-seq/', None),
-                   ('/pipelines/ENCPL985BLO/', None),
-                   ('/data/annotations/', None),
-                   ('/help/rest-api/', None),
-                   ('/about/experiment-guidelines/', None),
-                   ('/data-standards/terms/', None)]
+        actions = self.find_differences_default_actions
         admin_only_actions = [('/biosamples/ENCBS681LAC/', None),
                               ('/search/?searchTerm=ENCBS681LAC&type=Biosample', None)]
         public_only_actions = [('/experiments/?status=deleted', None)]
@@ -1791,52 +1973,7 @@ class QANCODE(object):
         actions.
         """
         print('Running check trackhubs')
-        trackhub_actions = [('/experiments/ENCSR502NRF/',
-                             OpenUCSCGenomeBrowserGRCh38),
-                            ('/experiments/ENCSR502NRF/',
-                             OpenUCSCGenomeBrowserHG19),
-                            ('/experiments/ENCSR985KAT/',
-                             OpenUCSCGenomeBrowserHG19),
-                            ('/experiments/ENCSR426UUG/',
-                             OpenUCSCGenomeBrowserGRCh38),
-                            ('/experiments/ENCSR293WTN/',
-                             OpenUCSCGenomeBrowserMM9),
-                            ('/experiments/ENCSR335LKF/',
-                             OpenUCSCGenomeBrowserMM10),
-                            ('/experiments/ENCSR922ESH/',
-                             OpenUCSCGenomeBrowserDM3),
-                            ('/experiments/ENCSR671XAK/',
-                             OpenUCSCGenomeBrowserDM6),
-                            ('/experiments/ENCSR422XRE/',
-                             OpenUCSCGenomeBrowserCE10),
-                            ('/experiments/ENCSR686FKU/',
-                             OpenUCSCGenomeBrowserCE11),
-                            ('/publication-data/ENCSR764APB/',
-                             OpenUCSCGenomeBrowserHG19),
-                            ('/projects/ENCSR295OIE/',
-                             OpenUCSCGenomeBrowserHG19),
-                            ('/annotations/ENCSR212BHV/',
-                             OpenUCSCGenomeBrowserHG19),
-                            ('/experiments/ENCSR000CJR/',
-                             OpenUCSCGenomeBrowserHG19),
-                            ('/search/?type=Experiment&assembly=hg19&target.investigated_as=RNA+binding+protein&assay_title=ChIP-seq&replicates.library.biosample.biosample_type=primary+cell',
-                             OpenUCSCGenomeBrowserHG19),
-                            ('/search/?type=Experiment&assembly=GRCh38&assay_title=shRNA+RNA-seq&target.investigated_as=transcription+factor&month_released=October%2C+2014',
-                             OpenUCSCGenomeBrowserGRCh38),
-                            ('/search/?type=Experiment&assembly=mm9&assay_title=Repli-chip',
-                             OpenUCSCGenomeBrowserMM9),
-                            ('/search/?type=Experiment&assembly=mm10&assay_title=microRNA-seq&month_released=January%2C+2016',
-                             OpenUCSCGenomeBrowserMM10),
-                            ('/search/?type=Experiment&assembly=dm3&status=released&replicates.library.biosample.biosample_type=whole+organisms&assay_title=total+RNA-seq',
-                             OpenUCSCGenomeBrowserDM3),
-                            ('/search/?type=Experiment&assembly=dm6&replicates.library.biosample.life_stage=wandering+third+instar+larva',
-                             OpenUCSCGenomeBrowserDM6),
-                            ('/search/?type=Experiment&assembly=ce10&target.investigated_as=transcription+factor&replicates.library.biosample.life_stage=L4+larva',
-                             OpenUCSCGenomeBrowserCE10),
-                            ('/search/?type=Experiment&assembly=ce11&target.investigated_as=recombinant+protein&replicates.library.biosample.life_stage=late+embryonic&replicates.library.biosample.life_stage=L4+larva',
-                             OpenUCSCGenomeBrowserCE11),
-                            ('/search/?searchTerm=hippocampus&type=Experiment',
-                             OpenUCSCGenomeBrowserHG19)]
+        trackhub_actions = self.check_trackhubs_default_actions
         if action_tuples is None:
             action_tuples = trackhub_actions
         self.find_differences(users=users, browsers=browsers,
@@ -1847,33 +1984,7 @@ class QANCODE(object):
         Runs find_differences() image diff on permission check pages.
         """
         print('Running check permissions')
-        permission_actions = [('/experiments/ENCSR524OCB/', None),
-                              ('/experiments/ENCSR000EFT/', None),
-                              ('/biosamples/ENCBS643IYW/', None),
-                              ('/experiments/ENCSR466YGC/', None),
-                              ('/experiments/ENCSR255XZG/', None),
-                              ('/experiments/ENCSR115BCB/', None),
-                              ('/files/ENCFF752JWY/', None),
-                              ('/targets/2L52.1-celegans/', None),
-                              ('/targets/CG15455-dmelanogaster/', None),
-                              ('/software/dnase-eval-bam-se/', None),
-                              ('/software/atac-seq-software-tools/', None),
-                              ('/software/trimAdapters.py/', None),
-                              ('/software/bigwigaverageoverbed/', None),
-                              ('/pipelines/ENCPL493SGC/', None),
-                              ('/pipelines/ENCPL035XIO/', None),
-                              ('/pipelines/ENCPL568PWV/', None),
-                              ('/pipelines/e02448b1-9706-4e7c-b31b-78c921d58f0b/', None),
-                              ('/pipelines/ENCPL734EDH/', None),
-                              ('/pipelines/ENCPL983UFZ/', None),
-                              ('/pipelines/ENCPL631XPY/', None),
-                              ('/publications/b2e859e6-3ee7-4274-90be-728e0faaa8b9/', None),
-                              ('/publications/a4db2c6d-d1a3-4e31-b37b-5cc7d6277548/', None),
-                              ('/publications/16c77add-1bfb-424b-8cab-498ac1e5f6ed/', None),
-                              ('/publications/da2f7542-3d99-48f6-a95d-9907dd5e2f81/', None),
-                              ('/internal-data-use-policy/', None),
-                              ('/tutorials/encode-users-meeting-2016/logistics/', None),
-                              ('/2017-06-09-release/', None)]
+        permission_actions = self.check_permissions_default_actions
         self.find_differences(users=users, browsers=browsers,
                               action_tuples=permission_actions)
 
@@ -1890,18 +2001,7 @@ class QANCODE(object):
         Clicks download button and checks download folder for file.
         """
         print('Running check downloads')
-        actions = [('/experiments/ENCSR810WXH/', DownloadBEDFileFromTable),
-                   ('/experiments/ENCSR966YYJ/', DownloadBEDFileFromModal),
-                   ('/experiments/ENCSR810WXH/', DownloadGraphFromExperimentPage),
-                   ('/experiments/ENCSR810WXH/', DownloadDocuments),
-                   ('/ucsc-browser-composites/ENCSR707NXZ/', DownloadDocuments),
-                   ('/antibodies/ENCAB749XQY/', DownloadDocumentsFromAntibodyPage),
-                   ('/report/?searchTerm=nose&type=Biosample',
-                    DownloadTSVFromReportPage),
-                   ('/search/?type=Experiment&searchTerm=nose',
-                    DownloadMetaDataFromSearchPage),
-                   ('/files/ENCFF931OLL/', DownloadFileFromFilePage),
-                   ('/files/ENCFF291ELS/', DownloadFileFromFilePage)]
+        actions = self.check_downloads_default_actions
         admin_only_actions = []
         public_only_actions = []
         browsers, users, item_types, click_paths = self._parse_arguments(browsers=browsers,
@@ -1953,71 +2053,7 @@ class QANCODE(object):
         """
         url = self.rc_url
         self._block_production_edit(url)
-        lab_submitter = USERS[2]
-        admin = 'admin'
-        # List of tuples:
-        # ('suburl', [{payloads}], [(user, expected_status_code)])
-        action_dict = {
-            'patch': [
-                ('/experiments/ENCSR000CUS/',
-                 [{'description': 'test'}],
-                 [('Public', 400),
-                  (lab_submitter, 403)]),
-                ('/experiments/ENCSR000CUS/',
-                 [{'status': 'deleted'},
-                  {'status': 'archived'},
-                  {'status': 'proposed'},
-                  {'status': 'ready for review'},
-                  {'status': 'released'},
-                  {'status': 'started'},
-                  {'status': 'submitted'},
-                  {'status': 'replaced'}],
-                 [(admin, 200)]),
-                ('/experiments/ENCSR035DLJ/',
-                 [{'alternate_accessions': ['ENCSR000CUS']},
-                  {'alternate_accessions': []}],
-                 [(admin, 200)]),
-                ('35f91f16-dcef-4ab2-90bd-3928b0db9a60',
-                 [{'status': 'revoked'}],
-                 [(admin, 200)]),
-                ('/files/ENCFF002BYE/',
-                 [{'status': 'deleted'},
-                  {'status': 'in progress'},
-                  {'status': 'released'},
-                  {'status': 'replaced'}],
-                 [(admin, 200)]),
-                ('4dc1fbd3-6692-42fa-b710-03eaba9263c1',
-                 [{'status': 'revoked'}],
-                 [(admin, 200)])
-            ],
-            'post': [
-                ('/experiments/',
-                 [{'description': 'test post experiment',
-                   'assay_term_name': 'ChIP-seq',
-                   'biosample_term_id': 'CL:0010001',
-                   'biosample_type': 'primary cell',
-                   'biosample_term_name': 'Stromal cell of bone marrow',
-                   'target': '/targets/SMAD6-human/',
-                   'award': '/awards/U41HG006992/',
-                   'lab': '/labs/thomas-gingeras/',
-                   'references': ['PMID:18229687', 'PMID:25677182']}],
-                 [('Public', 400),
-                  (lab_submitter, 201),
-                  (admin, 201)])
-            ],
-            'get': [
-                ('/experiments/ENCSR082IHY/',
-                 [None],
-                 [('Public', 403),
-                  (lab_submitter, 403),
-                  (admin, 200)]),
-                ('/experiments/ENCSR000CUS',
-                 [None],
-                 [('Public', 200),
-                  (lab_submitter, 200),
-                  (admin, 200)])
-            ]
-        }
+        action_dict = self.check_requests_default_actions
         for k, v in action_dict.items():
             for item in v:
                 request_url = urllib.parse.urljoin(url, item[0])
@@ -2074,20 +2110,7 @@ class QANCODE(object):
         self._add_rc_to_keypairs(url)
         key = '--key current_rc'
         # Expected outut a very weak check.
-        tools = [{'name': 'ENCODE_get_fields.py',
-                  'command': '{} {} {}  --infile ENCSR000CUS --field status',
-                  'expected_output': 'accession\tstatus\r\nENCSR000CUS\trevoked\r\n'},
-                 {'name': 'ENCODE_patch_set.py',
-                  'command': '{} {} {} --accession ENCSR000CUS --field status --data revoked',
-                  'expected_output': 'OBJECT: ENCSR000CUS\nOLD DATA: status'
-                  ' revoked\nNEW DATA: status revoked'},
-                 {'name': 'ENCODE_release.py',
-                  'command': '{} {} {} --infile ENCSR000CUS',
-                  'expected_output': 'Data written to file Release_report.txt'},
-                 {'name': 'ENCODE_submit_files.py',
-                  'command': '{} {} permissions_qa_scripts/Test_submit_files.csv {}',
-                  'expected_output': "'file_size': 23972104"}
-                 ]
+        tools = self.check_tools_default_actions
         # Get relative Python executable.
         python_executor = sys.executable
         for tool in tools:
