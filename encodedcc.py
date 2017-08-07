@@ -662,8 +662,18 @@ def patch_set(args, connection):
                     if k[1] == "int" or k[1] == "integer":
                         patch_data[k[0]] = int(temp_data[key])
                     elif k[1] == "array" or k[1] == "list":
+                        if type(temp_data[key]) == str:
+                            # So JSON loads if present.
+                            temp_data[key] = temp_data[key].replace("'",'"')
+                        # Try to convert string before testing type. 
+                        try:
+                            temp_data[key] = json.loads(temp_data[key])
+                        except:
+                            pass
                         if type(temp_data[key]) == dict:
                             l = [temp_data[key]]
+                        elif type(temp_data[key]) == list:
+                            l = [t for t in temp_data[key]]
                         else:
                             l = temp_data[key].strip("[]").split(", ")
                             l = [x.replace("'", "") for x in l]
