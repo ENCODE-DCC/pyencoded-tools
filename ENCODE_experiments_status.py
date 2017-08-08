@@ -68,7 +68,7 @@ def main():
 
     experiments_url = '/search/?type=Experiment&' + \
         'status=proposed&status=started&' + \
-        'format=json&frame=page&' + \
+        'format=json&' + \
         query
     experiments = encodedcc.get_ENCODE(experiments_url,
                                        connection)['@graph']
@@ -141,7 +141,8 @@ def main():
                                 break
                     
                     if not depth_flag:
-                        errors = check_audit_errors(ex)
+                        errors = check_audit_errors(encodedcc.get_ENCODE(ex['@id'],
+                                       connection, 'page'))
                         if not errors: 
                             raw_data['accession'].append(ex['accession'])
                             raw_data['status'].append(ex['status'])
