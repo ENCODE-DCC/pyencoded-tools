@@ -9,17 +9,17 @@ This script allows detection of non-revoked files on the portal having identical
 
 ### ENCODE_get_fields.py
 This script takes object identifiers and fieldnames and returns a TSV of the data gathered  
-To get multiple objects use the *--object* argument and provide a file with the list of object identifiers
+To get multiple objects use the *--infile* argument and provide a file with the list of object identifiers
 
-        ./ENCODE_get_fields.py --object filenames.txt
+        ./ENCODE_get_fields.py --infile filenames.txt
 this can take accessions, uuids, @ids, or aliases
 
-To get a single object use the *--object* argument and use the object's identifier, also will take a comma separated list
+To get a single object use the *--infile* argument and use the object's identifier, also will take a comma separated list
 
-        ./ENCODE_get_fields.py --object ENCSR000AAA
-        ./ENCODE_get_fields.py --object 3e6-some-uuid-here-e45
-        ./ENCODE_get_fields.py --object this-is:an-alias
-        ./ENCODE_get_fields.py --object ENCSR000AAA,ENCSR000AAB
+        ./ENCODE_get_fields.py --infile ENCSR000AAA
+        ./ENCODE_get_fields.py --infile 3e6-some-uuid-here-e45
+        ./ENCODE_get_fields.py --infile this-is:an-alias
+        ./ENCODE_get_fields.py --infile ENCSR000AAA,ENCSR000AAB
 
 To get multiple fields use the *--field* argument and feed it a file with the list of fieldnames
 
@@ -61,7 +61,7 @@ Output prints in format of fieldname:object_type for non-strings
     string are the default and do not have an identifier
 *please note that list type fields will show only unique items*
 
-        ./ENCODE_get_fields.py --field files.status --object ENCSR000AAA
+        ./ENCODE_get_fields.py --field files.status --infile ENCSR000AAA
 
     accession       file.status:list
     ENCSR000AAA     ['released']
@@ -81,7 +81,7 @@ ENCODE_get_fields.py has ported over some functions of ENCODE_collection and now
 
 Useage for *--allfields*:
 
-        ./ENCODE_get_fields.py --object ENCSR000AAA --allfields
+        ./ENCODE_get_fields.py --infile ENCSR000AAA --allfields
 
     accession    status    files        award ...
     ENCSR000AAA  released  [/files/...] /awards/...
@@ -100,7 +100,7 @@ Useage for *--collection*:
 The  *--collection* option can be used with or without the *--es* option  
 the *--es* option allows the script to search using elastic search, which is slightly faster than the normal table view used  
 However, it may not posses the latest updates to the data and may not be preferable to your application  
-*--collection* also overrides any other *--object* option and so but it can be combined with any of the *--field* or *--allfields* options
+*--collection* also overrides any other *--infile* option and so but it can be combined with any of the *--field* or *--allfields* options
 
 **NOTE:** while *--collection* should work with the *--field* field.embeddedfield functionality I cannot guarantee speed when running due to embedded objects being extracted
 

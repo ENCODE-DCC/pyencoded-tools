@@ -1,0 +1,8 @@
+
+Must repeat replacement step
+perl -p -i -e 's#http://filechanges.demo.encodedcc.org/#http://filechanges.demo.encodedcc.org/#' *
+
+Post metadata for EXP then can upload
+perl -p -i -e 's#TSTSR529124#TSTSR529124#' *
+
+Only one shot, once data is there md5sum conflicts occur
