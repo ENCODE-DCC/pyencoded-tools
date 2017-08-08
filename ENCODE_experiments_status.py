@@ -54,6 +54,12 @@ def check_read_counts(read_count, threshold, raw_data, ex):
     return False
 
 
+def check_audit_errors(ex):
+    if ex.get('audit') and ('ERROR' in ex.get('audit') or 'NOT_COMPLIANT' in ex.get('audit')):
+        return ex.get('audit')
+    return None
+
+
 def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
@@ -62,7 +68,7 @@ def main():
 
     experiments_url = '/search/?type=Experiment&' + \
         'status=proposed&status=started&' + \
-        'format=json&frame=object&limit=2&' + \
+        'format=json&frame=page&' + \
         query
     experiments = encodedcc.get_ENCODE(experiments_url,
                                        connection)['@graph']
@@ -135,18 +141,26 @@ def main():
                                 break
                     
                     if not depth_flag:
-                        raw_data['accession'].append(ex['accession'])
-                        raw_data['status'].append(ex['status'])
-                        
-                        date_submitted = datetime.now().strftime('%Y-%m-%d')
-                        patching_data = {
-                            'status': 'submitted',
-                            'date_submitted': date_submitted
-                        }
-                        raw_data['recommendation'].append(str(patching_data))
-                        #encodedcc.patch_ENCODE(obj['uuid'],
-                        #               connection, patching_data)
-                      
+                        errors = check_audit_errors(ex)
+                        if not errors: 
+                            raw_data['accession'].append(ex['accession'])
+                            raw_data['status'].append(ex['status'])
+                            
+                            date_submitted = datetime.now().strftime('%Y-%m-%d')
+                            patching_data = {
+                                'status': 'submitted',
+                                'date_submitted': date_submitted
+                            }
+                            raw_data['recommendation'].append(str(patching_data))
+                            #encodedcc.patch_ENCODE(obj['uuid'],
+                            #               connection, patching_data)
+                        else:
+                            raw_data['accession'].append(ex['accession'])
+                            raw_data['status'].append(ex['status'])
+                            
+                            date_submitted = datetime.now().strftime('%Y-%m-%d')
+                            raw_data['recommendation'].append(str(errors))
+
     df = pd.DataFrame(raw_data, columns = ['accession', 'status', 'recommendation'])
     df.to_csv('experiments_status.tsv', sep='\t')
 
