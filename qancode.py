@@ -322,8 +322,12 @@ class SeleniumTask(metaclass=ABCMeta):
             self.driver.get(type_url)
         time.sleep(2)
         self._wait_for_loading_spinner()
-        self.driver.wait.until(
-            EC.element_to_be_clickable((By.ID, 'navbar')))
+        # Pass if not ENCODE page.
+        try:
+            self.driver.wait.until(
+                EC.element_to_be_clickable((By.ID, 'navbar')))
+        except:
+            pass
 
     def _try_perform_click_path(self):
         if self.click_path is not None:
@@ -669,12 +673,14 @@ class GetScreenShot(SeleniumTask):
     def stitch_image(self, image_path):
         print('Stitching screenshot')
         self.driver.execute_script('window.scrollTo(0, {});'.format(0))
-        client_height = self.driver.execute_script(
-            'return document.documentElement.clientHeight;')
-        scroll_height = self.driver.execute_script(
-            'return document.body.scrollHeight;')
         image_slices = []
         while True:
+            # Move client_height and scroll_height inside of loop for
+            # dynamically expanding pages.
+            client_height = self.driver.execute_script(
+                'return document.documentElement.clientHeight;')
+            scroll_height = self.driver.execute_script(
+                'return document.body.scrollHeight;')
             scroll_top = self.driver.execute_script(
                 'return document.body.scrollTop || document.documentElement.scrollTop;')
             time.sleep(1)
