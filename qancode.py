@@ -134,7 +134,7 @@ class bcolors:
 #######################
 
 
-class FrontPage(object):
+class FrontPage:
     """
     Page object models allow selectors to be defined in one place and then
     used by all of the test.
@@ -146,7 +146,7 @@ class FrontPage(object):
     drop_down_search_button_css = '#main > ul > li.dropdown.open > ul > li:nth-child(2) > a'
 
 
-class SignInModal(object):
+class SignInModal:
     """
     Page object model.
     """
@@ -165,7 +165,7 @@ class SignInModal(object):
     two_step_submit_verification_css = '#otp-box > div > input.go-button'
 
 
-class SearchPageList(object):
+class SearchPageList:
     """
     Page object model.
     """
@@ -177,7 +177,7 @@ class SearchPageList(object):
     download_metadata_button_xpath = '//*[contains(text(), "Download")]'
 
 
-class SearchPageMatrix(object):
+class SearchPageMatrix:
     """
     Page object model.
     """
@@ -189,7 +189,7 @@ class SearchPageMatrix(object):
     facets_left_class = 'facet'
 
 
-class ExperimentPage(object):
+class ExperimentPage:
     """
     Page object model.
     """
@@ -205,28 +205,28 @@ class ExperimentPage(object):
     file_graph_tab_xpath = '//div[@class="tab-nav"]//li[2]'
 
 
-class FilePage(object):
+class FilePage:
     """
     Page object model.
     """
     download_button_xpath = '//*[contains(text(), "Download")]'
 
 
-class AntibodyPage(object):
+class AntibodyPage:
     """
     Page object model.
     """
     expanded_document_panels_xpath = '//div[@class="document__detail active"]//a[@href]'
 
 
-class ReportPage(object):
+class ReportPage:
     """
     Page object model.
     """
     download_tsv_report_button_xpath = '//*[contains(text(), "Download TSV")]'
 
 
-class VisualizeModal(object):
+class VisualizeModal:
     """
     Page object model.
     """
@@ -234,35 +234,35 @@ class VisualizeModal(object):
     UCSC_link_partial_link_text = 'UCSC'
 
 
-class DownloadModal(object):
+class DownloadModal:
     """
     Page object model.
     """
     download_button_xpath = '/html/body/div[2]/div/div/div[1]/div/div/div[3]/div/a[2]'
 
 
-class InformationModal(object):
+class InformationModal:
     """
     Page object model.
     """
     download_icon_xpath = '/html/body/div[2]/div/div/div[1]/div/div/div[2]/div/dl/div[8]/dd/span/div/span/a/i'
 
 
-class NavBar(object):
+class NavBar:
     """
     Page object model.
     """
     testing_warning_banner_button_css = '#navbar > div.test-warning > div > p > button'
 
 
-class LoadingSpinner(object):
+class LoadingSpinner:
     """
     Page object model.
     """
     loading_spinner_class = 'loading-spinner'
 
 
-class DocumentPreview(object):
+class DocumentPreview:
     """
     Page object model.
     """
@@ -270,7 +270,7 @@ class DocumentPreview(object):
     document_files_xpath = '//div[@class="document__file"]//a[@href]'
 
 
-class UCSCGenomeBrowser(object):
+class UCSCGenomeBrowser:
     """
     Page object model.
     """
@@ -409,7 +409,7 @@ class URLComparison(metaclass=ABCMeta):
 #########################################
 
 
-class NewDriver(object):
+class NewDriver:
     """
     Initiate new Selenium driver.
     """
@@ -443,7 +443,7 @@ class NewDriver(object):
         return self.driver
 
 
-class SignIn(object):
+class SignIn:
     """
     Run through OAuth authentication procedure.
     """
@@ -1086,7 +1086,7 @@ class CompareScreenShots(URLComparison):
 
 # --- Genome browsers. ---
 
-class OpenUCSCGenomeBrowser(object):
+class OpenUCSCGenomeBrowser:
     """
     Defines clicks required to open UCSC trackhub from Experiment page for
     given assembly.
@@ -1126,7 +1126,7 @@ class OpenUCSCGenomeBrowser(object):
         time.sleep(3)
 
 
-class OpenUCSCGenomeBrowserGRCh38(object):
+class OpenUCSCGenomeBrowserGRCh38:
     """
     Opens UCSC browser with GRCh38 assembly.
     """
@@ -1135,7 +1135,7 @@ class OpenUCSCGenomeBrowserGRCh38(object):
         OpenUCSCGenomeBrowser(driver, 'hg38')
 
 
-class OpenUCSCGenomeBrowserHG19(object):
+class OpenUCSCGenomeBrowserHG19:
     """
     Opens UCSC browser with hg19 assembly.
     """
@@ -1144,7 +1144,7 @@ class OpenUCSCGenomeBrowserHG19(object):
         OpenUCSCGenomeBrowser(driver, 'hg19')
 
 
-class OpenUCSCGenomeBrowserMM9(object):
+class OpenUCSCGenomeBrowserMM9:
     """
     Opens UCSC browser with mm9 assembly.
     """
@@ -1153,7 +1153,7 @@ class OpenUCSCGenomeBrowserMM9(object):
         OpenUCSCGenomeBrowser(driver, 'mm9')
 
 
-class OpenUCSCGenomeBrowserMM10(object):
+class OpenUCSCGenomeBrowserMM10:
     """
     Opens UCSC browser with mm10 assembly.
     """
@@ -1162,7 +1162,7 @@ class OpenUCSCGenomeBrowserMM10(object):
         OpenUCSCGenomeBrowser(driver, 'mm10')
 
 
-class OpenUCSCGenomeBrowserMM10Minimal(object):
+class OpenUCSCGenomeBrowserMM10Minimal:
     """
     Opens UCSC browser with mm10-minimal assembly.
     """
@@ -1171,7 +1171,7 @@ class OpenUCSCGenomeBrowserMM10Minimal(object):
         OpenUCSCGenomeBrowser(driver, 'mm10')
 
 
-class OpenUCSCGenomeBrowserDM3(object):
+class OpenUCSCGenomeBrowserDM3:
     """
     Opens UCSC browser with dm3 assembly.
     """
@@ -1180,7 +1180,7 @@ class OpenUCSCGenomeBrowserDM3(object):
         OpenUCSCGenomeBrowser(driver, 'dm3')
 
 
-class OpenUCSCGenomeBrowserDM6(object):
+class OpenUCSCGenomeBrowserDM6:
     """
     Opens UCSC browser with dm6 assembly.
     """
@@ -1189,7 +1189,7 @@ class OpenUCSCGenomeBrowserDM6(object):
         OpenUCSCGenomeBrowser(driver, 'dm6')
 
 
-class OpenUCSCGenomeBrowserCE10(object):
+class OpenUCSCGenomeBrowserCE10:
     """
     Opens UCSC browser with ce10 assembly.
     """
@@ -1198,7 +1198,7 @@ class OpenUCSCGenomeBrowserCE10(object):
         OpenUCSCGenomeBrowser(driver, 'ce10')
 
 
-class OpenUCSCGenomeBrowserCE11(object):
+class OpenUCSCGenomeBrowserCE11:
     """
     Opens UCSC browser with ce11 assembly.
     """
@@ -1209,7 +1209,7 @@ class OpenUCSCGenomeBrowserCE11(object):
 
 # --- File downloads. ---
 
-class DownloadFileFromTable(object):
+class DownloadFileFromTable:
     """
     Download specified filetype from file table.
     """
@@ -1243,7 +1243,7 @@ class DownloadFileFromTable(object):
         return filenames, download_start_times
 
 
-class DownloadBEDFileFromTable(object):
+class DownloadBEDFileFromTable:
     """
     Download bed.gz file from file table.
     """
@@ -1253,7 +1253,7 @@ class DownloadBEDFileFromTable(object):
             driver, 'bed.gz').perform_action()
 
 
-class DownloadFileFromModal(object):
+class DownloadFileFromModal:
     """
     Download file from information modal on file table.
     """
@@ -1281,7 +1281,7 @@ class DownloadFileFromModal(object):
         return [filename], [download_start_time]
 
 
-class DownloadBEDFileFromModal(object):
+class DownloadBEDFileFromModal:
     """
     Download bed narrowPeak file from information modal.
     """
@@ -1291,7 +1291,7 @@ class DownloadBEDFileFromModal(object):
             driver, 'bed narrowPeak').perform_action()
 
 
-class DownloadFileFromButton(object):
+class DownloadFileFromButton:
     """
     Download file based on button text.
     """
@@ -1311,7 +1311,7 @@ class DownloadFileFromButton(object):
         return filenames, download_start_times
 
 
-class DownloadGraphFromExperimentPage(object):
+class DownloadGraphFromExperimentPage:
     """
     Download file graph from Experiment page.
     """
@@ -1323,13 +1323,13 @@ class DownloadGraphFromExperimentPage(object):
             '{}.png'.format(driver.current_url.split('/')[-2])).perform_action()
 
 
-class DownloadTSVFromReportPage(object):
+class DownloadTSVFromReportPage:
     def __init__(self, driver):
         self.filenames, self.download_start_times = DownloadFileFromButton(
             driver, ReportPage.download_tsv_report_button_xpath, 'report.tsv').perform_action()
 
 
-class DownloadMetaDataFromSearchPage(object):
+class DownloadMetaDataFromSearchPage:
     def __init__(self, driver):
         # Get rid of any files.txt from Downloads.
         download_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
@@ -1349,13 +1349,13 @@ class DownloadMetaDataFromSearchPage(object):
             driver, DownloadModal.download_button_xpath, 'files.txt').perform_action()
 
 
-class DownloadFileFromFilePage(object):
+class DownloadFileFromFilePage:
     def __init__(self, driver):
         self.filenames, self.download_start_times = DownloadFileFromButton(driver, FilePage.download_button_xpath, driver.find_element_by_xpath(
             FilePage.download_button_xpath).get_attribute('href').split('/')[-1]).perform_action()
 
 
-class DownloadDocuments(object):
+class DownloadDocuments:
     """
     Download all files from documents panel (except Antibody pages).
     """
@@ -1381,7 +1381,7 @@ class DownloadDocuments(object):
             time.sleep(2)
 
 
-class DownloadDocumentsFromAntibodyPage(object):
+class DownloadDocumentsFromAntibodyPage:
     """
     Download all files from document panel on Antibody page.
     """
@@ -1423,7 +1423,7 @@ class DownloadDocumentsFromAntibodyPage(object):
 ################################################
 
 
-class DataWorker(object):
+class DataWorker:
     def __init__(self, browser, url, user, task, item_type, click_path, server_name, **kwargs):
         self.task_completed = False
         self.browser = browser
@@ -1467,7 +1467,7 @@ class DataWorker(object):
                 pass
 
 
-class DataManager(object):
+class DataManager:
     def __init__(self, browsers, urls, users, task, item_types=[None], click_paths=[None], **kwargs):
         self.browsers = browsers
         self.urls = urls
@@ -1520,7 +1520,7 @@ class DataManager(object):
 ################################################################
 
 
-class QANCODE(object):
+class QANCODE:
     """
     Object to keep track of Task/Comparison combinations and run QA
     process with one method call.
