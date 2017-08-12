@@ -409,7 +409,7 @@ class URLComparison(metaclass=ABCMeta):
 #########################################
 
 
-class NewDriver:
+class Driver:
     """
     Initiate new Selenium driver.
     """
@@ -1436,7 +1436,7 @@ class DataWorker:
         self.kwargs = kwargs
 
     def new_driver(self):
-        self.driver = NewDriver(self.browser, self.url).driver
+        self.driver = Driver(self.browser, self.url).driver
 
     def run_task(self):
         try:
