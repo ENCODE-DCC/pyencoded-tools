@@ -21,7 +21,7 @@ from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException, WebDriverException, NoSuchElementException
+from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.common.by import By
 from tqdm import tqdm
 
@@ -1533,6 +1533,10 @@ class QANCODE:
         self.users = [u for u in USERS]
         self._init_check_requests_users()
         self._init_default_actions()
+
+    def __repr__(self):
+        return 'QANCODE(prod_url={}, rc_url={})'.format(self.prod_url,
+                                                        self.rc_url)
 
     def _init_check_requests_users(self):
         # Define users for check_requests default list.
