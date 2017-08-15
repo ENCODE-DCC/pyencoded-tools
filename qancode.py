@@ -1526,7 +1526,7 @@ class QANCODE:
     process with one method call.
     """
 
-    def __init__(self, rc_url, prod_url='https://encodeproject.org'):
+    def __init__(self, rc_url, prod_url='https://www.encodeproject.org'):
         self.rc_url = rc_url
         self.prod_url = prod_url
         self.browsers = [b for b in BROWSERS]
