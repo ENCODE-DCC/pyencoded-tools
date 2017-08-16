@@ -7,10 +7,42 @@ import subprocess
 import sys
 import urllib
 
-from .clickpaths import *
-from .comparisons import *
-from .defaults import USERS, BROWSERS, bcolors, ActionTuples
-from .tasks import *
+from .clickpaths import (DownloadBEDFileFromModal,
+                         DownloadBEDFileFromTable,
+                         DownloadDocuments,
+                         DownloadDocumentsFromAntibodyPage,
+                         DownloadFileFromButton,
+                         DownloadFileFromFilePage,
+                         DownloadFileFromModal,
+                         DownloadFileFromTable,
+                         DownloadGraphFromExperimentPage,
+                         DownloadMetaDataFromSearchPage,
+                         DownloadTSVFromReportPage,
+                         OpenUCSCGenomeBrowser,
+                         OpenUCSCGenomeBrowserCE10,
+                         OpenUCSCGenomeBrowserCE11,
+                         OpenUCSCGenomeBrowserDM3,
+                         OpenUCSCGenomeBrowserDM6,
+                         OpenUCSCGenomeBrowserGRCh38,
+                         OpenUCSCGenomeBrowserHG19,
+                         OpenUCSCGenomeBrowserMM10,
+                         OpenUCSCGenomeBrowserMM10Minimal,
+                         OpenUCSCGenomeBrowserMM9)
+from .comparisons import (BrowserComparison,
+                          CompareFacetNumbersBetweenBrowsers,
+                          CompareFacetNumbersBetweenURLS,
+                          CompareScreenShots,
+                          URLComparison)
+from .defaults import (USERS,
+                       BROWSERS,
+                       bcolors,
+                       ActionTuples)
+from .tasks import (DownloadFiles,
+                    Driver,
+                    GetFacetNumbers,
+                    GetScreenShot,
+                    SeleniumTask,
+                    SignIn)
 from .worker import DataWorker, DataManager
 
 ################################################################

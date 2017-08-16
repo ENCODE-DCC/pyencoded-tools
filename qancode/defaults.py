@@ -1,4 +1,24 @@
-from .clickpaths import *
+from .clickpaths import (DownloadBEDFileFromModal,
+                         DownloadBEDFileFromTable,
+                         DownloadDocuments,
+                         DownloadDocumentsFromAntibodyPage,
+                         DownloadFileFromButton,
+                         DownloadFileFromFilePage,
+                         DownloadFileFromModal,
+                         DownloadFileFromTable,
+                         DownloadGraphFromExperimentPage,
+                         DownloadMetaDataFromSearchPage,
+                         DownloadTSVFromReportPage,
+                         OpenUCSCGenomeBrowser,
+                         OpenUCSCGenomeBrowserCE10,
+                         OpenUCSCGenomeBrowserCE11,
+                         OpenUCSCGenomeBrowserDM3,
+                         OpenUCSCGenomeBrowserDM6,
+                         OpenUCSCGenomeBrowserGRCh38,
+                         OpenUCSCGenomeBrowserHG19,
+                         OpenUCSCGenomeBrowserMM10,
+                         OpenUCSCGenomeBrowserMM10Minimal,
+                         OpenUCSCGenomeBrowserMM9)
 
 # Default browsers.
 BROWSERS = ['Chrome',

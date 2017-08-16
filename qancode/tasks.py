@@ -16,12 +16,47 @@ from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from tqdm import tqdm
 
-from .clickpaths import *
+from .clickpaths import (DownloadBEDFileFromModal,
+                         DownloadBEDFileFromTable,
+                         DownloadDocuments,
+                         DownloadDocumentsFromAntibodyPage,
+                         DownloadFileFromButton,
+                         DownloadFileFromFilePage,
+                         DownloadFileFromModal,
+                         DownloadFileFromTable,
+                         DownloadGraphFromExperimentPage,
+                         DownloadMetaDataFromSearchPage,
+                         DownloadTSVFromReportPage,
+                         OpenUCSCGenomeBrowser,
+                         OpenUCSCGenomeBrowserCE10,
+                         OpenUCSCGenomeBrowserCE11,
+                         OpenUCSCGenomeBrowserDM3,
+                         OpenUCSCGenomeBrowserDM6,
+                         OpenUCSCGenomeBrowserGRCh38,
+                         OpenUCSCGenomeBrowserHG19,
+                         OpenUCSCGenomeBrowserMM10,
+                         OpenUCSCGenomeBrowserMM10Minimal,
+                         OpenUCSCGenomeBrowserMM9)
 from .defaults import BROWSERS, USERS, bcolors
-from .pageobjects import *
+from .pageobjects import (AntibodyPage,
+                          DocumentPreview,
+                          DownloadModal,
+                          ExperimentPage,
+                          FilePage,
+                          FrontPage,
+                          InformationModal,
+                          LoadingSpinner,
+                          NavBar,
+                          ReportPage,
+                          SearchPageList,
+                          SearchPageMatrix,
+                          SignInModal,
+                          UCSCGenomeBrowser,
+                          VisualizeModal)
 
 
 #########################################

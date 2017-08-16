@@ -5,7 +5,21 @@ import urllib
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
-from .pageobjects import *
+from .pageobjects import (AntibodyPage,
+                          DocumentPreview,
+                          DownloadModal,
+                          ExperimentPage,
+                          FilePage,
+                          FrontPage,
+                          InformationModal,
+                          LoadingSpinner,
+                          NavBar,
+                          ReportPage,
+                          SearchPageList,
+                          SearchPageMatrix,
+                          SignInModal,
+                          UCSCGenomeBrowser,
+                          VisualizeModal)
 
 ################
 # Click paths. #
