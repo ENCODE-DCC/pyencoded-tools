@@ -243,8 +243,10 @@ class QANCODE(ActionTuples):
             for out in self.find_differences_output:
                 if out[0]:
                     print('{}:'.format(out[1]))
-                    display(
-                        Image(filename='../../../image_diff/{}'.format(out[1])))
+                    image_diff_path = os.path.expanduser(
+                        '~/Desktop/image_diff/')
+                    display(Image(filename='{}{}'.format(image_diff_path,
+                                                         out[1])))
                     print('\n')
         except AttributeError:
             print('No image diffs found')
