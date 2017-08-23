@@ -473,12 +473,11 @@ class GetScreenShot(SeleniumTask):
                         ExperimentPage.sort_by_accession_xpath).click()
             except:
                 pass
-            if self.click_path != DownloadGraphFromExperimentPage:
-                try:
-                    self.driver.find_elements_by_xpath(
-                        ExperimentPage.file_graph_tab_xpath)[0].click()
-                except:
-                    pass
+            try:
+                self.driver.find_elements_by_xpath(
+                    ExperimentPage.file_graph_tab_xpath)[0].click()
+            except:
+                pass
 
     def get_data(self):
         self._try_load_item_type()
@@ -548,15 +547,24 @@ class DownloadFiles(SeleniumTask):
     def _check_download_folder(self, filename, download_start_time, results):
         files = os.listdir(os.path.join(
             os.path.expanduser('~'), 'Downloads'))
+        # Filter hidden files.
+        files = [f for f in files if not f.startswith('.')]
         for file in files:
             full_path = os.path.join(
                 os.path.expanduser('~'), 'Downloads', file)
+            mod_time = os.path.getctime(full_path)
+            # Skip old files.
+            if abs(download_start_time - mod_time) > 600:
+                continue
             # Inexact match to deal with multiple download of same file.
             # Safari overwrites multiple downloads of same file so filepath
             # not unique.
-            if ((file.startswith(filename[:len(filename) - 8]))
-                    and ((self.driver.capabilities['browserName'] == 'safari')
-                         or (file not in [r[3] for r in results]))):
+            filename_split = filename.split('.')
+            if ((file.startswith(filename[:len(filename) - 8])
+                 or ((filename_split[0] in file)
+                     and (file.endswith(filename_split[1]))))
+                and ((self.driver.capabilities['browserName'] == 'safari')
+                     or (file not in [r[3] for r in results]))):
                 return (True, full_path, filename, file)
         return (False, full_path, filename, None)
 
@@ -604,6 +612,11 @@ class DownloadFiles(SeleniumTask):
 
     def get_data(self):
         self._try_load_item_type()
+        if self.click_path != DownloadGraphFromExperimentPage:
+            try:
+                self.driver.find_element_by_xpath(ExperimentPage.file_graph_tab_xpath).click()
+            except:
+                pass
         if self.click_path == DownloadDocumentsFromAntibodyPage:
             self._expand_document_details()
         cp = self._try_perform_click_path()

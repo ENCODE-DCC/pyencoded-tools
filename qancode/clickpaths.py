@@ -20,7 +20,7 @@ from .pageobjects import (AntibodyPage,
                           SignInModal,
                           UCSCGenomeBrowser,
                           VisualizeModal)
-
+    
 ################
 # Click paths. #
 ################
@@ -181,9 +181,8 @@ class DownloadFileFromTable:
                 break
         else:
             raise ValueError('{}WARNING: File not found{}'.format(
-                bcolors.FAIL, bcolors.ENDC))
+                '\x1b[31m', '\x1b[0m'))
         return filenames, download_start_times
-
 
 class DownloadBEDFileFromTable:
     """
@@ -268,7 +267,7 @@ class DownloadGraphFromExperimentPage:
 class DownloadTSVFromReportPage:
     def __init__(self, driver):
         self.filenames, self.download_start_times = DownloadFileFromButton(
-            driver, ReportPage.download_tsv_report_button_xpath, 'report.tsv').perform_action()
+            driver, ReportPage.download_tsv_report_button_xpath, 'Report.tsv').perform_action()
 
 
 class DownloadMetaDataFromSearchPage:
