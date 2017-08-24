@@ -176,10 +176,25 @@ class SignIn:
 
     def sign_in(self):
         print('Logging in as {}'.format(self.user))
+        wait_time = 10
+        while True:
+            wait_time -= 1
+            time.sleep(1)
+            if wait_time < 1:
+                raise SystemError('Page loading error')
+            try:
+                self.driver.find_element_by_css_selector('#application.communicating')
+            except:
+                try:
+                    self.driver.find_element_by_css_selector('#application')
+                    if not any([y.is_displayed() for y in
+                                self.driver.find_elements_by_class_name(LoadingSpinner.loading_spinner_class)]):
+                        break
+                except:
+                    pass
         original_window_handle = self.driver.window_handles[0]
         self.driver.switch_to_window(original_window_handle)
-        login_button = self.driver.wait.until(EC.element_to_be_clickable(
-            (By.PARTIAL_LINK_TEXT, FrontPage.login_button_text)))
+        login_button = self.driver.wait.until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, FrontPage.login_button_text)))
         try:
             login_button.click()
             self.driver.wait.until(EC.presence_of_element_located(
