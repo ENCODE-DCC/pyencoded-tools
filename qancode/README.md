@@ -44,7 +44,7 @@ qa.find_differences(browsers=['Safari'],
                     click_paths=[OpenUCSCGenomeBrowserHG19])
 ```
 
-#### More examples in [overview notebook](https://nbviewer.jupyter.org/github/ENCODE-DCC/pyencoded-tools/blob/ENCD-2594-automate-qa/jupyter_notebooks/qancode_overview.ipynb)
+#### More examples in [overview notebook](https://nbviewer.jupyter.org/github/ENCODE-DCC/pyencoded-tools/blob/master/jupyter_notebooks/qancode_overview.ipynb)
 
 ## Requires
 * Python 3
