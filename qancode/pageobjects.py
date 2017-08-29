@@ -65,7 +65,7 @@ class ExperimentPage:
     done_panel_class = 'done'
     title_tag_name = 'h4'
     graph_close_button_css = 'div > div:nth-child(2) > div.file-gallery-graph-header.collapsing-title > button'
-    sort_by_accession_xpath = '//div/div[3]/div[2]/div/table[2]/thead/tr[2]/th[1]'
+    sort_by_accession_xpath = '//div[@class="file-gallery-counts"]//..//table[@class="table table-sortable"]/thead/tr[2]/th[1]/span/i'
     all_buttons_tag_name = 'button'
     download_graph_png_button_xpath = '//*[contains(text(), "Download Graph")]'
     file_type_column_xpath = '//div[@class="file-gallery-counts"]//..//table[@class="table table-sortable"]//tr//td[2]'

@@ -476,23 +476,8 @@ class GetScreenShot(SeleniumTask):
         return image_path
 
     def make_experiment_pages_look_the_same(self):
-        for y in self.driver.wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, ExperimentPage.done_panel_class))):
-            try:
-                title = y.find_element_by_tag_name(
-                    ExperimentPage.title_tag_name).text
-                if title == 'Files':
-                    graph_close_button = WebDriverWait(y, 3).until(
-                        EC.element_to_be_clickable((By.CSS_SELECTOR, ExperimentPage.graph_close_button_css)))
-                    graph_close_button.click()
-                    y.find_element_by_xpath(
-                        ExperimentPage.sort_by_accession_xpath).click()
-            except:
-                pass
-            try:
-                self.driver.find_elements_by_xpath(
-                    ExperimentPage.file_graph_tab_xpath)[0].click()
-            except:
-                pass
+        self.driver.wait.until(EC.element_to_be_clickable((By.XPATH, ExperimentPage.file_graph_tab_xpath))).click()
+        self.driver.wait.until(EC.element_to_be_clickable((By.XPATH, ExperimentPage.sort_by_accession_xpath))).click()
 
     def get_data(self):
         self._try_load_item_type()
