@@ -418,11 +418,17 @@ class QANCODE(ActionTuples):
                 print(output)
 
     @staticmethod
-    def _color_by_value(value):
+    def _color_by_value(value, title):
+        # Custom ranges.
+        category_dict = {'es_time': {'min': 8.0, 'max': 13.0},
+                         'queue_time': {'min': 2.0, 'max': 3.0}}
+        # Return global defaults if category title not found.
+        min_value = category_dict.get(title, {}).get('min', 150.0)
+        max_value = category_dict.get(title, {}).get('max', 400.0)
         # Return color based on value.
-        if value < 150.0:
+        if value < min_value:
             return bcolors.OKBLUE
-        elif value >= 400.0:
+        elif value >= max_value:
             return bcolors.FAIL
         return bcolors.WARNING
 
@@ -456,7 +462,7 @@ class QANCODE(ActionTuples):
         print(' {} '.format(url).center(break_size, '-'))
 
     def _print_results(self, title, mean, std, count):
-        print('{}Average {}: {} ± {} ms (n={}){}'.format(self._color_by_value(mean),
+        print('{}Average {}: {} ± {} ms (n={}){}'.format(self._color_by_value(mean, title),
                                                          title,
                                                          mean,
                                                          std,
