@@ -416,3 +416,80 @@ class QANCODE(ActionTuples):
                 print(tool['expected_output'])
                 print('Actual: ')
                 print(output)
+
+    @staticmethod
+    def _color_by_value(value, title):
+        # Custom ranges.
+        category_dict = {'es_time': {'min': 8.0, 'max': 13.0},
+                         'queue_time': {'min': 2.0, 'max': 3.0}}
+        # Return global defaults if category title not found.
+        min_value = category_dict.get(title, {}).get('min', 150.0)
+        max_value = category_dict.get(title, {}).get('max', 400.0)
+        # Return color based on value.
+        if value < min_value:
+            return bcolors.OKBLUE
+        elif value >= max_value:
+            return bcolors.FAIL
+        return bcolors.WARNING
+
+    @staticmethod
+    def _get_time_headers(url, n):
+        time_headers = []
+        for i in range(n):
+            r = requests.get(url)
+            assert r.status_code == 200
+            time_headers.append(r.headers)
+        return time_headers
+
+    @staticmethod
+    def _parse_header(headers):
+        headers_split = [(h.split('=')) for h in headers['X-Stats'].split('&')]
+        headers_dict = {h[0]: float(h[1])
+                        for h in headers_split if 'time' in h[0]}
+        return headers_dict
+
+    @staticmethod
+    def _summary_for_category(values):
+        return round(np.mean(values) / 1000, 3), round(np.std(values) / 1000, 3), len(values)
+
+    @staticmethod
+    def _calculate_total_times(values):
+        return [sum(item.values()) for item in values]
+
+    @staticmethod
+    def _print_header(url):
+        break_size = 80 if len(url) < 70 else len(url) + 20
+        print(' {} '.format(url).center(break_size, '-'))
+
+    def _print_results(self, title, mean, std, count):
+        print('{}Average {}: {} ± {} ms (n={}){}'.format(self._color_by_value(mean, title),
+                                                         title,
+                                                         mean,
+                                                         std,
+                                                         count,
+                                                         bcolors.ENDC))
+
+    def _average_time_for_get(self, url, n):
+        self._print_header(url)
+        time_headers = self._get_time_headers(url, n)
+        parsed_headers = [self._parse_header(h) for h in time_headers]
+        for key in sorted(parsed_headers[0].keys()):
+            group_values = [v[key] for v in parsed_headers]
+            group_mean, group_std, group_count = self._summary_for_category(
+                group_values)
+            self._print_results(key, group_mean, group_std, group_count)
+        total_mean, total_std, total_count = self._summary_for_category(
+            self._calculate_total_times(parsed_headers))
+        self._print_results('total time', total_mean, total_std, total_count)
+
+    def check_response_time(self, urls=None, item_types=[None], n=10):
+        if urls is None:
+            urls = [self.prod_url, self.rc_url]
+        print('Checking response time')
+        for item in item_types:
+            print('\n*** item_type: {}'.format(item))
+            for url in urls:
+                if item is not None:
+                    url = url + item
+                self._average_time_for_get(url, n)
+            print()
