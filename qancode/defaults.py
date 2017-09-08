@@ -221,8 +221,6 @@ class ActionTuples:
              OpenUCSCGenomeBrowserCE10),
             ('/experiments/ENCSR686FKU/',
              OpenUCSCGenomeBrowserCE11),
-            ('/publication-data/ENCSR764APB/',
-             OpenUCSCGenomeBrowserHG19),
             ('/annotations/ENCSR212BHV/',
              OpenUCSCGenomeBrowserHG19),
             ('/experiments/ENCSR000CJR/',
