@@ -183,7 +183,8 @@ class SignIn:
             if wait_time < 1:
                 raise SystemError('Page loading error')
             try:
-                self.driver.find_element_by_css_selector('#application.communicating')
+                self.driver.find_element_by_css_selector(
+                    '#application.communicating')
             except:
                 try:
                     self.driver.find_element_by_css_selector('#application')
@@ -194,7 +195,8 @@ class SignIn:
                     pass
         original_window_handle = self.driver.window_handles[0]
         self.driver.switch_to_window(original_window_handle)
-        login_button = self.driver.wait.until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, FrontPage.login_button_text)))
+        login_button = self.driver.wait.until(EC.element_to_be_clickable(
+            (By.PARTIAL_LINK_TEXT, FrontPage.login_button_text)))
         try:
             login_button.click()
             self.driver.wait.until(EC.presence_of_element_located(
@@ -437,10 +439,15 @@ class GetScreenShot(SeleniumTask):
                     and (scroll_height != (client_height + scroll_top))):
                 # Get difference for cropping next image.
                 difference_to_keep = abs(
-                    2 * (scroll_height - (client_height + scroll_top)))
+                    (scroll_height - (client_height + scroll_top)))
             if np.allclose(scroll_height, (client_height + scroll_top), rtol=0.0025):
                 image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-                y_bound_low = image.shape[0] - difference_to_keep
+                # Compensate for retina displays with twice as many pixels.
+                # Usual client_height is <900 given .set_window_size(1500, 950).
+                # Image size will be twice that for retina displays.
+                pixel_scaler = 1 if image.shape[0] <= 950 else 2
+                y_bound_low = (image.shape[0] -
+                               (pixel_scaler * difference_to_keep))
                 image = image[y_bound_low:, :]
                 image_slices.append(image)
                 break
@@ -476,8 +483,10 @@ class GetScreenShot(SeleniumTask):
         return image_path
 
     def make_experiment_pages_look_the_same(self):
-        self.driver.wait.until(EC.element_to_be_clickable((By.XPATH, ExperimentPage.file_graph_tab_xpath))).click()
-        self.driver.wait.until(EC.element_to_be_clickable((By.XPATH, ExperimentPage.sort_by_accession_xpath))).click()
+        self.driver.wait.until(EC.element_to_be_clickable(
+            (By.XPATH, ExperimentPage.file_graph_tab_xpath))).click()
+        self.driver.wait.until(EC.element_to_be_clickable(
+            (By.XPATH, ExperimentPage.sort_by_accession_xpath))).click()
 
     def get_data(self):
         self._try_load_item_type()
@@ -614,7 +623,8 @@ class DownloadFiles(SeleniumTask):
         self._try_load_item_type()
         if self.click_path != DownloadGraphFromExperimentPage:
             try:
-                self.driver.find_element_by_xpath(ExperimentPage.file_graph_tab_xpath).click()
+                self.driver.find_element_by_xpath(
+                    ExperimentPage.file_graph_tab_xpath).click()
             except:
                 pass
         if self.click_path == DownloadDocumentsFromAntibodyPage:
