@@ -437,10 +437,6 @@ class GetScreenShot(SeleniumTask):
                 BytesIO(self.driver.get_screenshot_as_png())).convert('RGB')
             if ((((2 * client_height) + scroll_top) >= scroll_height)
                     and (scroll_height != (client_height + scroll_top))):
-                # Get difference for cropping next image.
-                # Compensate for retina displays with twice as many pixels.
-                # Usual client_height is <900 given .set_window_size(1500, 950).
-                # Image size will be twice that for retina displays.
                 difference_to_keep = abs(
                     (scroll_height - (client_height + scroll_top)))
             if np.allclose(scroll_height, (client_height + scroll_top), rtol=0.0025):
