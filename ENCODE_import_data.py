@@ -3,6 +3,7 @@
 import argparse
 import os.path
 import encodedcc
+import json
 import xlrd
 import datetime
 import sys
@@ -244,6 +245,8 @@ def data_formatter(value, val_type):
         else:
             raise ValueError('Boolean was expected but got: %s, %s' %
                              (value, type(value)))
+    elif val_type in ["obj", "object"]:
+        return json.loads(value)
     else:
         raise ValueError('Unrecognized type: %s for value: %s' %
                          (val_type, value))
