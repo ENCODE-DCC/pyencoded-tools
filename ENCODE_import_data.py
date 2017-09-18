@@ -8,7 +8,7 @@ import datetime
 import sys
 import mimetypes
 import requests
-from PIL import Image # install me with 'pip3 install Pillow'
+from PIL import Image  # install me with 'pip3 install Pillow'
 from urllib.parse import quote
 from base64 import b64encode
 import magic  # install me with 'pip3 install python-magic'
@@ -152,7 +152,8 @@ def attachment(path):
     # XXX This validation logic should move server-side.
     if not (detected_type == mime_type or
             detected_type == 'text/plain' and major == 'text'):
-        raise ValueError('Wrong extension for %s: %s' % (detected_type, filename))
+        raise ValueError('Wrong extension for %s: %s' %
+                         (detected_type, filename))
 
     with open(path, 'rb') as stream:
         attach = {
@@ -241,10 +242,11 @@ def data_formatter(value, val_type):
         elif value in ["False", "FALSE", 0, "0"]:
             return False
         else:
-            raise ValueError('Boolean was expected but got: %s, %s' % (value, type(value)))
+            raise ValueError('Boolean was expected but got: %s, %s' %
+                             (value, type(value)))
     else:
-        raise ValueError('Unrecognized type: %s for value: %s' % (val_type, value))
-        
+        raise ValueError('Unrecognized type: %s for value: %s' %
+                         (val_type, value))
 
 
 def dict_patcher(old_dict):
@@ -272,10 +274,12 @@ def dict_patcher(old_dict):
                         # this has a number next to it
                         if len(new_dict[path[0]]) == int(value[1]):
                             # this means we have not added any part of new item to the list
-                            new_dict[path[0]].insert(int(value[1]), {value[0]: old_dict[key]})
+                            new_dict[path[0]].insert(
+                                int(value[1]), {value[0]: old_dict[key]})
                         else:
                             # this should be that we have started putting in the new object
-                            new_dict[path[0]][int(value[1])].update({value[0]: old_dict[key]})
+                            new_dict[path[0]][int(value[1])].update(
+                                {value[0]: old_dict[key]})
                     else:
                         # the object does not exist in the embedded part, add it
                         new_dict[path[0]][0].update({path[1]: old_dict[key]})
@@ -294,13 +298,16 @@ def dict_patcher(old_dict):
                         # this has a number next to it
                         if len(new_dict[path[0]]) == int(value[1]):
                             # this means we have not added any part of new item to the list
-                            new_dict[path[0]].insert(int(value[1]), {value[0]: old_dict[key]})
+                            new_dict[path[0]].insert(
+                                int(value[1]), {value[0]: old_dict[key]})
                         else:
                             # this should be that we have started putting in the new object
-                            new_dict[path[0]][int(value[1])].update({value[0]: old_dict[key]})
+                            new_dict[path[0]][int(value[1])].update(
+                                {value[0]: old_dict[key]})
                     else:
                         # the object does not exist in the embedded part, add it
-                        new_dict[path[0]][0].update({path[1]: data_formatter(old_dict[key], k[1])})
+                        new_dict[path[0]][0].update(
+                            {path[1]: data_formatter(old_dict[key], k[1])})
                 else:
                     # make new item in dictionary
                     temp_dict = {path[1]: data_formatter(old_dict[key], k[1])}
@@ -343,10 +350,12 @@ def excel_reader(datafile, sheet, update, connection, patchall):
                     success += 1
                     patch += 1
             else:
-                print("Object {} already exists.  Would you like to patch it instead?".format(temp["uuid"]))
+                print("Object {} already exists.  Would you like to patch it instead?".format(
+                    temp["uuid"]))
                 i = input("PATCH? y/n ")
                 if i.lower() == "y":
-                    e = encodedcc.patch_ENCODE(temp["uuid"], connection, post_json)
+                    e = encodedcc.patch_ENCODE(
+                        temp["uuid"], connection, post_json)
                     if e["status"] == "error":
                         error += 1
                     elif e["status"] == "success":
@@ -382,9 +391,12 @@ def main():
     supported_collections = [s.lower() for s in list(profiles.keys())]
     for n in names:
         if n.lower() in supported_collections:
-            excel_reader(args.infile, n, args.update, connection, args.patchall)
+            excel_reader(args.infile, n, args.update,
+                         connection, args.patchall)
         else:
-            print("Sheet name '{name}' not part of supported object types!".format(name=n), file=sys.stderr)
+            print("Sheet name '{name}' not part of supported object types!".format(
+                name=n), file=sys.stderr)
+
 
 if __name__ == '__main__':
-        main()
+    main()
