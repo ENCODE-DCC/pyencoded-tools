@@ -252,7 +252,19 @@ def data_formatter(value, val_type):
                          (val_type, value))
 
 
-def dict_patcher(old_dict):
+def expose_objects(new_dict, json_profile):
+    '''
+    Check profile to see if value should be object instead of 
+    list of objects.
+    '''
+    for key in new_dict.keys():
+        if ((len(new_dict[key]) == 1)
+                and (json_profile[key]['type'] == 'object')):
+            new_dict[key] = new_dict[key][0]
+    return new_dict
+
+
+def dict_patcher(old_dict, json_profile):
     new_dict = {}
     for key in old_dict.keys():
         if old_dict[key] != "":  # this removes empty cells
@@ -315,6 +327,7 @@ def dict_patcher(old_dict):
                     # make new item in dictionary
                     temp_dict = {path[1]: data_formatter(old_dict[key], k[1])}
                     new_dict[path[0]] = [temp_dict]
+    new_dict = expose_objects(new_dict, json_profile)
     return new_dict
 
 
@@ -325,10 +338,12 @@ def excel_reader(datafile, sheet, update, connection, patchall):
     error = 0
     success = 0
     patch = 0
+    json_profile = encodedcc.get_ENCODE(
+        '/profiles/{}.json'.format(sheet), connection)['properties']
     for values in row:
         total += 1
         post_json = dict(zip(keys, values))
-        post_json = dict_patcher(post_json)
+        post_json = dict_patcher(post_json, json_profile)
         # add attchments here
         if post_json.get("attachment"):
             attach = attachment(post_json["attachment"])
