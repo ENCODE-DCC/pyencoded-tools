@@ -89,7 +89,7 @@ def main():
         for header, sequence, qual_header, quality in encodedcc.fastq_read(connection, uri=link):
             if args.header:
                 header = header.decode("UTF-8")
-                print(header)
+                print(acc + "\t" + str(len(sequence)) + "\t" + header)
             else:
                 sequence = sequence.decode("UTF-8")
                 print(acc + "\t" + str(len(sequence)))

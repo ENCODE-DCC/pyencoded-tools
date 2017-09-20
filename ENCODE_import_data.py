@@ -236,8 +236,21 @@ def data_formatter(value, val_type):
     ''' returns formatted data'''
     if val_type in ["int", "integer"]:
         return int(value)
+    elif val_type in ["num", "number"]:
+        return float(value)
     elif val_type in ["list", "array"]:
         return value.strip("[]").split(",")
+    elif val_type in ["boolean", "bool"]:
+        if isinstance(value, bool):
+            return value
+        elif value in ["True", "TRUE", 1, "1"]:
+            return True
+        elif value in ["False", "FALSE", 0, "0"]:
+            return False
+        else:
+            raise ValueError('Boolean was expected but got: %s, %s' % (value, type(value)))
+    else:
+        raise ValueError('Unrecognized type: %s for value: %s' % (val_type, value))
         
 
 

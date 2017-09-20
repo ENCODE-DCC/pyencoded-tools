@@ -385,11 +385,11 @@ class GetFields():
                     temp = get_ENCODE(self.args.query, self.connection).get("@graph", [])
                 else:
                     temp = [get_ENCODE(self.args.query, self.connection)]
-            elif self.args.object:
-                if os.path.isfile(self.args.object):
-                    self.accessions = [line.strip() for line in open(self.args.object)]
+            elif self.args.infile:
+                if os.path.isfile(self.args.infile):
+                    self.accessions = [line.strip() for line in open(self.args.infile)]
                 else:
-                    self.accessions = self.args.object.split(",")
+                    self.accessions = self.args.infile.split(",")
             if any(temp):
                 for obj in temp:
                     if obj.get("accession"):
@@ -658,11 +658,22 @@ def patch_set(args, connection):
             for key in temp_data.keys():
                 k = key.split(":")
                 if len(k) > 1:
+                    k[1] = k[1].lower()
                     if k[1] == "int" or k[1] == "integer":
                         patch_data[k[0]] = int(temp_data[key])
                     elif k[1] == "array" or k[1] == "list":
+                        if type(temp_data[key]) == str:
+                            # So JSON loads if present.
+                            temp_data[key] = temp_data[key].replace("'",'"')
+                        # Try to convert string before testing type. 
+                        try:
+                            temp_data[key] = json.loads(temp_data[key])
+                        except:
+                            pass
                         if type(temp_data[key]) == dict:
                             l = [temp_data[key]]
+                        elif type(temp_data[key]) == list:
+                            l = [t for t in temp_data[key]]
                         else:
                             l = temp_data[key].strip("[]").split(", ")
                             l = [x.replace("'", "") for x in l]
@@ -675,11 +686,11 @@ def patch_set(args, connection):
                         # this is a dictionary that is being PATCHed
                         temp_data[key] = temp_data[key].replace("'", '"')
                         patch_data[k[0]] = json.loads(temp_data[key])
-                    elif k[1] in ["bool", "Boolean", "boolean", "BOOLEAN"]:
-                        if temp_data[key] in ["True", "true", "TRUE"]:
+                    elif k[1] in ["bool", "boolean"]:
+                        if temp_data[key].lower() == "true":
                             patch_data[k[0]] = True
-                        elif temp_data[key] in ["False", "false", "FALSE"]:
-                            patch_input[k[0]] = False
+                        elif temp_data[key].lower() == "false":
+                            patch_data[k[0]] = False
                 else:
                     patch_data[k[0]] = temp_data[key]
                 old_data = {}

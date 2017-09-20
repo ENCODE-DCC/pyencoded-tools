@@ -103,7 +103,7 @@ class BackFill:
 
     def updater(self, exp, con):
         ''' helper function runs the update step'''
-        temp = encodedcc.get_ENCODE(exp, self.connection).get("controlled_by", [])
+        temp = encodedcc.get_ENCODE(exp + '?datastore=database', self.connection).get("controlled_by", [])
         if con not in temp:
             control = temp + [con]
             patch_dict = {"controlled_by": control}

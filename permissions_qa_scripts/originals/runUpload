@@ -1,0 +1,1 @@
+python submit_fastq.py | grep download | sed -e 's#^.*download/##' | sed -e 's#.fast.*$##' > swap; swapFF=$(cat swap); echo "perl -p -i -e 's#SWAP#$swapFF#g' File.Curl.Wget.ADMIN" > script ; chmod 700 script; ./script ; ./File.Curl.Wget.ADMIN
