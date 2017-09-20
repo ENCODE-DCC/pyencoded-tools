@@ -95,7 +95,7 @@ class ActionTuples:
             '/search/?type=File',
             '/search/?type=AntibodyLot',
             '/search/?type=Biosample',
-            'search/?type=GeneticModification'
+            'search/?type=GeneticModification',
             '/search/?type=Dataset',
             '/search/?type=FileSet',
             '/search/?type=Annotation',
