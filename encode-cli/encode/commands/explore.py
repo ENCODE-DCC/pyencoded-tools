@@ -33,17 +33,13 @@ def crawl(*args, **kwargs):
         current_field = fieldsplit[0]
         if isinstance(data, dict):
             if current_field == '*':
-                fieldsplit.pop(0)
-                [crawl_object(data[k], fieldsplit) for k in data.keys()]
-                fieldsplit.insert(0, current_field)
+                [crawl_object(data[k], fieldsplit[1:]) for k in data.keys()]
                 return
             try:
                 data = data[current_field]
             except KeyError:
                 return
-            fieldsplit.pop(0)
-            crawl_object(data, fieldsplit)
-            fieldsplit.insert(0, current_field)
+            crawl_object(data, fieldsplit[1:])
             return
         raise_error(fieldsplit, '--field')
     crawl_object(*args, **kwargs)
