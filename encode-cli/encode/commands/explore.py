@@ -43,7 +43,8 @@ def crawl(*args, **kwargs):
 
 
 @click.command()
-@click.argument('encode_object')
+@click.argument('encode_object',
+                default='/profiles/')
 @click.option('--field',
               default=None,
               help='Field to return. List subfields with dot notation: '
@@ -68,6 +69,8 @@ def explore(ctx, encode_object, field, limit, frame, count):
                                     ctx.connection,
                                     limit=limit,
                                     frame=frame)
+    if response.get('code', 200) != 200:
+        raise_error(encode_object, 'encode_object')
     # Expose results if reponse from search.
     try:
         response = response['@graph']
