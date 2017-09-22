@@ -79,7 +79,7 @@ characterization_reviews.organism    characterization_reviews.lane:int    ....  
 
 
 REMEMBER:
-to define multiple embedded items the number tag comes at the end 
+to define multiple embedded items the number tag comes at the end
 of the object but before the object type, such as object.subobject-N:type
     tags.name    tags.location    tags.name-1    tags.location-1
     FLAG         C-terminal       BOGUS          Fake-data
@@ -320,7 +320,7 @@ def dict_patcher(old_dict):
 
 def expose_objects(post_json, json_properties):
     '''
-    Check profile to see if value should be object instead of 
+    Check profile to see if value should be object instead of
     list of objects.
     '''
     for key in post_json.keys():
@@ -339,6 +339,8 @@ def excel_reader(datafile, sheet, update, connection, patchall):
     patch = 0
     json_properties = encodedcc.get_ENCODE(
         '/profiles/{}.json'.format(sheet), connection)['properties']
+    new_accessions_aliases = []
+    failed_postings = []
     for values in row:
         total += 1
         post_json = dict(zip(keys, values))
@@ -387,10 +389,32 @@ def excel_reader(datafile, sheet, update, connection, patchall):
                 e = encodedcc.new_ENCODE(connection, sheet, post_json)
                 if e["status"] == "error":
                     error += 1
+                    failed_postings.append(post_json.get(
+                        'aliases', 'alias not specified'))
                 elif e["status"] == "success":
+                    new_object = e['@graph'][0]
+                    # Print now and later.
+                    print('New accession/UUID: {}'.format((new_object.get(
+                        'accession', new_object.get('uuid')))))
+                    new_accessions_aliases.append((new_object.get(
+                        'accession', new_object.get('uuid')), new_object.get('aliases')))
                     success += 1
     print("{sheet}: {success} out of {total} posted, {error} errors, {patch} patched".format(
         sheet=sheet.upper(), success=success, total=total, error=error, patch=patch))
+    if new_accessions_aliases:
+        print('New accession/UUID and alias:'
+              if len(new_accessions_aliases) == 1
+              else 'New accessions/UUIDs and aliases:')
+        for (accession, alias) in new_accessions_aliases:
+            if len(alias) == 0:
+                alias = 'alias not specified'
+            else:
+                alias = ', '.join(alias) if isinstance(alias, list) else alias
+            print(accession, alias)
+    if failed_postings:
+        print('Posting failed for {} object(s):'.format(len(failed_postings)))
+        for alias in failed_postings:
+            print(', '.join(alias) if isinstance(alias, list) else alias)
 
 
 def main():
