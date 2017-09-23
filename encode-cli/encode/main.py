@@ -3,6 +3,7 @@ import os
 
 from .commands.get import get
 from .commands.explore import explore
+from .commands.launch import launch
 from .commands.auth import Auth
 
 
@@ -24,3 +25,4 @@ def cli(ctx, keyfile, key):
 
 cli.add_command(get)
 cli.add_command(explore)
+cli.add_command(launch)
