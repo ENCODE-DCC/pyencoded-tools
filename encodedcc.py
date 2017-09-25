@@ -652,15 +652,7 @@ def patch_set(args, connection):
                     if k[1] in ["list", "array"]:
                         old_list = full_data[name]
                         l = temp_data[key].strip("[]").split(",")
-                        l = [x.replace("'", "") for x in l]
-                        new_list = []
-                        # this should remove items from the list even if they are only a partial match
-                        # such as ENCFF761JAF instead of /files/ENCFF761JAF/
-                        for x in l:
-                            for y in old_list:
-                                if x in y:
-                                    new_list.append(y)
-
+                        new_list = [x.replace("'", "") for x in l]
                         patch_list = list(set(old_list) - set(new_list))
                         put_dict[name] = patch_list
                         print("OLD DATA:", name, old_list)
