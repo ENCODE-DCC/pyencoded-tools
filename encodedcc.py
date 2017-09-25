@@ -635,24 +635,24 @@ def patch_set(args, connection):
                 accession = d[i]
                 temp_data.pop(i)
         if not accession:
-            print("No identifier found in headers!  Cannot PATCH data")
+            print("No identifier found in headers! Cannot PATCH data")
             sys.exit(1)
         accession = quote(accession)
         full_data = get_ENCODE(accession, connection, frame="edit")
         if args.remove:
             put_dict = full_data
+            print("OBJECT:", accession)
             for key in temp_data.keys():
                 k = key.split(":")
                 name = k[0]
                 if name not in full_data.keys():
                     print("Cannot PATCH '{}' may be a calculated property".format(name))
                     sys.exit(1)
-                print("OBJECT:", accession)
                 if len(k) > 1:
                     if k[1] in ["list", "array"]:
                         old_list = full_data[name]
                         l = temp_data[key].strip("[]").split(",")
-                        new_list = [x.replace("'", "") for x in l]
+                        new_list = [x.replace("'", "").strip() for x in l]
                         patch_list = list(set(old_list) - set(new_list))
                         put_dict[name] = patch_list
                         print("OLD DATA:", name, old_list)
@@ -693,8 +693,8 @@ def patch_set(args, connection):
                         elif type(temp_data[key]) == list:
                             l = [t for t in temp_data[key]]
                         else:
-                            l = temp_data[key].strip("[]").split(", ")
-                            l = [x.replace("'", "") for x in l]
+                            l = temp_data[key].strip("[]").split(",")
+                            l = [x.replace("'", "").strip() for x in l]
                         if args.overwrite:
                             patch_data[k[0]] = l
                         else:
@@ -712,15 +712,12 @@ def patch_set(args, connection):
                             patch_data[k[0]] = False
                 else:
                     patch_data[k[0]] = temp_data[key]
-                old_data = {}
-                for key in patch_data.keys():
-                    old_data[key] = full_data.get(key)
-                print("OBJECT:", accession)
-                for key in patch_data.keys():
-                    print("OLD DATA:", key, old_data[key])
-                    print("NEW DATA:", key, patch_data[key])
-                if args.update:
-                    patch_ENCODE(accession, connection, patch_data)
+            print("OBJECT:", accession)
+            for key in patch_data.keys():
+                print("OLD DATA:", key, full_data.get(key))
+                print("NEW DATA:", key, patch_data[key])
+            if args.update:
+                patch_ENCODE(accession, connection, patch_data)
 
 
 def fastq_read(connection, uri=None, filename=None, reads=1):
