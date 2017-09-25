@@ -665,13 +665,11 @@ def patch_set(args, connection):
                         put_dict[name] = patch_list
                         print("OLD DATA:", name, old_list)
                         print("NEW DATA:", name, patch_list)
-                        if args.update:
-                            patch_ENCODE(accession, connection, put_dict)
                 else:
                     put_dict.pop(name, None)
                     print("Removing value:", name)
-                    if args.update:
-                        replace_ENCODE(accession, connection, put_dict)
+            if args.update:
+                replace_ENCODE(accession, connection, put_dict)
         else:
             patch_data = {}
             if args.flowcell:
