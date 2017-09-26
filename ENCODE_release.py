@@ -314,7 +314,7 @@ class Data_Release():
                     if p:
                         print(subobj['@id'] +
                               ' is associated with inactive ' +
-                              'pipeline ' + p +
+                              'pipeline(s) ' + p +
                               ', therefore will not be released')
                         inactive_pipeline_flag = True
                         self.searched.append(subobj["@id"])
@@ -339,14 +339,12 @@ class Data_Release():
         return False
 
     def has_inactive_pipeline(self, file_object):
-        if file_object.get('analysis_step_version'):
-            step_version = file_object.get('analysis_step_version')
-            if step_version.get('analysis_step'):
-                step = step_version.get('analysis_step')
-                if step.get('pipelines'):
-                    for p in step.get('pipelines'):
-                        if p['status'] not in ['active']:
-                            return p['@id']
+        pipelines = file_object.get('analysis_step_version',
+                                    {}).get('analysis_step',
+                                            {}).get('pipelines')
+        if pipelines is not None:
+            if all([p['status'] != 'active' for p in pipelines]):
+                return [p['@id'] for p in pipelines]
         return False
 
     def get_status(self, obj, approved_for_update_types):
