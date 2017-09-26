@@ -1,4 +1,4 @@
-from . import encodedcc
+from .commands import encodedcc
 
 
 class Auth:
