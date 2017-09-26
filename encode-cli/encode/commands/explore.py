@@ -80,16 +80,12 @@ def crawl(*args, **kwargs):
 @click.option('--count/--no-count',
               default=False,
               help='Return count of items.')
-@click.option('--flat/--not-flat',
-              default=False,
-              help='Output results for piping.')
 @click.pass_obj
-def explore(ctx, encode_object, search_type, field, limit, frame, count, where, flat):
+def explore(ctx, encode_object, search_type, field, limit, frame, count, where):
     '''
     Explore facets of ENCODE metadata.
     '''
-    if not flat:
-        click.secho('Using server: {}'.format(ctx.connection.server))
+    click.secho('Using server: {}'.format(ctx.connection.server))
     object_default = '/profiles/'
     if search_type is not None and encode_object == object_default:
         encode_object = '/search/?type={}'.format(search_type)
@@ -103,7 +99,7 @@ def explore(ctx, encode_object, search_type, field, limit, frame, count, where, 
                                     frame=frame)
     if response.get('code', 200) != 200:
         raise_error(encode_object, 'encode_object')
-    # Expose results if reponse from search.
+    # Expose results if response from search.
     try:
         response = response['@graph']
     except KeyError:
@@ -111,23 +107,18 @@ def explore(ctx, encode_object, search_type, field, limit, frame, count, where, 
     fieldsplit = field.split('.') if field is not None else []
     data = crawl(response, fieldsplit)
     if data:
-        if not flat:
-            output_header(data, encode_object, field)
+        output_header(data, encode_object, field)
         if all([isinstance(d, dict) for d in data]):
-            if not flat:
-                click.secho('(Keys)', bold=True)
+            click.secho('(Keys)', bold=True)
             keys = list(set([x for d in data for x in d.keys()]))
             key_types = [type(objects_with_key(k, data)[
                               0][k]).__name__ for k in keys]
-            output = ['{} ({})'.format(k, t)
-                      for k, t in zip(keys, key_types)] if not flat else keys
-            click.secho('{}'.format(' ' if flat else '\n').join(
-                sorted(output)), bold=True)
+            output = ['{} ({})'.format(k, t) for k, t in zip(keys, key_types)]
+            click.secho('\n'.join(sorted(output)), bold=True)
         else:
             if count:
                 data = sorted([(k, v) for k, v in Counter(
                     data).items()], key=lambda x: x[1], reverse=True)
-            click.secho('{}'.format(' ' if flat else '\n').join(
-                [str(d) for d in data]), bold=True)
+            click.secho('\n'.join([str(d) for d in data]), bold=True)
     else:
         click.secho('No results found', bold=True, fg='red')
