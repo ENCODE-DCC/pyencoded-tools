@@ -1,4 +1,5 @@
 import click
+import pandas as pd
 
 from collections import Counter
 from . import encodedcc
@@ -17,12 +18,25 @@ def parse_where(where):
     return '&' + '&'.join([w.strip() for w in where.split(',')])
 
 
-def output_header(data, encode_object, field):
+def print_header(data, encode_object, field):
     click.secho('Found {} {}{}{}'.format(len(data),
                                          encode_object,
                                          ':' if field else ' ',
                                          field if field else ''),
                 bold=True, fg='green')
+
+
+def print_data(data, columns, out):
+    if out == 'raw':
+        data = '\n'.join(str(d) for d in data)
+    else:
+        df = pd.DataFrame(data, columns=columns)
+        data = df.__getattr__('to_{}'.format(out))()
+    click.secho(data, bold=True)
+
+
+def print_error(message):
+    click.secho(message, bold=True, fg='red')
 
 
 def crawl(*args, **kwargs):
@@ -77,11 +91,15 @@ def crawl(*args, **kwargs):
               type=click.Choice(['object', 'embedded']),
               help='JSON returned as regular object or embedded object.'
               ' Default is object.')
+@click.option('--out',
+              default='raw',
+              type=click.Choice(['string', 'csv', 'json', 'raw']),
+              help='Output format. Default raw.')
 @click.option('--count/--no-count',
               default=False,
               help='Return count of items.')
 @click.pass_obj
-def explore(ctx, encode_object, search_type, field, limit, frame, count, where):
+def explore(ctx, encode_object, search_type, field, limit, frame, count, where, out):
     '''
     Explore facets of ENCODE metadata.
     '''
@@ -106,19 +124,20 @@ def explore(ctx, encode_object, search_type, field, limit, frame, count, where):
         pass
     fieldsplit = field.split('.') if field is not None else []
     data = crawl(response, fieldsplit)
+    columns = [field]
     if data:
-        output_header(data, encode_object, field)
+        print_header(data, encode_object, field)
         if all([isinstance(d, dict) for d in data]):
-            click.secho('(Keys)', bold=True)
             keys = list(set([x for d in data for x in d.keys()]))
             key_types = [type(objects_with_key(k, data)[
                               0][k]).__name__ for k in keys]
-            output = ['{} ({})'.format(k, t) for k, t in zip(keys, key_types)]
-            click.secho('\n'.join(sorted(output)), bold=True)
+            data = ['{} ({})'.format(k, t) for k, t in zip(keys, key_types)]
+            columns = ['Keys']
         else:
             if count:
                 data = sorted([(k, v) for k, v in Counter(
                     data).items()], key=lambda x: x[1], reverse=True)
-            click.secho('\n'.join([str(d) for d in data]), bold=True)
+                columns = [field if field else encode_object, 'count']
+        print_data(data, columns, out)
     else:
-        click.secho('No results found', bold=True, fg='red')
+        print_error('No results found')
