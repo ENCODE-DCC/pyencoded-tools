@@ -312,10 +312,8 @@ class Data_Release():
                         identifier_link,
                         self.connection, "embedded"))
                     if p:
-                        print(subobj['@id'] +
-                              ' is associated with inactive ' +
-                              'pipeline(s) ' + p +
-                              ', therefore will not be released')
+                        print('{} is only associated with inactive pipelines'
+                              ' and therefore will not be released: {}'.format(subobj['@id'], p))
                         inactive_pipeline_flag = True
                         self.searched.append(subobj["@id"])
             # expand subobject
