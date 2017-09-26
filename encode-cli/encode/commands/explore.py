@@ -18,7 +18,32 @@ def parse_where(where):
     return '&' + '&'.join([w.strip() for w in where.split(',')])
 
 
-def crawl(*args, **kwargs):
+def check_inputs(encode_object, search_type, where):
+    if search_type is not None and encode_object == '/profiles/':
+        encode_object = '/search/?type={}'.format(search_type)
+        if where is not None:
+            encode_object = encode_object + parse_where(where)
+    if where is not None and search_type is None:
+        raise_error('--search_type required for --where', 'where')
+    return encode_object
+
+
+def get_data(ctx, encode_object, limit, frame):
+    response = encodedcc.get_ENCODE(encode_object,
+                                    ctx.connection,
+                                    limit=limit,
+                                    frame=frame)
+    if response.get('code', 200) != 200:
+        raise_error(encode_object, 'encode_object')
+    # Expose results if response from search.
+    try:
+        response = response['@graph']
+    except KeyError:
+        pass
+    return response
+
+
+def crawl_json(*args, **kwargs):
     items_found = []
 
     def crawl_object(data, fieldsplit):
@@ -83,40 +108,23 @@ def explore(ctx, encode_object, search_type, field, limit, frame, count, where, 
     Explore facets of ENCODE metadata.
     '''
     click.secho('Using server: {}'.format(ctx.connection.server))
-    object_default = '/profiles/'
-    if search_type is not None and encode_object == object_default:
-        encode_object = '/search/?type={}'.format(search_type)
-        if where is not None:
-            encode_object = encode_object + parse_where(where)
-    if where is not None and search_type is None:
-        raise_error('--search_type required for --where', 'where')
-    response = encodedcc.get_ENCODE(encode_object,
-                                    ctx.connection,
-                                    limit=limit,
-                                    frame=frame)
-    if response.get('code', 200) != 200:
-        raise_error(encode_object, 'encode_object')
-    # Expose results if response from search.
-    try:
-        response = response['@graph']
-    except KeyError:
-        pass
-    fieldsplit = field.split('.') if field is not None else []
-    data = crawl(response, fieldsplit)
-    columns = [field]
+    encode_object = check_inputs(encode_object, search_type, where)
+    response = get_data(ctx, encode_object, limit, frame)
+    data = crawl_json(response, field.split('.') if field is not None else [])
     if data:
+        columns = [field]
         print_header(data, encode_object, field)
         if all([isinstance(d, dict) for d in data]):
+            columns = ['Keys']
             keys = list(set([x for d in data for x in d.keys()]))
             key_types = [type(objects_with_key(k, data)[
                               0][k]).__name__ for k in keys]
             data = ['{} ({})'.format(k, t) for k, t in zip(keys, key_types)]
-            columns = ['Keys']
         else:
             if count:
+                columns = [field if field else encode_object, 'count']
                 data = sorted([(k, v) for k, v in Counter(
                     data).items()], key=lambda x: x[1], reverse=True)
-                columns = [field if field else encode_object, 'count']
         print_data(data, columns, out)
     else:
         print_error('No results found')
