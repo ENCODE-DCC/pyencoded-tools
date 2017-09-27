@@ -12,11 +12,13 @@ import hashlib
 import copy
 import subprocess
 
+
 class dict_diff(object):
     """
     Calculate items added, items removed, keys same in both but changed values,
     keys same in both and unchanged values
     """
+
     def __init__(self, current_dict, past_dict):
         self.current_dict, self.past_dict = current_dict, past_dict
         self.current_keys, self.past_keys = [
@@ -77,7 +79,8 @@ class ENC_Key:
 
 class ENC_Connection(object):
     def __init__(self, key):
-        self.headers = {'content-type': 'application/json', 'accept': 'application/json'}
+        self.headers = {'content-type': 'application/json',
+                        'accept': 'application/json'}
         self.server = key.server
         self.auth = (key.authid, key.authpw)
 
@@ -116,6 +119,7 @@ class ENC_Collection(object):
                                             doc_type=self.search_name,
                                             size=maxhits)
         return results
+
 
 global schemas
 schemas = []
@@ -202,7 +206,8 @@ class ENC_Item(object):
                     else:
                         pass
                 # should return the new object that comes back from the patch
-                new_object = replace_ENCODE(self.id, self.connection, put_payload)
+                new_object = replace_ENCODE(
+                    self.id, self.connection, put_payload)
 
             else:  # PATCH
 
@@ -212,7 +217,8 @@ class ENC_Item(object):
                     if prop not in excluded_from_patch:
                         patch_payload.update({prop: self.properties[prop]})
                 # should probably return the new object that comes back from the patch
-                new_object = patch_ENCODE(self.id, self.connection, patch_payload)
+                new_object = patch_ENCODE(
+                    self.id, self.connection, patch_payload)
 
         return new_object
 
@@ -231,26 +237,29 @@ def get_ENCODE(obj_id, connection, frame="object"):
     '''GET an ENCODE object as JSON and return as dict'''
     if frame is None:
         if '?' in obj_id:
-            url = urljoin(connection.server, obj_id+'&limit=all')
+            url = urljoin(connection.server, obj_id + '&limit=all')
         else:
-            url = urljoin(connection.server, obj_id+'?limit=all')
+            url = urljoin(connection.server, obj_id + '?limit=all')
     elif '?' in obj_id:
-        url = urljoin(connection.server, obj_id+'&limit=all&frame='+frame)
+        url = urljoin(connection.server, obj_id + '&limit=all&frame=' + frame)
     else:
-        url = urljoin(connection.server, obj_id+'?limit=all&frame='+frame)
+        url = urljoin(connection.server, obj_id + '?limit=all&frame=' + frame)
     logging.debug('GET %s' % (url))
-    response = requests.get(url, auth=connection.auth, headers=connection.headers)
+    response = requests.get(url, auth=connection.auth,
+                            headers=connection.headers)
     logging.debug('GET RESPONSE code %s' % (response.status_code))
     try:
         if response.json():
-            logging.debug('GET RESPONSE JSON: %s' % (json.dumps(response.json(), indent=4, separators=(',', ': '))))
+            logging.debug('GET RESPONSE JSON: %s' % (json.dumps(
+                response.json(), indent=4, separators=(',', ': '))))
     except:
         logging.debug('GET RESPONSE text %s' % (response.text))
     if not response.status_code == 200:
         if response.json().get("notification"):
             logging.warning('%s' % (response.json().get("notification")))
         else:
-            logging.warning('GET failure.  Response code = %s' % (response.text))
+            logging.warning('GET failure.  Response code = %s' %
+                            (response.text))
     return response.json()
 
 
@@ -308,17 +317,17 @@ def new_ENCODE(connection, collection_name, post_input):
     url = urljoin(connection.server, collection_name)
     logging.debug("POST URL : %s" % (url))
     logging.debug("POST data: %s" % (json.dumps(post_input,
-                                     sort_keys=True, indent=4,
-                                     separators=(',', ': '))))
+                                                sort_keys=True, indent=4,
+                                                separators=(',', ': '))))
     response = requests.post(url, auth=connection.auth,
                              headers=connection.headers, data=json_payload)
     logging.debug("POST RESPONSE: %s" % (json.dumps(response.json(),
-                                         indent=4, separators=(',', ': '))))
+                                                    indent=4, separators=(',', ': '))))
     if not response.status_code == 201:
         logging.warning('POST failure. Response = %s' % (response.text))
     logging.debug("Return object: %s" % (json.dumps(response.json(),
-                                         sort_keys=True, indent=4,
-                                         separators=(',', ': '))))
+                                                    sort_keys=True, indent=4,
+                                                    separators=(',', ': '))))
     return response.json()
 
 
@@ -377,17 +386,21 @@ class GetFields():
             temp = []
             if self.args.collection:
                 if self.args.es:
-                    temp = get_ENCODE("/search/?type=" + self.args.collection, self.connection).get("@graph", [])
+                    temp = get_ENCODE(
+                        "/search/?type=" + self.args.collection, self.connection).get("@graph", [])
                 else:
-                    temp = get_ENCODE(self.args.collection, self.connection, frame=None).get("@graph", [])
+                    temp = get_ENCODE(
+                        self.args.collection, self.connection, frame=None).get("@graph", [])
             elif self.args.query:
                 if "search" in self.args.query:
-                    temp = get_ENCODE(self.args.query, self.connection).get("@graph", [])
+                    temp = get_ENCODE(
+                        self.args.query, self.connection).get("@graph", [])
                 else:
                     temp = [get_ENCODE(self.args.query, self.connection)]
             elif self.args.infile:
                 if os.path.isfile(self.args.infile):
-                    self.accessions = [line.strip() for line in open(self.args.infile)]
+                    self.accessions = [line.strip()
+                                       for line in open(self.args.infile)]
                 else:
                     self.accessions = self.args.infile.split(",")
             if any(temp):
@@ -404,11 +417,14 @@ class GetFields():
                         print("ERROR: object has no identifier", file=sys.stderr)
             if self.args.allfields:
                 if self.args.collection:
-                    obj = get_ENCODE("/profiles/" + self.args.collection + ".json", self.connection).get("properties")
+                    obj = get_ENCODE(
+                        "/profiles/" + self.args.collection + ".json", self.connection).get("properties")
                 else:
-                    obj_type = get_ENCODE(self.accessions[0], self.connection).get("@type")
+                    obj_type = get_ENCODE(
+                        self.accessions[0], self.connection).get("@type")
                     if any(obj_type):
-                        obj = get_ENCODE("/profiles/" + obj_type[0] + ".json", self.connection).get("properties")
+                        obj = get_ENCODE(
+                            "/profiles/" + obj_type[0] + ".json", self.connection).get("properties")
                 self.fields = list(obj.keys())
                 for key in obj.keys():
                     if obj[key]["type"] == "string":
@@ -418,7 +434,8 @@ class GetFields():
                 self.header.sort()
             elif self.args.field:
                 if os.path.isfile(self.args.field):
-                    self.fields = [line.strip() for line in open(self.args.field)]
+                    self.fields = [line.strip()
+                                   for line in open(self.args.field)]
                 else:
                     self.fields = self.args.field.split(",")
         if len(self.accessions) == 0:
@@ -439,8 +456,10 @@ class GetFields():
             newObj = {}
             newObj["accession"] = acc
             for f in self.fields:
-                path = deque(f.split("."))  # check to see if someone wants embedded value
-                field = self.get_embedded(path, obj)  # get the last element in the split list
+                # check to see if someone wants embedded value
+                path = deque(f.split("."))
+                # get the last element in the split list
+                field = self.get_embedded(path, obj)
                 if field:  # after the above loop, should have final field value
                     name = f
                     if not self.facet:
@@ -451,7 +470,8 @@ class GetFields():
                             self.header.append(name)
             self.data.append(newObj)
         if not self.facet:
-            writer = csv.DictWriter(sys.stdout, delimiter='\t', fieldnames=self.header)
+            writer = csv.DictWriter(
+                sys.stdout, delimiter='\t', fieldnames=self.header)
             writer.writeheader()
             for d in self.data:
                 writer.writerow(d)
@@ -523,21 +543,25 @@ class GetFields():
                         temp = get_ENCODE(f, self.connection)
                         if temp.get(path[0]):
                             if len(path) == 1:  # if last element in path then get from each item in list
-                                files_list.append(temp[path[0]])  # add items to list
+                                # add items to list
+                                files_list.append(temp[path[0]])
                             else:
                                 return self.get_embedded(path, temp)
                     if self.args.listfull:
                         return files_list
                     else:
-                        return list(set(files_list))  # return unique list of last element items
+                        # return unique list of last element items
+                        return list(set(files_list))
                 else:
                     if type(obj[field]) == int:
-                        return obj[field]  # just return integers as is, we can't expand them
+                        # just return integers as is, we can't expand them
+                        return obj[field]
                     elif type(obj[field]) == list:
                         if len(path) == 1:  # if last element in path then get from each item in list
                             files_list = []
                             for f in obj[field]:
-                                if type(f) == dict:  # if this is like a flowcell or something it should catch here
+                                # if this is like a flowcell or something it should catch here
+                                if type(f) == dict:
                                     return f
                                 temp = get_ENCODE(f, self.connection)
                                 if temp.get(path[0]):
@@ -548,16 +572,20 @@ class GetFields():
                             if self.args.listfull:
                                 return files_list
                             else:
-                                return list(set(files_list))  # return unique list of last element items
+                                # return unique list of last element items
+                                return list(set(files_list))
                         elif self.facet:  # facet is a special case for the search page flattener
                             temp = get_ENCODE(obj[field][0], self.connection)
                             return self.get_embedded(path, temp)
                         else:  # if this is not the last item in the path, but we are in a list
-                            return obj[field]  # return the item since we can't dig deeper without getting lost
+                            # return the item since we can't dig deeper without getting lost
+                            return obj[field]
                     elif type(obj[field]) == dict:
-                        return obj[field]  # return dictionary objects, probably things like flowcells anyways
+                        # return dictionary objects, probably things like flowcells anyways
+                        return obj[field]
                     else:
-                        temp = get_ENCODE(obj[field], self.connection)  # if found get_ENCODE the embedded object
+                        # if found get_ENCODE the embedded object
+                        temp = get_ENCODE(obj[field], self.connection)
                         return self.get_embedded(path, temp)
             else:  # if not obj.get(field) then we kick back an error
                 return ""
@@ -607,43 +635,33 @@ def patch_set(args, connection):
                 accession = d[i]
                 temp_data.pop(i)
         if not accession:
-            print("No identifier found in headers!  Cannot PATCH data")
+            print("No identifier found in headers! Cannot PATCH data")
             sys.exit(1)
         accession = quote(accession)
         full_data = get_ENCODE(accession, connection, frame="edit")
         if args.remove:
             put_dict = full_data
+            print("OBJECT:", accession)
             for key in temp_data.keys():
                 k = key.split(":")
                 name = k[0]
                 if name not in full_data.keys():
                     print("Cannot PATCH '{}' may be a calculated property".format(name))
                     sys.exit(1)
-                print("OBJECT:", accession)
                 if len(k) > 1:
                     if k[1] in ["list", "array"]:
                         old_list = full_data[name]
                         l = temp_data[key].strip("[]").split(",")
-                        l = [x.replace("'", "") for x in l]
-                        new_list = []
-                        # this should remove items from the list even if they are only a partial match
-                        # such as ENCFF761JAF instead of /files/ENCFF761JAF/
-                        for x in l:
-                            for y in old_list:
-                                if x in y:
-                                    new_list.append(y)
-
+                        new_list = [x.replace("'", "").strip() for x in l]
                         patch_list = list(set(old_list) - set(new_list))
                         put_dict[name] = patch_list
                         print("OLD DATA:", name, old_list)
                         print("NEW DATA:", name, patch_list)
-                        if args.update:
-                            patch_ENCODE(accession, connection, put_dict)
                 else:
                     put_dict.pop(name, None)
                     print("Removing value:", name)
-                    if args.update:
-                        replace_ENCODE(accession, connection, put_dict)
+            if args.update:
+                replace_ENCODE(accession, connection, put_dict)
         else:
             patch_data = {}
             if args.flowcell:
@@ -664,8 +682,8 @@ def patch_set(args, connection):
                     elif k[1] == "array" or k[1] == "list":
                         if type(temp_data[key]) == str:
                             # So JSON loads if present.
-                            temp_data[key] = temp_data[key].replace("'",'"')
-                        # Try to convert string before testing type. 
+                            temp_data[key] = temp_data[key].replace("'", '"')
+                        # Try to convert string before testing type.
                         try:
                             temp_data[key] = json.loads(temp_data[key])
                         except:
@@ -675,12 +693,13 @@ def patch_set(args, connection):
                         elif type(temp_data[key]) == list:
                             l = [t for t in temp_data[key]]
                         else:
-                            l = temp_data[key].strip("[]").split(", ")
-                            l = [x.replace("'", "") for x in l]
+                            l = temp_data[key].strip("[]").split(",")
+                            l = [x.replace("'", "").strip() for x in l]
                         if args.overwrite:
                             patch_data[k[0]] = l
                         else:
-                            append_list = get_ENCODE(accession, connection).get(k[0], [])
+                            append_list = get_ENCODE(
+                                accession, connection).get(k[0], [])
                             patch_data[k[0]] = l + append_list
                     elif k[1] == "dict":
                         # this is a dictionary that is being PATCHed
@@ -693,15 +712,12 @@ def patch_set(args, connection):
                             patch_data[k[0]] = False
                 else:
                     patch_data[k[0]] = temp_data[key]
-                old_data = {}
-                for key in patch_data.keys():
-                    old_data[key] = full_data.get(key)
-                print("OBJECT:", accession)
-                for key in patch_data.keys():
-                    print("OLD DATA:", key, old_data[key])
-                    print("NEW DATA:", key, patch_data[key])
-                if args.update:
-                    patch_ENCODE(accession, connection, patch_data)
+            print("OBJECT:", accession)
+            for key in patch_data.keys():
+                print("OLD DATA:", key, full_data.get(key))
+                print("NEW DATA:", key, patch_data[key])
+            if args.update:
+                patch_ENCODE(accession, connection, patch_data)
 
 
 def fastq_read(connection, uri=None, filename=None, reads=1):
@@ -735,7 +751,7 @@ def fastq_read(connection, uri=None, filename=None, reads=1):
 def md5(path):
     md5sum = hashlib.md5()
     with open(path, 'rb') as f:
-        for chunk in iter(lambda: f.read(1024*1024), b''):
+        for chunk in iter(lambda: f.read(1024 * 1024), b''):
             md5sum.update(chunk)
     return md5sum.hexdigest()
 
@@ -750,7 +766,8 @@ def post_file(file_metadata, connection, update=False):
         pass
     if update:
         url = urljoin(connection.server, '/files/')
-        r = requests.post(url, auth=connection.auth, headers=connection.headers, data=json.dumps(file_metadata))
+        r = requests.post(url, auth=connection.auth,
+                          headers=connection.headers, data=json.dumps(file_metadata))
         try:
             r.raise_for_status()
         except:
@@ -758,7 +775,8 @@ def post_file(file_metadata, connection, update=False):
             if r.status_code == 409:
                 return r
             else:
-                logging.warning('POST failed: %s %s' % (r.status_code, r.reason))
+                logging.warning('POST failed: %s %s' %
+                                (r.status_code, r.reason))
                 logging.warning(r.text)
                 return None
         else:
@@ -784,10 +802,12 @@ def upload_file(file_obj, update=False):
         })
         path = file_obj.get('submitted_file_name')
         try:
-            subprocess.check_call(['aws', 's3', 'cp', path, creds['upload_url']], env=env)
+            subprocess.check_call(
+                ['aws', 's3', 'cp', path, creds['upload_url']], env=env)
         except subprocess.CalledProcessError as e:
             # The aws command returns a non-zero exit code on error.
-            logging.error("AWS upload failed with exit code %d" % (e.returncode))
+            logging.error("AWS upload failed with exit code %d" %
+                          (e.returncode))
             return e.returncode
         else:
             return 0
