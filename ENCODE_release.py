@@ -87,7 +87,7 @@ def getArgs():
     parser = argparse.ArgumentParser(
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        )
+    )
     parser.add_argument('--infile',
                         help="File containing single column of accessions " +
                         "or a single accession or comma separated list " +
@@ -283,7 +283,7 @@ class Data_Release():
                     if d[prop].get("items"):
                         if (object_type == 'File' and prop == 'quality_metrics') or \
                            (object_type == 'Dataset' and
-                           prop in ['replicates', 'original_files']):
+                                prop in ['replicates', 'original_files']):
                             i = d[prop].get("items")
                             if i.get("linkFrom"):
                                 self.keysLink.append(prop)
@@ -303,8 +303,8 @@ class Data_Release():
            (identifier_link not in self.searched):
             if (subobjname == 'File'):
                 if self.is_restricted(subobj) is True:
-                    print (subobj['@id'] + ' is restricted, ' +
-                           'therefore will not be released')
+                    print(subobj['@id'] + ' is restricted, ' +
+                          'therefore will not be released')
                     restricted_flag = True
                     self.searched.append(subobj["@id"])
                 if subobj.get('analysis_step_version'):
@@ -312,10 +312,8 @@ class Data_Release():
                         identifier_link,
                         self.connection, "embedded"))
                     if p:
-                        print (subobj['@id'] +
-                               ' is associated with inactive ' +
-                               'pipeline ' + p +
-                               ', therefore will not be released')
+                        print('{} is only associated with inactive pipelines'
+                              ' and therefore will not be released: {}'.format(subobj['@id'], p))
                         inactive_pipeline_flag = True
                         self.searched.append(subobj["@id"])
             # expand subobject
@@ -339,16 +337,13 @@ class Data_Release():
         return False
 
     def has_inactive_pipeline(self, file_object):
-        if file_object.get('analysis_step_version'):
-            step_version = file_object.get('analysis_step_version')
-            if step_version.get('analysis_step'):
-                step = step_version.get('analysis_step')
-                if step.get('pipelines'):
-                    for p in step.get('pipelines'):
-                        if p['status'] not in ['active']:
-                            return p['@id']
+        pipelines = file_object.get('analysis_step_version',
+                                    {}).get('analysis_step',
+                                            {}).get('pipelines')
+        if pipelines is not None:
+            if all([p['status'] != 'active' for p in pipelines]):
+                return [p['@id'] for p in pipelines]
         return False
-
 
     def get_status(self, obj, approved_for_update_types):
         '''take object get status, @type, @id, uuid
@@ -396,7 +391,7 @@ class Data_Release():
             log += " with date {}".format(now)
         logger.info('%s' % log)
         if self.PRINTALL:
-            print (log)
+            print(log)
         encodedcc.patch_ENCODE(identifier, self.connection, patch_dict)
 
     def run_script(self):
@@ -425,9 +420,9 @@ class Data_Release():
         ignore = ["User",
                   "AntibodyCharacterization",
                   "Publication"]
-        print ("Releasenator version " + str(self.releasenator_version))
+        print("Releasenator version " + str(self.releasenator_version))
         for accession in self.ACCESSIONS:
-            print ("Processing accession: " + accession)
+            print("Processing accession: " + accession)
             expandedDict = encodedcc.get_ENCODE(accession, self.connection)
             objectStatus = expandedDict.get("status")
             obj = expandedDict["@type"][0]
@@ -435,9 +430,10 @@ class Data_Release():
             audit = encodedcc.get_ENCODE(accession, self.connection,
                                          "page").get("audit", {})
             passAudit = True
-            logger.info('Releasenator version ' + str(self.releasenator_version))
+            logger.info('Releasenator version ' +
+                        str(self.releasenator_version))
             logger.info('%s' % "{}: {} Status: {}".format(obj, accession,
-                        objectStatus))
+                                                          objectStatus))
             if audit.get("ERROR", ""):
                 logger.warning('%s' % "WARNING: Audit status: ERROR")
                 passAudit = False
@@ -467,7 +463,8 @@ class Data_Release():
                             logger.info(log)
                             # print (log)
                     elif status in bad:
-                        log = '%s' % "WARNING: {} ".format(key) + "has status {}".format(status)
+                        log = '%s' % "WARNING: {} ".format(
+                            key) + "has status {}".format(status)
                         # print (log)
                         logger.warning(log)
                     else:
@@ -482,16 +479,19 @@ class Data_Release():
         print("Data written to file", self.outfile)
         if self.TIMING:
             timing = int(time.time() - t0)
-            print ("Execution of releasenator script took " + str(timing) + " seconds")
+            print("Execution of releasenator script took " +
+                  str(timing) + " seconds")
+
 
 def main():
     args = getArgs()
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
-    print ("Running on", key.server)
+    print("Running on", key.server)
     # build the PROFILES reference dictionary
     release = Data_Release(args, connection)
     release.run_script()
+
 
 if __name__ == "__main__":
     main()
