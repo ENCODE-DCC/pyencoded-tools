@@ -12,6 +12,23 @@ import hashlib
 import copy
 import subprocess
 
+from contextlib import contextmanager
+
+
+@contextmanager
+def print_muted():
+    '''
+    Temporarily redirects stdout and stderr and disables logging to silence
+    any printing within the with print_muted(): context.
+    '''
+    with open(os.devnull, 'w') as null:
+        _stdout, _stderr = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = null, null
+        logging.getLogger().disabled = True
+        yield
+        sys.stdout, sys.stderr = _stdout, _stderr
+        logging.getLogger().disabled = False
+
 
 class dict_diff(object):
     """

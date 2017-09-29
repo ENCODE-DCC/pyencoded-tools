@@ -3,12 +3,13 @@
 import argparse
 import os.path
 import encodedcc
+import json
 import xlrd
 import datetime
 import sys
 import mimetypes
 import requests
-from PIL import Image # install me with 'pip3 install Pillow'
+from PIL import Image  # install me with 'pip3 install Pillow'
 from urllib.parse import quote
 from base64 import b64encode
 import magic  # install me with 'pip3 install python-magic'
@@ -78,7 +79,7 @@ characterization_reviews.organism    characterization_reviews.lane:int    ....  
 
 
 REMEMBER:
-to define multiple embedded items the number tag comes at the end 
+to define multiple embedded items the number tag comes at the end
 of the object but before the object type, such as object.subobject-N:type
     tags.name    tags.location    tags.name-1    tags.location-1
     FLAG         C-terminal       BOGUS          Fake-data
@@ -152,7 +153,8 @@ def attachment(path):
     # XXX This validation logic should move server-side.
     if not (detected_type == mime_type or
             detected_type == 'text/plain' and major == 'text'):
-        raise ValueError('Wrong extension for %s: %s' % (detected_type, filename))
+        raise ValueError('Wrong extension for %s: %s' %
+                         (detected_type, filename))
 
     with open(path, 'rb') as stream:
         attach = {
@@ -241,15 +243,18 @@ def data_formatter(value, val_type):
         elif value in ["False", "FALSE", 0, "0"]:
             return False
         else:
-            raise ValueError('Boolean was expected but got: %s, %s' % (value, type(value)))
+            raise ValueError('Boolean was expected but got: %s, %s' %
+                             (value, type(value)))
+    elif val_type in ["json", "object"]:
+        return json.loads(value)
     else:
-        raise ValueError('Unrecognized type: %s for value: %s' % (val_type, value))
-        
+        raise ValueError('Unrecognized type: %s for value: %s' %
+                         (val_type, value))
 
 
 def dict_patcher(old_dict):
     new_dict = {}
-    for key in old_dict.keys():
+    for key in sorted(old_dict.keys()):
         if old_dict[key] != "":  # this removes empty cells
             k = key.split(":")
             path = k[0].split(".")
@@ -272,10 +277,12 @@ def dict_patcher(old_dict):
                         # this has a number next to it
                         if len(new_dict[path[0]]) == int(value[1]):
                             # this means we have not added any part of new item to the list
-                            new_dict[path[0]].insert(int(value[1]), {value[0]: old_dict[key]})
+                            new_dict[path[0]].insert(
+                                int(value[1]), {value[0]: old_dict[key]})
                         else:
                             # this should be that we have started putting in the new object
-                            new_dict[path[0]][int(value[1])].update({value[0]: old_dict[key]})
+                            new_dict[path[0]][int(value[1])].update(
+                                {value[0]: old_dict[key]})
                     else:
                         # the object does not exist in the embedded part, add it
                         new_dict[path[0]][0].update({path[1]: old_dict[key]})
@@ -294,18 +301,33 @@ def dict_patcher(old_dict):
                         # this has a number next to it
                         if len(new_dict[path[0]]) == int(value[1]):
                             # this means we have not added any part of new item to the list
-                            new_dict[path[0]].insert(int(value[1]), {value[0]: old_dict[key]})
+                            new_dict[path[0]].insert(
+                                int(value[1]), {value[0]: old_dict[key]})
                         else:
                             # this should be that we have started putting in the new object
-                            new_dict[path[0]][int(value[1])].update({value[0]: old_dict[key]})
+                            new_dict[path[0]][int(value[1])].update(
+                                {value[0]: old_dict[key]})
                     else:
                         # the object does not exist in the embedded part, add it
-                        new_dict[path[0]][0].update({path[1]: data_formatter(old_dict[key], k[1])})
+                        new_dict[path[0]][0].update(
+                            {path[1]: data_formatter(old_dict[key], k[1])})
                 else:
                     # make new item in dictionary
                     temp_dict = {path[1]: data_formatter(old_dict[key], k[1])}
                     new_dict[path[0]] = [temp_dict]
     return new_dict
+
+
+def expose_objects(post_json, json_properties):
+    '''
+    Check profile to see if value should be object instead of
+    list of objects.
+    '''
+    for key in post_json.keys():
+        if ((len(post_json[key]) == 1)
+                and (json_properties[key]['type'] == 'object')):
+            post_json[key] = post_json[key][0]
+    return post_json
 
 
 def excel_reader(datafile, sheet, update, connection, patchall):
@@ -315,25 +337,32 @@ def excel_reader(datafile, sheet, update, connection, patchall):
     error = 0
     success = 0
     patch = 0
+    json_properties = encodedcc.get_ENCODE(
+        '/profiles/{}.json'.format(sheet), connection)['properties']
+    new_accessions_aliases = []
+    failed_postings = []
     for values in row:
         total += 1
         post_json = dict(zip(keys, values))
         post_json = dict_patcher(post_json)
+        post_json = expose_objects(post_json, json_properties)
         # add attchments here
         if post_json.get("attachment"):
             attach = attachment(post_json["attachment"])
             post_json["attachment"] = attach
         print(post_json)
         temp = {}
-        if post_json.get("uuid"):
-            temp = encodedcc.get_ENCODE(post_json["uuid"], connection)
-        elif post_json.get("aliases"):
-            temp = encodedcc.get_ENCODE(quote(post_json["aliases"][0]),
-                                        connection)
-        elif post_json.get("accession"):
-            temp = encodedcc.get_ENCODE(post_json["accession"], connection)
-        elif post_json.get("@id"):
-            temp = encodedcc.get_ENCODE(post_json["@id"], connection)
+        # Silence get_ENCODE failures.
+        with encodedcc.print_muted():
+            if post_json.get("uuid"):
+                temp = encodedcc.get_ENCODE(post_json["uuid"], connection)
+            elif post_json.get("aliases"):
+                temp = encodedcc.get_ENCODE(quote(post_json["aliases"][0]),
+                                            connection)
+            elif post_json.get("accession"):
+                temp = encodedcc.get_ENCODE(post_json["accession"], connection)
+            elif post_json.get("@id"):
+                temp = encodedcc.get_ENCODE(post_json["@id"], connection)
         if temp.get("uuid"):
             if patchall:
                 e = encodedcc.patch_ENCODE(temp["uuid"], connection, post_json)
@@ -343,10 +372,12 @@ def excel_reader(datafile, sheet, update, connection, patchall):
                     success += 1
                     patch += 1
             else:
-                print("Object {} already exists.  Would you like to patch it instead?".format(temp["uuid"]))
+                print("Object {} already exists.  Would you like to patch it instead?".format(
+                    temp["uuid"]))
                 i = input("PATCH? y/n ")
                 if i.lower() == "y":
-                    e = encodedcc.patch_ENCODE(temp["uuid"], connection, post_json)
+                    e = encodedcc.patch_ENCODE(
+                        temp["uuid"], connection, post_json)
                     if e["status"] == "error":
                         error += 1
                     elif e["status"] == "success":
@@ -358,10 +389,32 @@ def excel_reader(datafile, sheet, update, connection, patchall):
                 e = encodedcc.new_ENCODE(connection, sheet, post_json)
                 if e["status"] == "error":
                     error += 1
+                    failed_postings.append(post_json.get(
+                        'aliases', 'alias not specified'))
                 elif e["status"] == "success":
+                    new_object = e['@graph'][0]
+                    # Print now and later.
+                    print('New accession/UUID: {}'.format((new_object.get(
+                        'accession', new_object.get('uuid')))))
+                    new_accessions_aliases.append((new_object.get(
+                        'accession', new_object.get('uuid')), new_object.get('aliases')))
                     success += 1
     print("{sheet}: {success} out of {total} posted, {error} errors, {patch} patched".format(
         sheet=sheet.upper(), success=success, total=total, error=error, patch=patch))
+    if new_accessions_aliases:
+        print('New accession/UUID and alias:'
+              if len(new_accessions_aliases) == 1
+              else 'New accessions/UUIDs and aliases:')
+        for (accession, alias) in new_accessions_aliases:
+            if len(alias) == 0:
+                alias = 'alias not specified'
+            else:
+                alias = ', '.join(alias) if isinstance(alias, list) else alias
+            print(accession, alias)
+    if failed_postings:
+        print('Posting failed for {} object(s):'.format(len(failed_postings)))
+        for alias in failed_postings:
+            print(', '.join(alias) if isinstance(alias, list) else alias)
 
 
 def main():
@@ -382,9 +435,12 @@ def main():
     supported_collections = [s.lower() for s in list(profiles.keys())]
     for n in names:
         if n.lower() in supported_collections:
-            excel_reader(args.infile, n, args.update, connection, args.patchall)
+            excel_reader(args.infile, n, args.update,
+                         connection, args.patchall)
         else:
-            print("Sheet name '{name}' not part of supported object types!".format(name=n), file=sys.stderr)
+            print("Sheet name '{name}' not part of supported object types!".format(
+                name=n), file=sys.stderr)
+
 
 if __name__ == '__main__':
-        main()
+    main()
