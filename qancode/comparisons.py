@@ -260,6 +260,11 @@ class CompareScreenShots(URLComparison):
         print('Item type: {}'.format(self.item_type))
         print('Click path: {}'.format(
             None if self.click_path is None else self.click_path.__name__))
-        result = self.compute_image_difference()
-        print('Distance metric: {}'.format(self.diff_distance_metric))
-        return result
+        try:
+            result = self.compute_image_difference()
+            print('Distance metric: {}'.format(self.diff_distance_metric))
+            return result
+        except IndexError:
+            print('{}COMPARISON ERROR. SKIPPING.{}'.format(bcolors.FAIL, bcolors.ENDC))
+            return ('FAIL', self.item_type)
+    
