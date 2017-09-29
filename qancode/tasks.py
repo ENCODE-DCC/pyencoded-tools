@@ -475,7 +475,7 @@ class GetScreenShot(SeleniumTask):
         scroll_height = self.driver.execute_script(
             'return document.body.scrollHeight;')
         if ((self.driver.capabilities['browserName'] == 'safari')
-                or (client_height == scroll_height)):
+                or (np.allclose(client_height, scroll_height, rtol=0.0025))):
             self.driver.save_screenshot(image_path)
         else:
             self.stitch_image(image_path)
