@@ -254,7 +254,7 @@ def data_formatter(value, val_type):
 
 def dict_patcher(old_dict):
     new_dict = {}
-    for key in old_dict.keys():
+    for key in sorted(old_dict.keys()):
         if old_dict[key] != "":  # this removes empty cells
             k = key.split(":")
             path = k[0].split(".")
