@@ -418,6 +418,8 @@ class GetScreenShot(SeleniumTask):
     """
     Get screenshot for comparison.
     """
+    # Image shape comparison tolerance.
+    RTOL = 0.0025
 
     def stitch_image(self, image_path):
         print('Stitching screenshot')
@@ -436,10 +438,10 @@ class GetScreenShot(SeleniumTask):
             image = Image.open(
                 BytesIO(self.driver.get_screenshot_as_png())).convert('RGB')
             if ((((2 * client_height) + scroll_top) >= scroll_height)
-                    and (not np.allclose(scroll_height, (client_height + scroll_top), rtol=0.0025))):
+                    and not (np.allclose(scroll_height, (client_height + scroll_top), rtol=self.RTOL))):
                 difference_to_keep = abs(
                     (scroll_height - (client_height + scroll_top)))
-            if np.allclose(scroll_height, (client_height + scroll_top), rtol=0.0025):
+            if np.allclose(scroll_height, (client_height + scroll_top), rtol=self.RTOL):
                 image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
                 # Compensate for retina displays with twice as many pixels.
                 # Usual client_height is <900 given .set_window_size(1500, 950).
@@ -475,7 +477,7 @@ class GetScreenShot(SeleniumTask):
         scroll_height = self.driver.execute_script(
             'return document.body.scrollHeight;')
         if ((self.driver.capabilities['browserName'] == 'safari')
-                or (client_height == scroll_height)):
+                or (np.allclose(client_height, scroll_height, rtol=self.RTOL))):
             self.driver.save_screenshot(image_path)
         else:
             self.stitch_image(image_path)
