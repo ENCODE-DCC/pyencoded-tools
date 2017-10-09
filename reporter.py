@@ -17,18 +17,18 @@ To use a different key from the default keypair file:
 
 
 def get_experiment_list(file, search, connection):
-        objList = []
-        if search == "NULL":
-            f = open(file)
-            objList = f.readlines()
-            for i in range(0, len(objList)):
-                objList[i] = objList[i].strip()
-        else:
-            set = encodedcc.get_ENCODE(search + '&limit=all', connection, frame='embedded')
-            for i in range(0, len(set['@graph'])):
-                objList.append(set['@graph'][i]['accession'])
+    objList = []
+    if search == "NULL":
+        f = open(file)
+        objList = f.readlines()
+        for i in range(0, len(objList)):
+            objList[i] = objList[i].strip()
+    else:
+        set = encodedcc.get_ENCODE(search, connection, frame='embedded')
+        for i in range(0, len(set['@graph'])):
+            objList.append(set['@graph'][i]['accession'])
 
-        return objList
+    return objList
 
 
 def get_char_summary(lot, connection):
@@ -58,11 +58,12 @@ def get_char_summary(lot, connection):
 
 
 def get_antibody_approval(antibody, target, connection):
-        search = encodedcc.get_ENCODE('search/?searchTerm='+antibody+'&type=antibody_approval', connection, frame='embedded')
-        for approval in search['@graph']:
-            if approval['target']['name'] == target:
-                return approval['status']
-        return "UNKNOWN"
+    search = encodedcc.get_ENCODE(
+        'search/?searchTerm=' + antibody + '&type=antibody_approval', connection, frame='embedded')
+    for approval in search['@graph']:
+        if approval['target']['name'] == target:
+            return approval['status']
+    return "UNKNOWN"
 
 
 def get_doc_list(documents):
@@ -88,11 +89,13 @@ def get_treatment_list(treatments):
     list = []
     for i in range(0, len(treatments)):
         if 'concentration' in treatments[i] and 'duration' in treatments:
-            treatment_summary = "%s - %0.2f %s, %f %s" % (treatments[i]['treatment_term_name'], treatments[i]['concentration'], treatments[i]['concentration_units'], treatments[i]['duration'], treatments[i]['duration_units'])
+            treatment_summary = "%s - %0.2f %s, %f %s" % (treatments[i]['treatment_term_name'], treatments[i]['concentration'],
+                                                          treatments[i]['concentration_units'], treatments[i]['duration'], treatments[i]['duration_units'])
         else:
             treatment_summary = "%s" % (treatments[i]['treatment_term_name'])
         list.append(treatment_summary)
     return ' '.join(list)
+
 
 checkedItems = ['project',
                 'dbxrefs',
@@ -118,19 +121,19 @@ checkedItems = ['project',
                 'date_created'
                 ]
 repCheckedItems = [
-                   'rep_file_count',
-                   'antibody',
-                   'antibody_source',
-                   'antibody_product',
-                   'antibody_lot',
-                   'antibody_status',
-                   'replicate_uuid',
-                   #'replicate_aliases',
-                   'rep_status',
-                   'biological_replicate_number',
-                   'technical_replicate_number',
-                   'files',
-                   ]
+    'rep_file_count',
+    'antibody',
+    'antibody_source',
+    'antibody_product',
+    'antibody_lot',
+    'antibody_status',
+    'replicate_uuid',
+    #'replicate_aliases',
+    'rep_status',
+    'biological_replicate_number',
+    'technical_replicate_number',
+    'files',
+]
 fileCheckedItems = ['accession',
                     'submitted_file_name',
                     #'submitted_by',
@@ -162,42 +165,42 @@ fileCheckedItems = ['accession',
                     "Uniquely mapped reads number"
                     ]
 libraryCheckedItems = [
-                       'accession',
-                       'aliases',
-                       'library_status',
-                       'nucleic_acid_term_name',
-                       'nucleic_acid_term_id',
-                       'depleted_in_term_name',
-                       'size_range',
-                       'spikeins_used',
-                       'nucleic_acid_starting_quantity',
-                       'nucleic_acid_starting_quantity_units',
-                       'lysis_method',
-                       'fragmentation_method',
-                       'fragmentation_date',
-                       'extraction_method',
-                       'library_size_selection_method',
-                       'library_treatments',
-                       'protocols',
-                       'biosample_accession',
-                       'biosample_status',
-                       'biosample_biosample_term',
-                       'biosample_biosample_id',
-                       'biosample_biosample_type',
-                       'subcellular_fraction_term_name',
-                       'phase',
-                       'biological_treatments',
-                       'donor',
-                       'donor_status',
-                       'strain_background',
-                       'strain',
-                       'sex',
-                       'age',
-                       'age_units',
-                       'life_stage',
-                       'strand_specificity',
-                       'date_created'
-                       ]
+    'accession',
+    'aliases',
+    'library_status',
+    'nucleic_acid_term_name',
+    'nucleic_acid_term_id',
+    'depleted_in_term_name',
+    'size_range',
+    'spikeins_used',
+    'nucleic_acid_starting_quantity',
+    'nucleic_acid_starting_quantity_units',
+    'lysis_method',
+    'fragmentation_method',
+    'fragmentation_date',
+    'extraction_method',
+    'library_size_selection_method',
+    'library_treatments',
+    'protocols',
+    'biosample_accession',
+    'biosample_status',
+    'biosample_biosample_term',
+    'biosample_biosample_id',
+    'biosample_biosample_type',
+    'subcellular_fraction_term_name',
+    'phase',
+    'biological_treatments',
+    'donor',
+    'donor_status',
+    'strain_background',
+    'strain',
+    'sex',
+    'age',
+    'age_units',
+    'life_stage',
+    'strand_specificity',
+    'date_created'
+]
 
 
 def main():
@@ -327,7 +330,7 @@ def main():
     if args.files:
         print('\t'.join(fileCheckedItems))
     else:
-        print('\t'.join(checkedItems+repCheckedItems+libraryCheckedItems))
+        print('\t'.join(checkedItems + repCheckedItems + libraryCheckedItems))
 
     # Get list of objects we are interested in
     search = args.search
@@ -339,7 +342,8 @@ def main():
     else:
         for i in range(0, len(objList)):
 
-            exp = encodedcc.get_ENCODE(objList[i], connection, frame='embedded')
+            exp = encodedcc.get_ENCODE(
+                objList[i], connection, frame='embedded')
             ob = {}
 
             for i in checkedItems:
@@ -379,7 +383,8 @@ def main():
             ob['control_exps'] = ''
             if 'possible_controls' in exp:
                 for q in exp['possible_controls']:
-                    ob['control_exps'] = ob['control_exps']+' '+q['accession']
+                    ob['control_exps'] = ob['control_exps'] + \
+                        ' ' + q['accession']
             else:
                 ob['control_exps'] = []
 
@@ -434,23 +439,27 @@ def main():
                 if 'platform' in rep:
                     repOb['platform'] = rep['platform']['term_name']
                 if 'antibody' in rep:
-                        repOb['antibody'] = rep['antibody']['accession']
-                        summary = get_char_summary(rep['antibody']['accession'], connection)
-                        if len(rep['antibody']['lot_reviews']) < 1:
-                            continue
-                        print ('\t'.join(['NHGRI',
-                                        exp['accession'],
-                                        rep['antibody']['accession'],
-                                        rep['antibody']['lot_reviews'][0]['status'],
-                                        'Characterizations failing:' + repr(summary['number_chars_failing']),
-                                        'Characterizations passing:' + repr(summary['number_chars_passing']),
-                                        'Characterizations in progress:' + repr(summary['number_chars_in_progress']),
-                                        ]))
-                        # repOb['antibody_status'] = rep['antibody']['approvals'][0]['status']
-                        repOb['antibody_source'] = rep['antibody']['source']
-                        repOb['antibody_product'] = rep['antibody']['product_id']
-                        repOb['antibody_lot'] = rep['antibody']['lot_id']
-                        repOb['antibody_status'] = rep['antibody']['lot_reviews'][0]['status']
+                    repOb['antibody'] = rep['antibody']['accession']
+                    summary = get_char_summary(
+                        rep['antibody']['accession'], connection)
+                    if len(rep['antibody']['lot_reviews']) < 1:
+                        continue
+                    print('\t'.join(['NHGRI',
+                                     exp['accession'],
+                                     rep['antibody']['accession'],
+                                     rep['antibody']['lot_reviews'][0]['status'],
+                                     'Characterizations failing:' +
+                                     repr(summary['number_chars_failing']),
+                                     'Characterizations passing:' +
+                                     repr(summary['number_chars_passing']),
+                                     'Characterizations in progress:' +
+                                     repr(summary['number_chars_in_progress']),
+                                     ]))
+                    # repOb['antibody_status'] = rep['antibody']['approvals'][0]['status']
+                    repOb['antibody_source'] = rep['antibody']['source']
+                    repOb['antibody_product'] = rep['antibody']['product_id']
+                    repOb['antibody_lot'] = rep['antibody']['lot_id']
+                    repOb['antibody_status'] = rep['antibody']['lot_reviews'][0]['status']
                 lib = []
 
                 # inititalize the lib with repItems
@@ -463,9 +472,12 @@ def main():
                     for field in libraryCheckedItems:
                         if field in rep['library']:
                             repOb[field] = rep['library'][field]
-                    repOb['protocols'] = get_doc_list(rep['library']['documents'])
-                    repOb['library_treatments'] = get_treatment_list(rep['library']['treatments'])
-                    repOb['spikeins_used'] = get_spikeins_list(rep['library'].get('spikeins_used'))
+                    repOb['protocols'] = get_doc_list(
+                        rep['library']['documents'])
+                    repOb['library_treatments'] = get_treatment_list(
+                        rep['library']['treatments'])
+                    repOb['spikeins_used'] = get_spikeins_list(
+                        rep['library'].get('spikeins_used'))
                     repOb['library_status'] = rep['library']['status']
                     if 'biosample' in rep['library']:
                         bs = rep['library']['biosample']
@@ -474,7 +486,8 @@ def main():
                         try:
                             repOb['biosample_biosample_term'] = bs['biosample_term_name']
                         except:
-                            print("Skipping missing biosample_term_name in %s" % (bs['accession']), file=sys.stderr)
+                            print("Skipping missing biosample_term_name in %s" % (
+                                bs['accession']), file=sys.stderr)
                             repOb['biosample_biosample_term'] = ""
                         repOb['biosample_biosample_id'] = bs['biosample_term_id']
                         repOb['biosample_biosample_type'] = bs['biosample_type']
@@ -485,20 +498,23 @@ def main():
                             repOb['subcellular_fraction_term_name'] = 'unfractionated'
 
                         if bs['treatments'] != []:
-                            repOb['biological_treatments'] = get_treatment_list(bs['treatments'])
+                            repOb['biological_treatments'] = get_treatment_list(
+                                bs['treatments'])
 
                         if 'donor' in bs:
                             repOb['donor'] = bs['donor']['accession']
                             repOb['donor_status'] = bs['donor']['status']
                             repOb['strain'] = bs['donor'].get('strain')
-                            repOb['strain_background'] = bs['donor'].get('strain_background')
+                            repOb['strain_background'] = bs['donor'].get(
+                                'strain_background')
                         for term in ('sex', 'phase', 'age', 'age_units', 'life_stage'):
                             repOb[term] = bs.get(term)
 
                     temp = ' '.join(rep['library']['aliases'])
                     repOb['aliases'] = temp
                     ob['list_libraries'] = ''
-                    ob['list_libraries'] = ob['list_libraries']+' '+rep['library']['accession']
+                    ob['list_libraries'] = ob['list_libraries'] + \
+                        ' ' + rep['library']['accession']
 
                     for i in libraryCheckedItems:
                         if i in repOb:
@@ -513,7 +529,7 @@ def main():
             if len(libs) == 0:
                 print('\t'.join(row))
             for k in range(0, len(libs)):
-                print('\t'.join(row+libs[k]))
+                print('\t'.join(row + libs[k]))
 
 
 if __name__ == '__main__':
