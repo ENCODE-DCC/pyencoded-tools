@@ -16,19 +16,14 @@ To use a different key from the default keypair file:
 '''
 
 
-def get_experiment_list(file, search, connection):
-    objList = []
+def get_experiment_list(path, search, connection):
     if search == "NULL":
-        f = open(file)
-        objList = f.readlines()
-        for i in range(0, len(objList)):
-            objList[i] = objList[i].strip()
+        with open(path) as f:
+            experiment_list = [line.strip() for line in f.readlines()]
     else:
-        set = encodedcc.get_ENCODE(search, connection, frame='embedded')
-        for i in range(0, len(set['@graph'])):
-            objList.append(set['@graph'][i]['accession'])
-
-    return objList
+        results = encodedcc.get_ENCODE(search, connection, frame='embedded')
+        experiment_list = [r['accession'] for r in results['@graph']]
+    return experiment_list
 
 
 def get_char_summary(lot, connection):
