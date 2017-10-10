@@ -4,18 +4,19 @@ import encodedcc
 def files(objList, fileCheckedItems, connection):
     for obj in objList:
         exp = encodedcc.get_ENCODE(obj, connection)
-        if any(exp.get("files")):
-            expfiles = exp["files"]
-        else:
-            expfiles = exp["original_files"]
+        exps = encodedcc.get_ENCODE(
+            '/search/?type=File&dataset=/experiments/{}/'.format(obj), connection)
+        expfiles = [e['uuid'] for e in exps['@graph']]
         for f in expfiles:
             fileob = {}
             file = encodedcc.get_ENCODE(f, connection)
             for field in fileCheckedItems:
                 fileob[field] = file.get(field)
-            fileob["submitted_by"] = encodedcc.get_ENCODE(file["submitted_by"], connection)["title"]
+            fileob["submitted_by"] = encodedcc.get_ENCODE(
+                file["submitted_by"], connection)["title"]
             fileob["experiment"] = exp["accession"]
-            fileob["experiment-lab"] = encodedcc.get_ENCODE(exp["lab"], connection)["name"]
+            fileob["experiment-lab"] = encodedcc.get_ENCODE(
+                exp["lab"], connection)["name"]
             fileob["biosample"] = exp.get("biosample_term_name", "")
             fileob["flowcell"] = []
             fileob["lane"] = []
@@ -32,19 +33,25 @@ def files(objList, fileCheckedItems, connection):
                 fileob["flowcell"].append(fcd.get("flowcell", ""))
                 fileob["lane"].append(fcd.get("lane"))
             try:
-                fileob["platform"] = encodedcc.get_ENCODE(fileob["platform"], connection)["title"]
+                fileob["platform"] = encodedcc.get_ENCODE(
+                    fileob["platform"], connection)["title"]
             except:
                 fileob["platform"] = None
             if "replicates" in exp:
-                temp_rep = encodedcc.get_ENCODE(exp["replicates"][0], connection)
+                temp_rep = encodedcc.get_ENCODE(
+                    exp["replicates"][0], connection)
                 if "library" in temp_rep:
-                    temp_lib = encodedcc.get_ENCODE(temp_rep["library"], connection)
+                    temp_lib = encodedcc.get_ENCODE(
+                        temp_rep["library"], connection)
                     if "biosample" in temp_lib:
-                        temp_bio = encodedcc.get_ENCODE(temp_lib["biosample"], connection)
+                        temp_bio = encodedcc.get_ENCODE(
+                            temp_lib["biosample"], connection)
                         if "donor" in temp_bio:
-                            temp_don = encodedcc.get_ENCODE(temp_bio["donor"], connection)
+                            temp_don = encodedcc.get_ENCODE(
+                                temp_bio["donor"], connection)
                             if "organism" in temp_don:
-                                temp_org = encodedcc.get_ENCODE(temp_don["organism"], connection)
+                                temp_org = encodedcc.get_ENCODE(
+                                    temp_don["organism"], connection)
                                 fileob["species"] = temp_org["name"]
             else:
                 fileob["species"] = ""
@@ -60,7 +67,8 @@ def files(objList, fileCheckedItems, connection):
                     except:
                         fileob["library_aliases"] = ""
                     if "biosample" in library:
-                        bio = encodedcc.get_ENCODE(library["biosample"], connection)
+                        bio = encodedcc.get_ENCODE(
+                            library["biosample"], connection)
                         fileob["biosample_aliases"] = bio["aliases"]
             if any(exp.get("aliases", [])):
                 fileob["alias"] = exp["aliases"][0]
