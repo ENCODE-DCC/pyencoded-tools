@@ -62,13 +62,7 @@ def get_antibody_approval(antibody, target, connection):
 
 
 def get_doc_list(documents):
-    list = []
-    for i in range(0, len(documents)):
-        if 'attachment' in documents[i]:
-            list.append(documents[i]['attachment']['download'])
-        else:
-            list.append(documents[i]['uuid'])
-    return ' '.join(list)
+    return ' '.join(documents)
 
 
 def get_spikeins_list(spikes):
