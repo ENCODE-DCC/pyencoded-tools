@@ -19,6 +19,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from tqdm import tqdm
+from urllib.parse import urlparse
 
 from .clickpaths import (DownloadBEDFileFromModal,
                          DownloadBEDFileFromTable,
@@ -108,6 +109,7 @@ class SignIn:
         self.user = user
         self.user_credentials = self.open_credential_file(cred_file)
         self.creds = self.get_credentials_of_user()
+        self.current_domain = urlparse(driver.current_url).netloc
         self.sign_in()
 
     @staticmethod
