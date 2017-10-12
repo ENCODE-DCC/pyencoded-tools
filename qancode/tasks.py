@@ -107,6 +107,7 @@ class SignIn:
     def __init__(self, driver, user, cred_file=os.path.expanduser('~/qa_credentials.json')):
         self.driver = driver
         self.user = user
+        self.cred_file = cred_file
         self.user_credentials = self.open_credential_file(cred_file)
         self.creds = self.get_credentials_of_user()
         self.current_domain = urlparse(driver.current_url).netloc
@@ -122,7 +123,53 @@ class SignIn:
         if len(creds) == 0 and self.user != 'Public':
             raise ValueError('Unknown user')
         else:
-            return creds
+            return creds[0]
+
+    def cookie_in_cred(self):
+        """
+        Is there a cookie in user's credentials that matches domain?
+        """
+        cookie = self.creds.get('cookies', {}).get(self.current_domain)
+        if cookie is not None:
+            self.cookie = cookie
+            # Safari complains when expiry is None (expecting number).
+            self.cookie.pop('expiry', None)
+            return True
+        return False
+
+    def try_cookie(self):
+        """
+        Try to authenticate using cookie.
+        """
+        self.driver.delete_all_cookies()
+        self.driver.add_cookie(self.cookie)
+        self.driver.refresh()
+        return self.signed_in()
+
+    def update_credentials_of_user(self, new_creds):
+        with open(self.cred_file, 'w') as f:
+            json.dump(new_creds, f)
+
+    def add_cookie_to_cred(self):
+        """
+        Will add or overwrite (if current cookie doesn't work) cookie for
+        specific user and server.
+        """
+        # Get current cookies.
+        auth_cookie = [c for c in self.driver.get_cookies()
+                       if c.get('name') == 'session']
+        if not auth_cookie:
+            raise ValueError('No session coookie found.')
+        # Get users that aren't being updated.
+        other_users = [c for c in self.user_credentials
+                       if c['username'] != self.user]
+        if 'cookies' not in self.creds:
+            self.creds['cookies'] = {}
+        # Update current user with cookie.
+        self.creds['cookies'][self.current_domain] = auth_cookie[0]
+        # Build new cred file.
+        new_creds = list(chain(other_users, [self.creds]))
+        self.update_credentials_of_user(new_creds)
 
     def wait_for_modal_to_quit(self):
         wait_time = 10
@@ -148,15 +195,15 @@ class SignIn:
             self.driver.wait.until(EC.presence_of_element_located(
                 (By.LINK_TEXT, FrontPage.logout_button_text)))
             print('Login successful')
-            time.sleep(3)
+            time.sleep(2)
             return True
-        except TimeoutError:
+        except:
             return False
 
     def login_two_step(self):
         user_id = self.driver.wait.until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, SignInModal.two_step_user_id_input_css)))
-        user_id.send_keys(self.creds[0]['username'])
+        user_id.send_keys(self.creds['username'])
         password = self.driver.wait.until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, SignInModal.two_step_password_input_css)))
         pw = getpass.getpass()
@@ -195,6 +242,11 @@ class SignIn:
                         break
                 except:
                     pass
+        # Try to authenticate using cookie before running through usual login.
+        if self.cookie_in_cred():
+            if self.try_cookie():
+                return True
+        # Cookie didn't work. Continue.
         original_window_handle = self.driver.window_handles[0]
         self.driver.switch_to_window(original_window_handle)
         login_button = self.driver.wait.until(EC.element_to_be_clickable(
@@ -229,14 +281,14 @@ class SignIn:
             self.driver.switch_to_window(new_window_handle)
             user_id = self.driver.wait.until(EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, SignInModal.user_id_input_css)))
-        user_id.send_keys(self.creds[0]['username'])
+        user_id.send_keys(self.creds['username'])
         next_button = self.driver.wait.until(EC.element_to_be_clickable(
             (By.CSS_SELECTOR, SignInModal.user_next_button_css)))
         next_button.click()
         try:
             pw = self.driver.wait.until(EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, SignInModal.password_input_css)))
-            pw.send_keys(self.creds[0]['password'])
+            pw.send_keys(self.creds['password'])
             next_button = self.driver.wait.until(EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, SignInModal.password_next_button_css)))
             time.sleep(0.5)
@@ -253,7 +305,10 @@ class SignIn:
                     (By.CSS_SELECTOR, SignInModal.password_next_button_css)))
                 next_button.click()
         self.driver.switch_to_window(original_window_handle)
-        return self.signed_in()
+        if self.signed_in():
+            self.add_cookie_to_cred()
+            return True
+        return False
 
 
 #############################################
