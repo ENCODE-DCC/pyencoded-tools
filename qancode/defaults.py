@@ -93,10 +93,11 @@ class ActionTuples:
         self.compare_facets_default_actions = [
             '/search/?type=Experiment',
             '/search/?type=File',
+            '/search/?type=Library',
             '/search/?type=AntibodyLot',
             '/search/?type=Biosample',
+            '/search/?type=Donor',
             'search/?type=GeneticModification',
-            '/search/?type=Dataset',
             '/search/?type=FileSet',
             '/search/?type=Annotation',
             '/search/?type=Series',
