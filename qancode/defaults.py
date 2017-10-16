@@ -168,6 +168,14 @@ class ActionTuples:
             ('/search/?searchTerm=WASP&type=Software', None),
             ('/publications/67e606ae-abe7-4510-8ebb-cfa1fefe5cfa/', None),
             ('/search/?searchTerm=PMID%3A25164756', None),
+            ('/genetic-modifications/ENCGM987KPF/', None),
+            ('/genetic-modifications/ENCGM320XEE/', None),
+            ('/genetic-modifications/ENCGM053JEB/', None),
+            ('/genetic-modifications/ENCGM859RQC/', None),
+            ('/genetic-modifications/ENCGM252BLF/', None),
+            ('/genetic-modifications/ENCGM700OVH/', None),
+            ('/genetic-modifications/ENCGM504MNX/', None),
+            ('/genetic-modifications/ENCGM883SVN/', None),
             ('/biosamples/ENCBS632MTU/', None),
             ('/biosamples/ENCBS464EKT/', None),
             ('/annotations/ENCSR790GQB/', None),
@@ -200,6 +208,7 @@ class ActionTuples:
             ('/data/annotations/', None),
             ('/help/rest-api/', None),
             ('/about/experiment-guidelines/', None),
+            ('/about/data-use-policy/', None),
             ('/data-standards/terms/', None)
         ]
         self.check_trackhubs_default_actions = [
