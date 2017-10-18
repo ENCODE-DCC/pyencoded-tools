@@ -16,7 +16,7 @@ def getArgs():
     parser = argparse.ArgumentParser(
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        )
+    )
     parser.add_argument('--datatype',
                         help="The datatype of interest: CHIP, WGBS, DNASE, RNA")
     parser.add_argument('--status',
@@ -46,7 +46,7 @@ def make_rna_report(connection):
         'Ross Hardsion': '&lab.title=Ross+Hardison%2C+PennState',
         'Eric Lecuyer': '&lab.name=eric-lecuyer',
         'Brenton Graveley': '&lab.title=Brenton+Graveley%2C+UConn',
-        }
+    }
     rows = {
         'RAMPAGE': '&assay_term_name=RAMPAGE',
         'Long RNA': '&assay_term_name=RNA-seq&replicates.library.size_range%21=<200&replicates.library.nucleic_acid_starting_quantity_units%21=pg',
@@ -58,7 +58,7 @@ def make_rna_report(connection):
         'shRNA controls': '&assay_term_name=shRNA+knockdown+followed+by+RNA-seq&target.investigated_as=control',
         'single cell': '&assay_term_name=single+cell+isolation+followed+by+RNA-seq',
         'total': '&assay_term_name=RAMPAGE&assay_term_name=RNA-seq&assay_term_name=microRNA-seq&assay_term_name=microRNA+profiling+by+array+assay&assay_term_name=shRNA+knockdown+followed+by+RNA-seq'
-        }
+    }
 
     released_query = '&status=released'
     proposed_query = '&status=proposed&status=preliminary'
@@ -75,19 +75,19 @@ def make_rna_report(connection):
     queries = {
         'Total': '&status%21=replaced&status%21=deleted',
         'Released': released_query,
-        'Released with metadata issues': released_query+concerns_query,
-        'Released with read-depth issues': released_query+read_depth_query,
-        'Released with concordance issues': released_query+concordance_query,
-        'Released unreplicated': released_query+unreplicated_query,
-        'Released GTEX unreplicated': released_query+gtex_query+unreplicated_query,
+        'Released with metadata issues': released_query + concerns_query,
+        'Released with read-depth issues': released_query + read_depth_query,
+        'Released with concordance issues': released_query + concordance_query,
+        'Released unreplicated': released_query + unreplicated_query,
+        'Released GTEX unreplicated': released_query + gtex_query + unreplicated_query,
         'Proposed': proposed_query,
         'Unreleased': unreleased_query,
         'Unreleased with metadata issues': in_progress_query,
         'In pipeline': unreleased_query + processing_query,
-        'Unreleased with read-depth issues': unreleased_query+read_depth_query,
-        'Unreleased with concordance issues': unreleased_query+concordance_query,
-        'Unreleased unreplicated': unreleased_query+unreplicated_query,
-        'Unreleased GTEX unreplicated': unreleased_query+gtex_query+unreplicated_query,
+        'Unreleased with read-depth issues': unreleased_query + read_depth_query,
+        'Unreleased with concordance issues': unreleased_query + concordance_query,
+        'Unreleased unreplicated': unreleased_query + unreplicated_query,
+        'Unreleased GTEX unreplicated': unreleased_query + gtex_query + unreplicated_query,
     }
 
     headers = [
@@ -106,16 +106,16 @@ def make_rna_report(connection):
         'Unreleased with concordance issues',
         'Unreleased unreplicated',
         'Unreleased GTEX unreplicated'
-        ]
+    ]
 
     matrix = {}
-    print ('\t'.join([''] + headers))
+    print('\t'.join([''] + headers))
     for row in rows.keys():
 
         matrix[row] = [row]
 
         for col in headers:
-            query = basic_query+rows[row]+queries[col]
+            query = basic_query + rows[row] + queries[col]
             res = get_ENCODE(query, connection, frame='embedded')
             link = connection.server + query
             total = res['total']
@@ -123,23 +123,23 @@ def make_rna_report(connection):
                     'Unreleased with concordance issues',
                     'Released with concordance issues',
                     'Unreleased with read-depth issues',
-                    'Released with read-depth issues']
+                'Released with read-depth issues']
                 ) and (row in [
-                    'micro RNA',
-                    'Nanostring',
+                        'micro RNA',
+                        'Nanostring',
                     ]):
-                    total = 'no audit'
+                total = 'no audit'
             if (col in [
                     'Unreleased with concordance issues',
                     'Released with concordance issues',
                     'Unreleased unreplicated',
                     'Released unreplicated',
-                    ]
-                ) and (row in [
-                    'single cell',
-                    ]):
-                    total = 'no audit'
-            #if col == 'Released with metadata issues':
+            ]
+            ) and (row in [
+                'single cell',
+            ]):
+                total = 'no audit'
+            # if col == 'Released with metadata issues':
             #    total = make_errors_detail(res['facets'], link)
 
             if total == 'no audit':
@@ -148,32 +148,32 @@ def make_rna_report(connection):
                 func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
                 matrix[row].append(func)
 
-        print ('\t'.join(matrix[row]))
-    print (' ')
-    print (' ')
+        print('\t'.join(matrix[row]))
+    print(' ')
+    print(' ')
 
-    print ('Long RNA Breakdown by lab --------------------------------------')
-    print ('\t'.join([''] + headers))
+    print('Long RNA Breakdown by lab --------------------------------------')
+    print('\t'.join([''] + headers))
     for lab in labs.keys():
 
-            matrix[lab] = [lab]
+        matrix[lab] = [lab]
 
-            for col in headers:
-                query = basic_query+labs[lab]+rows['Long RNA']+queries[col]
-                res = get_ENCODE(query, connection, frame='embedded')
-                link = connection.server + query
-                total = res['total']
-                #if col == 'Released with metadata issues':
-                #    total = make_errors_detail(res['facets'], link)
-                if total == 'no audit':
-                    matrix[lab].append(total)
-                else:
-                    func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
-                    matrix[lab].append(func)
+        for col in headers:
+            query = basic_query + labs[lab] + rows['Long RNA'] + queries[col]
+            res = get_ENCODE(query, connection, frame='embedded')
+            link = connection.server + query
+            total = res['total']
+            # if col == 'Released with metadata issues':
+            #    total = make_errors_detail(res['facets'], link)
+            if total == 'no audit':
+                matrix[lab].append(total)
+            else:
+                func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
+                matrix[lab].append(func)
 
-            print ('\t'.join(matrix[lab]))
-    print (' ')
-    print (' ')
+        print('\t'.join(matrix[lab]))
+    print(' ')
+    print(' ')
 
 
 def make_antibody_detail(graph):
@@ -187,7 +187,7 @@ def make_antibody_detail(graph):
                 antibodies[ab] = [
                     target,
                     repr(len(rep['antibody']['characterizations']))
-                    ]
+                ]
 
 
 def make_errors_detail(facets, link):
@@ -234,12 +234,12 @@ def make_chip_report(connection):
         'Bing Ren': '&lab.title=Bing+Ren%2C+UCSD',
         'Richard Myers': '&lab.title=Richard+Myers%2C+HAIB',
         'Xiang-Dong': '&lab.title=Xiang-Dong+Fu%2C+UCSD'
-        }
+    }
     rows = {
         'controls': '&target.investigated_as=control',
         'experiments': '&target.investigated_as%21=control',
         'total': ''
-        }
+    }
 
     released_query = '&status=released'
     no_concerns_query = '&internal_status%21=requires+lab+review&internal_status%21=unrunnable'
@@ -249,7 +249,7 @@ def make_chip_report(connection):
     complexity_query = '&audit.NOT_COMPLIANT.category=insufficient+library+complexity'
     read_length_query = '&files.read_length=271272&files.read_length=657265&files.read_length=25&files.read_length=31&files.read_length=30'
     antibody_query = '&audit.NOT_COMPLIANT.category=not+eligible+antibody'
-    concordance_query = '&searchTerm=IDR%3Afail'  #'&searchTerm=IDR%3Afail'
+    concordance_query = '&searchTerm=IDR%3Afail'  # '&searchTerm=IDR%3Afail'
     unrunnable_query = '&internal_status=unrunnable'
     controls_query = ''
     submitted_query = '&status=submitted'
@@ -265,31 +265,31 @@ def make_chip_report(connection):
         'Total': '&status%21=replaced&status%21=deleted&status%21=revoked',
         'Proposed': proposed_query,
         'Released': released_query,
-        'Released in pipeline': released_query+processing_query,
-        'Released cannot run in pipeline': released_query+unrunnable_query,
-        'Released with no known issues': released_query+no_concerns_query,
-        'Released with issues': released_query+concerns_query,
-        'Released with failing ENCODE2 read-depth': released_query+read_depth_query,
-        'Released with failing ENCODE3 read-depth': released_query+read_depth_query_3,
-        'Released with complexity issues': released_query+complexity_query,
-        'Released with concordance issues': released_query+concordance_query,
-        'Released with antibody issues': released_query+antibody_query,
-        'Released with read-length issues': released_query+read_length_query,
-        'Released unreplicated': released_query+unreplicated_query,
-        'Released missing pipeline': released_query+not_pipeline_query,
+        'Released in pipeline': released_query + processing_query,
+        'Released cannot run in pipeline': released_query + unrunnable_query,
+        'Released with no known issues': released_query + no_concerns_query,
+        'Released with issues': released_query + concerns_query,
+        'Released with failing ENCODE2 read-depth': released_query + read_depth_query,
+        'Released with failing ENCODE3 read-depth': released_query + read_depth_query_3,
+        'Released with complexity issues': released_query + complexity_query,
+        'Released with concordance issues': released_query + concordance_query,
+        'Released with antibody issues': released_query + antibody_query,
+        'Released with read-length issues': released_query + read_length_query,
+        'Released unreplicated': released_query + unreplicated_query,
+        'Released missing pipeline': released_query + not_pipeline_query,
         'Unreleased': unreleased_query,
-        'Unreleased with no known issues': unreleased_query+no_concerns_query,
-        'Unreleased with issues': unreleased_query+concerns_query,
-        'Unreleased cannot run in pipeline': unreleased_query+unrunnable_query,
-        'Unreleased in pipeline': unreleased_query+processing_query,
-        'Unreleased with partial pipeline': unreleased_query+pipeline_query+no_peaks_query,
-        'Unreleased with failing ENCODE2 read-depth': unreleased_query+read_depth_query,
-        'Unreleased with failing ENCODE3 read-depth': unreleased_query+read_depth_query_3,
-        'Unreleased with complexity issues': unreleased_query+complexity_query,
-        'Unreleased with concordance issues': unreleased_query+concordance_query,
-        'Unreleased with antibody issues': unreleased_query+antibody_query,
-        'Unreleased with read-length issues': unreleased_query+read_length_query,
-        'Unreleased unreplicated': unreleased_query+unreplicated_query,
+        'Unreleased with no known issues': unreleased_query + no_concerns_query,
+        'Unreleased with issues': unreleased_query + concerns_query,
+        'Unreleased cannot run in pipeline': unreleased_query + unrunnable_query,
+        'Unreleased in pipeline': unreleased_query + processing_query,
+        'Unreleased with partial pipeline': unreleased_query + pipeline_query + no_peaks_query,
+        'Unreleased with failing ENCODE2 read-depth': unreleased_query + read_depth_query,
+        'Unreleased with failing ENCODE3 read-depth': unreleased_query + read_depth_query_3,
+        'Unreleased with complexity issues': unreleased_query + complexity_query,
+        'Unreleased with concordance issues': unreleased_query + concordance_query,
+        'Unreleased with antibody issues': unreleased_query + antibody_query,
+        'Unreleased with read-length issues': unreleased_query + read_length_query,
+        'Unreleased unreplicated': unreleased_query + unreplicated_query,
     }
 
     headers = [
@@ -320,11 +320,11 @@ def make_chip_report(connection):
         'Unreleased with antibody issues',
         'Unreleased with read-length issues',
         'Unreleased unreplicated',
-        ]
+    ]
 
     for lab in labs.keys():
-        print (lab, '--------------------------------------')
-        print ('\t'.join([''] + headers))
+        print(lab, '--------------------------------------')
+        print('\t'.join([''] + headers))
 
         matrix = {}
 
@@ -333,12 +333,12 @@ def make_chip_report(connection):
             matrix[row] = [row]
 
             for col in headers:
-                query = basic_query+labs[lab]+rows[row]+queries[col]
+                query = basic_query + labs[lab] + rows[row] + queries[col]
                 res = get_ENCODE(query, connection, frame='embedded')
                 link = connection.server + query
                 total = res['total']
 
-                #if col == 'Released with antibody issues':
+                # if col == 'Released with antibody issues':
                 #    make_antibody_detail(res['@graph'])
                 if col in [
                     'XUnreleased with concordance issues',
@@ -352,9 +352,9 @@ def make_chip_report(connection):
 
                 func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
                 matrix[row].append(func)
-            print ('\t'.join(matrix[row]))
-        print (' ')
-        print (' ')
+            print('\t'.join(matrix[row]))
+        print(' ')
+        print(' ')
 
 
 def main():
@@ -366,7 +366,8 @@ def main():
     elif args.datatype == 'RNA':
         make_rna_report(connection)
     else:
-        print ('unimplimented')
+        print('unimplimented')
+
 
 if __name__ == '__main__':
     main()

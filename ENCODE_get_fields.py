@@ -121,7 +121,7 @@ def getArgs():
     parser = argparse.ArgumentParser(
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        )
+    )
     parser.add_argument('--infile',
                         help="Either the file containing a list of ENCs as a column\
                         or this can be a single accession by itself")
@@ -168,6 +168,7 @@ def main():
     connection = encodedcc.ENC_Connection(key)
     output = encodedcc.GetFields(connection, args)
     output.get_fields()
+
 
 if __name__ == '__main__':
     main()

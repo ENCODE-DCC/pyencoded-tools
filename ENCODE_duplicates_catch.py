@@ -87,7 +87,7 @@ def main():
                         'frame=object&limit=all',
                         keypair)['@graph']
     interesting_files = [f for f in files if ((f['status'] not in ['replaced'])
-                         and ('content_md5sum' in f))]
+                                              and ('content_md5sum' in f))]
 
     content_dictionary = {}
     mone = 0
@@ -98,7 +98,7 @@ def main():
         content_dictionary[file_con].append(interesting_file)
         mone += 1
         if mone % 1000 == 0:
-            print ("screened through " + str(mone) + " files")
+            print("screened through " + str(mone) + " files")
 
     duplicate_counter = 0
     lab_dictionary = {}
@@ -114,13 +114,13 @@ def main():
             lab_dictionary[lab_id].append(content_dictionary[key])
 
     for k in lab_dictionary.keys():
-        print ('LAB with DUPLICATES : ' + k)
-        print ('NUM of replicate cases : ' + str(len(lab_dictionary[k])))
+        print('LAB with DUPLICATES : ' + k)
+        print('NUM of replicate cases : ' + str(len(lab_dictionary[k])))
         for entry in lab_dictionary[k]:
             for x in entry:
-                print (x['accession'] + '\t' + x['dataset'] +
-                       '\t'+x['content_md5sum']+'\t'+x['file_format'] +
-                       '\t'+x['status'])
+                print(x['accession'] + '\t' + x['dataset'] +
+                      '\t' + x['content_md5sum'] + '\t' + x['file_format'] +
+                      '\t' + x['status'])
 
 
 if __name__ == '__main__':

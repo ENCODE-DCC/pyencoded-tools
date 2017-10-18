@@ -126,5 +126,6 @@ def main():
 
     encodedcc.patch_set(args, connection)
 
+
 if __name__ == '__main__':
-        main()
+    main()

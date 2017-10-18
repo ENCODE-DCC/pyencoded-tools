@@ -71,7 +71,8 @@ def main():
     elif args.query:
         data = []
         if "search" in args.query:
-            data = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
+            data = encodedcc.get_ENCODE(
+                args.query, connection).get("@graph", [])
         else:
             data = [encodedcc.get_ENCODE(args.query, connection)]
         for exp in data:
@@ -94,5 +95,6 @@ def main():
                 sequence = sequence.decode("UTF-8")
                 print(acc + "\t" + str(len(sequence)))
 
+
 if __name__ == '__main__':
-        main()
+    main()

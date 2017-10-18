@@ -18,7 +18,7 @@ def getArgs():
     parser = argparse.ArgumentParser(
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        )
+    )
     parser.add_argument('--datatype',
                         help="The datatype of interest: CHIP, WGBS, Accessibility, RNA, RBP")
     parser.add_argument('--status',
@@ -43,22 +43,22 @@ def getArgs():
 
 def make_matrix(rows, columns, headers, queries, basic_query, connection):
 
-        matrix = {}
+    matrix = {}
 
-        for row in rows:
+    for row in rows:
 
-            matrix[row] = [row]
+        matrix[row] = [row]
 
-            for col in headers:
-                query = basic_query + queries[row] + columns[col]
-                res = get_ENCODE(query, connection, frame='object')
-                link = connection.server + query
-                total = res['total']
-                func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
-                matrix[row].append(func)
-            print ('\t'.join(matrix[row]))
-        print (' ')
-        print (' ')
+        for col in headers:
+            query = basic_query + queries[row] + columns[col]
+            res = get_ENCODE(query, connection, frame='object')
+            link = connection.server + query
+            total = res['total']
+            func = '=HYPERLINK(' + '"' + link + '",' + repr(total) + ')'
+            matrix[row].append(func)
+        print('\t'.join(matrix[row]))
+    print(' ')
+    print(' ')
 
 
 def make_rna_report(connection, columns, rows):
@@ -72,12 +72,12 @@ def make_rna_report(connection, columns, rows):
         ('Small RNA', '&assay_title=small+RNA-seq'),
         ('RAMPAGE and CAGE', '&assay_title=CAGE&assay_title=RAMPAGE'),
         ('single cell', '&assay_title=single+cell+RNA-seq'),
-        ])
+    ])
 
     micro_assays = {
         'microRNA seq': '&assay_title=microRNA-seq',
         'microRNA counts': '&assay_title=microRNA+counts',
-        }
+    }
 
     labels = [
         'Total',
@@ -105,18 +105,20 @@ def make_rna_report(connection, columns, rows):
     headers = list(columns.keys())
 
     for assay in assays.keys():
-        print (assay, '--------')
-        print ('\t'.join([''] + headers))
+        print(assay, '--------')
+        print('\t'.join([''] + headers))
 
         new_basic_query = basic_query + assays[assay]
-        make_matrix(labels, columns, headers, rows, new_basic_query, connection)
+        make_matrix(labels, columns, headers, rows,
+                    new_basic_query, connection)
 
     for assay in micro_assays.keys():
-        print (assay, '--------')
-        print ('\t'.join([''] + headers))
+        print(assay, '--------')
+        print('\t'.join([''] + headers))
 
         new_basic_query = basic_query + micro_assays[assay]
-        make_matrix(micro_labels, columns, headers, rows, new_basic_query, connection)
+        make_matrix(micro_labels, columns, headers,
+                    rows, new_basic_query, connection)
 
 
 def make_methyl_report(connection, columns, rows):
@@ -127,7 +129,7 @@ def make_methyl_report(connection, columns, rows):
         ('WGBS', '&assay_title=WGBS'),
         ('RRBS', '&assay_title=RRBS'),
         ('Array', '&assay_title=DNAme+array'),
-        ])
+    ])
 
     labels = [
         'Total',
@@ -144,11 +146,12 @@ def make_methyl_report(connection, columns, rows):
     headers = list(columns.keys())
 
     for assay in assays.keys():
-        print (assay, '--------')
-        print ('\t'.join([''] + headers))
+        print(assay, '--------')
+        print('\t'.join([''] + headers))
 
         new_basic_query = basic_query + assays[assay]
-        make_matrix(labels, columns, headers, rows, new_basic_query, connection)
+        make_matrix(labels, columns, headers, rows,
+                    new_basic_query, connection)
 
 
 def make_3d_report(connection, columns, rows):
@@ -158,7 +161,7 @@ def make_3d_report(connection, columns, rows):
     assays = collections.OrderedDict([
         ('HIC', '&assay_title=Hi-C'),
         ('Chia-PET', '&assay_title=ChIA-PET')
-        ])
+    ])
 
     labels = [
         'Total',
@@ -173,11 +176,12 @@ def make_3d_report(connection, columns, rows):
     headers = list(columns.keys())
 
     for assay in assays.keys():
-        print (assay, '--------')
-        print ('\t'.join([''] + headers))
+        print(assay, '--------')
+        print('\t'.join([''] + headers))
 
         new_basic_query = basic_query + assays[assay]
-        make_matrix(labels, columns, headers, rows, new_basic_query, connection)
+        make_matrix(labels, columns, headers, rows,
+                    new_basic_query, connection)
 
 
 def make_chip_report(connection, columns, queries):
@@ -189,7 +193,7 @@ def make_chip_report(connection, columns, queries):
         ('histone mods', '&target.investigated_as=histone'),
         ('H3K27ac and H3K4me3', '&target.label=H3K4me3&target.label=H3K27ac'),
         ('other targets', '&target.investigated_as%21=control&target.investigated_as%21=histone')
-        ])
+    ])
 
     rows_basic = [
         'Total',
@@ -210,14 +214,14 @@ def make_chip_report(connection, columns, queries):
         'In processing queue',
         'Unreleased files in a released experiment',
         'missing fastqs'
-        ]
+    ]
 
     headers = list(columns.keys())
 
     for catagory in catagories.keys():
 
-        print (catagory, '--------------------------------------')
-        print ('\t'.join([''] + headers))
+        print(catagory, '--------------------------------------')
+        print('\t'.join([''] + headers))
         new_basic_query = basic_query + catagories[catagory]
         rows = copy.copy(rows_basic)
         if catagory == 'controls':
@@ -225,7 +229,8 @@ def make_chip_report(connection, columns, queries):
             rows.remove('Peaks called on GRCh38 or mm10')
             rows.remove('Released with antibody issues')
             rows.remove('Missing GRCh38 or mm10 peaks')
-        make_matrix(rows, columns, headers, queries, new_basic_query, connection)
+        make_matrix(rows, columns, headers, queries,
+                    new_basic_query, connection)
 
 
 def make_dna_report(connection, columns, rows):
@@ -235,7 +240,7 @@ def make_dna_report(connection, columns, rows):
     assays = collections.OrderedDict([
         ('DNase', '&assay_title=DNase-seq'),
         ('ATAC', '&assay_title=ATAC-seq'),
-        ])
+    ])
 
     labels = [
         'Total',
@@ -267,11 +272,12 @@ def make_dna_report(connection, columns, rows):
     headers = list(columns.keys())
 
     for assay in assays.keys():
-        print (assay, '--------')
-        print ('\t'.join([''] + headers))
+        print(assay, '--------')
+        print('\t'.join([''] + headers))
 
         new_basic_query = basic_query + assays[assay]
-        make_matrix(labels, columns, headers, rows, new_basic_query, connection)
+        make_matrix(labels, columns, headers, rows,
+                    new_basic_query, connection)
 
 
 def make_rbp_report(connection, rows):
@@ -283,14 +289,15 @@ def make_rbp_report(connection, rows):
         ('iCLIP', '&assay_title=iCLIP'),
         ('RIP-seq', '&assay_title=RIP-seq'),
         ('Bind-n-Seq', '&assay_title=RNA+Bind-n-Seq'),
-        ])
+    ])
 
     seq_assays = collections.OrderedDict([
         ('shRNA knockdown', '&assay_title=shRNA+RNA-seq'),
         ('CRISPR', '&assay_title=CRISPR+RNA-seq'),
         ('siRNA knockdown', '&assay_title=siRNA+RNA-seq'),
-        ('total knockdowns', '&assay_title=CRISPR+RNA-seq&assay_title=shRNA+RNA-seq&assay_title=siRNA+RNA-seq')
-        ])
+        ('total knockdowns',
+         '&assay_title=CRISPR+RNA-seq&assay_title=shRNA+RNA-seq&assay_title=siRNA+RNA-seq')
+    ])
 
     labels = [
         'Total',
@@ -323,7 +330,7 @@ def make_rbp_report(connection, rows):
         'ENCODE2-experiments': '&award.rfa=ENCODE2&target.investigated_as!=control',
         'ENCODE2-controls': '&award.rfa=ENCODE2&target.investigated_as=control',
         'Total': '&award.rfa=ENCODE3&award.rfa=ENCODE2',
-        }
+    }
 
     headers = [
         'ENCODE3-experiments',
@@ -331,21 +338,23 @@ def make_rbp_report(connection, rows):
         'ENCODE2-experiments',
         'ENCODE2-controls',
         'Total'
-        ]
+    ]
 
     for assay in assays.keys():
-        print (assay, '--------')
-        print ('\t'.join([''] + headers))
+        print(assay, '--------')
+        print('\t'.join([''] + headers))
 
         new_basic_query = basic_query + assays[assay]
-        make_matrix(labels, columns, headers, rows, new_basic_query, connection)
+        make_matrix(labels, columns, headers, rows,
+                    new_basic_query, connection)
 
     for assay in seq_assays.keys():
-        print (assay, '--------')
-        print ('\t'.join([''] + headers))
+        print(assay, '--------')
+        print('\t'.join([''] + headers))
 
         new_basic_query = basic_query + seq_assays[assay]
-        make_matrix(seq_labels, columns, headers, rows, new_basic_query, connection)
+        make_matrix(seq_labels, columns, headers,
+                    rows, new_basic_query, connection)
 
 
 def main():
@@ -365,7 +374,7 @@ def main():
     replicated_query = '&replication_type!=unreplicated'
     not_pipeline_query = '&files.analysis_step_version.analysis_step.pipelines.title%21=Transcription+factor+ChIP-seq'
     no_peaks_query = '&files.file_type!=bigBed+narrowPeak'
-    concordance_query = '&searchTerm=IDR%3Afail'  #'&searchTerm=IDR%3Afail'
+    concordance_query = '&searchTerm=IDR%3Afail'  # '&searchTerm=IDR%3Afail'
     unrunnable_query = '&internal_status=unrunnable'
     pipeline_query = '&files.analysis_step_version.analysis_step.pipelines.title=Transcription+factor+ChIP-seq'
     read_depth_query = '&audit.NOT_COMPLIANT.category=insufficient+read+depth'
@@ -421,7 +430,7 @@ def main():
     row_queries = {
         'Total': total_query,
         'Released': released_query,
-        'Released with issues': released_query+audits_query,
+        'Released with issues': released_query + audits_query,
         'Released with antibody issues': released_query + antibody_query,
         'Released with NOT COMPLIANT issues': released_query + orange_audits_query,
         'Released with NOT COMPLIANT': released_query + orange_audits_query2,
@@ -464,7 +473,7 @@ def main():
         # ('Organism Unknown', ENCODE3_query + unknown_org_query),
         ('ROADMAP', ROADMAP_query),
         ('Total', '&award.rfa=ENCODE3' + ROADMAP_query + ENCODE2_query)
-        ])
+    ])
 
     if args.grant:
         columns = collections.OrderedDict([
@@ -474,7 +483,8 @@ def main():
             ('ENCODE2-mouse', ENCODE2_query + mouse_query + lab_query),
             # ('Organism Unknown', ENCODE3_query + unknown_org_query),
             ('ROADMAP', ROADMAP_query + lab_query),
-            ('Total', '&award.rfa=ENCODE3' + ROADMAP_query + ENCODE2_query + lab_query)
+            ('Total', '&award.rfa=ENCODE3' + \
+             ROADMAP_query + ENCODE2_query + lab_query)
         ])
 
     if args.datatype == 'CHIP':
@@ -490,7 +500,8 @@ def main():
     elif args.datatype == 'RBP':
         make_rbp_report(connection, row_queries)
     else:
-        print ('unimplemented')
+        print('unimplemented')
+
 
 if __name__ == '__main__':
     main()

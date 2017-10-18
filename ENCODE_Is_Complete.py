@@ -48,20 +48,20 @@ def getArgs():
 
 def get_experiment_list(file, search, connection):
 
-        objList = []
-        if search is None:
-            f = open(file)
-            objList = f.readlines()
-            for i in range(0, len(objList)):
-                objList[i] = objList[i].strip()
-        else:
-            col = get_ENCODE(search, connection, frame='page')
-            for i in range(0, len(col['@graph'])):
-                # print set['@graph'][i]['accession']
-                objList.append(col['@graph'][i]['@id'])
-                # objList.append(set['@graph'][i]['uuid'] )
+    objList = []
+    if search is None:
+        f = open(file)
+        objList = f.readlines()
+        for i in range(0, len(objList)):
+            objList[i] = objList[i].strip()
+    else:
+        col = get_ENCODE(search, connection, frame='page')
+        for i in range(0, len(col['@graph'])):
+            # print set['@graph'][i]['accession']
+            objList.append(col['@graph'][i]['@id'])
+            # objList.append(set['@graph'][i]['uuid'] )
 
-        return objList
+    return objList
 
 
 def get_replicate_count(obj):
@@ -108,30 +108,40 @@ def main():
         # Get status issues
         actions = obj['audit'].get('INTERNAL_ACTION')
         if actions:
-            status_issues = [i for i in actions if i['category'] in ['experiment not submitted to GEO', 'mismatched file status', 'mismatched status']]
+            status_issues = [i for i in actions if i['category'] in [
+                'experiment not submitted to GEO', 'mismatched file status', 'mismatched status']]
             results['status issues'] = status_issues
 
         # Inspect files
 
-        good_files = [f for f in obj['files'] if f['status'] in ['released', 'in progress']]
-        fastqs = [f for f in obj['files'] if f['status'] in ['released', 'in progress']]       
-        print ("There are files in this experiment:", len(obj['files']))
-        print ("There are good files in this experiment:", len(good_files))
+        good_files = [f for f in obj['files']
+                      if f['status'] in ['released', 'in progress']]
+        fastqs = [f for f in obj['files'] if f['status']
+                  in ['released', 'in progress']]
+        print("There are files in this experiment:", len(obj['files']))
+        print("There are good files in this experiment:", len(good_files))
         # look for unarchived processed files from other labs
-        processed_files = [f for f in obj['files'] if f['file_format'] != 'fastq']
-        external_files = [f for f in processed_files if (f['lab']['name'] != 'encode-processing-pipeline')]
-        unarchived_files = [f for f in external_files if (f['status'] != 'archived')]
+        processed_files = [f for f in obj['files']
+                           if f['file_format'] != 'fastq']
+        external_files = [f for f in processed_files if (
+            f['lab']['name'] != 'encode-processing-pipeline')]
+        unarchived_files = [f for f in external_files if (
+            f['status'] != 'archived')]
         results['unarchived_files'] = unarchived_files
 
         for assembly in assemblies:
             replicates = []
-            file_list = [f for f in good_files if f.get('assembly') == assembly]
+            file_list = [f for f in good_files if f.get(
+                'assembly') == assembly]
             for rep in reps:
                 rep_obj = {'rep': rep}
-                file_list_rep = [f for f in file_list if rep in f.get('biological_replicates')]
-                aligns = [f for f in file_list_rep if f.get('output_type') == 'alignments']
+                file_list_rep = [f for f in file_list if rep in f.get(
+                    'biological_replicates')]
+                aligns = [f for f in file_list_rep if f.get(
+                    'output_type') == 'alignments']
                 rep_obj['aligns'] = len(aligns)
-                raw_aligns = [f for f in file_list_rep if f.get('output_type') == 'unfiltered alignments']
+                raw_aligns = [f for f in file_list_rep if f.get(
+                    'output_type') == 'unfiltered alignments']
                 rep_obj['raws'] = len(raw_aligns)
                 replicates.append(rep_obj)
             failing_replicates = [f for f in replicates if f['aligns'] == 0]
@@ -143,75 +153,92 @@ def main():
                 results['mapping'][assembly] = []
                 for rep in failing_replicates:
                     results['mapping'][assembly].append(rep['rep'])
-                
 
             peaks = [f for f in file_list if f.get('output_type') == 'peaks']
             if len(peaks) > 0:
                 results['peaks'][assembly] = True
             else:
                 results['peaks'][assembly] = False
-  
+
         summary.append(results)
 
-
     unarchived_list = [r for r in summary if len(r['unarchived_files']) > 0]
-    print ('These experiments have unarchived files', len(unarchived_list))
+    print('These experiments have unarchived files', len(unarchived_list))
     for item in unarchived_list:
-        print (item['accession'])
-    print ('')
-    print ('')
+        print(item['accession'])
+    print('')
+    print('')
 
-    exps_mismatched_states = [r for r in summary if len(r['status issues']) > 0]
-    print ('These experiments have mismatched states', len(exps_mismatched_states))
+    exps_mismatched_states = [
+        r for r in summary if len(r['status issues']) > 0]
+    print('These experiments have mismatched states',
+          len(exps_mismatched_states))
     for item in exps_mismatched_states:
-        print (item['accession'])
-    print ('')
-    print ('')
+        print(item['accession'])
+    print('')
+    print('')
 
     # not_mapped_GRCh38 = [r for r in summary if r['missing_aligns']['GRCh38'] is False]
 
-    exps_missing_hg38_mapping = [r for r in summary if r['mapping']['GRCh38'] is False]
-    print ('These experiments are missing GRCh38 mapping for all replicates', len(exps_missing_hg38_mapping))
+    exps_missing_hg38_mapping = [
+        r for r in summary if r['mapping']['GRCh38'] is False]
+    print('These experiments are missing GRCh38 mapping for all replicates', len(
+        exps_missing_hg38_mapping))
     for item in exps_missing_hg38_mapping:
-        print (item['accession'], item['status'], item['internal_status'])
-    print ('')
-    print ('')
+        print(item['accession'], item['status'], item['internal_status'])
+    print('')
+    print('')
 
-    exps_partial_hg38_mapping = [r for r in summary if r['mapping']['GRCh38'] is not False and r['mapping']['GRCh38'] is not True]
-    print ('These experiments are missing GRCh38 mapping for some replicates', len(exps_partial_hg38_mapping))
+    exps_partial_hg38_mapping = [r for r in summary if r['mapping']
+                                 ['GRCh38'] is not False and r['mapping']['GRCh38'] is not True]
+    print('These experiments are missing GRCh38 mapping for some replicates', len(
+        exps_partial_hg38_mapping))
     for item in exps_partial_hg38_mapping:
-        print (item['accession'], item['status'], item['internal_status'], item['mapping']['GRCh38'])
-    print ('')
-    print ('')
+        print(item['accession'], item['status'],
+              item['internal_status'], item['mapping']['GRCh38'])
+    print('')
+    print('')
 
-    exps_missing_hg38_peaks = [r for r in summary if r['peaks']['GRCh38'] is False]
-    exps_missing_hg38_peaks_but_have_mapping = [f for f in exps_missing_hg38_peaks if f['peaks']['GRCh38'] is False and f not in exps_missing_hg38_mapping and f not in exps_partial_hg38_mapping]
-    print ('These experiments are missing GRCh38 peaks but having all mappings', len(exps_missing_hg38_peaks_but_have_mapping))
+    exps_missing_hg38_peaks = [
+        r for r in summary if r['peaks']['GRCh38'] is False]
+    exps_missing_hg38_peaks_but_have_mapping = [f for f in exps_missing_hg38_peaks if f['peaks']
+                                                ['GRCh38'] is False and f not in exps_missing_hg38_mapping and f not in exps_partial_hg38_mapping]
+    print('These experiments are missing GRCh38 peaks but having all mappings', len(
+        exps_missing_hg38_peaks_but_have_mapping))
     for item in exps_missing_hg38_peaks:
-        print (item['accession'], item['status'], item['internal_status'])
-    print ('')
-    print ('')
+        print(item['accession'], item['status'], item['internal_status'])
+    print('')
+    print('')
 
-    exps_missing_hg19_mapping = [r for r in summary if r['mapping']['hg19'] is False]
-    print ('These experiments are missing hg19 mapping for all replicates', len(exps_missing_hg19_mapping))
+    exps_missing_hg19_mapping = [
+        r for r in summary if r['mapping']['hg19'] is False]
+    print('These experiments are missing hg19 mapping for all replicates',
+          len(exps_missing_hg19_mapping))
     for item in exps_missing_hg19_mapping:
-        print (item['accession'], item['status'], item['internal_status'])
-    print ('')
-    print ('')
+        print(item['accession'], item['status'], item['internal_status'])
+    print('')
+    print('')
 
-    exps_partial_hg19_mapping = [r for r in summary if r['mapping']['hg19'] is not False and r['mapping']['hg19'] is not True]
-    print ('These experiments are missing hg19 mapping for some replicates', len(exps_partial_hg19_mapping))
+    exps_partial_hg19_mapping = [r for r in summary if r['mapping']
+                                 ['hg19'] is not False and r['mapping']['hg19'] is not True]
+    print('These experiments are missing hg19 mapping for some replicates',
+          len(exps_partial_hg19_mapping))
     for item in exps_partial_hg19_mapping:
-        print (item['accession'], item['status'], item['internal_status'], item['mapping']['hg19'])
-    print ('')
-    print ('')
+        print(item['accession'], item['status'],
+              item['internal_status'], item['mapping']['hg19'])
+    print('')
+    print('')
 
-    exps_missing_hg19_peaks = [r for r in summary if r['peaks']['hg19'] is False and r not in exps_missing_hg19_mapping and r not in exps_partial_hg19_mapping]
-    print ('These experiments are missing hg19 peaks', len(exps_missing_hg19_peaks))
+    exps_missing_hg19_peaks = [r for r in summary if r['peaks']['hg19']
+                               is False and r not in exps_missing_hg19_mapping and r not in exps_partial_hg19_mapping]
+    print('These experiments are missing hg19 peaks',
+          len(exps_missing_hg19_peaks))
     for item in exps_missing_hg19_peaks:
-        print (item['accession'], item['status'], item['internal_status'], 'warnings:', item.get('WARNING'))
-    print ('')
-    print ('')
+        print(item['accession'], item['status'],
+              item['internal_status'], 'warnings:', item.get('WARNING'))
+    print('')
+    print('')
+
 
 if __name__ == '__main__':
     main()

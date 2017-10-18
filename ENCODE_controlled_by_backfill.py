@@ -103,22 +103,26 @@ class BackFill:
 
     def updater(self, exp, con):
         ''' helper function runs the update step'''
-        temp = encodedcc.get_ENCODE(exp + '?datastore=database', self.connection).get("controlled_by", [])
+        temp = encodedcc.get_ENCODE(
+            exp + '?datastore=database', self.connection).get("controlled_by", [])
         if con not in temp:
             control = temp + [con]
             patch_dict = {"controlled_by": control}
             print("patching experiment file {} with controlled_by {}".format(exp, con))
             encodedcc.patch_ENCODE(exp, self.connection, patch_dict)
         else:
-            print("ERROR: controlled_by for experiment file {} already contains {}".format(exp, con))
+            print("ERROR: controlled_by for experiment file {} already contains {}".format(
+                exp, con))
 
     def single_rep(self, obj):
         '''one control with one replicate in control,
         multiple replicates in experiment'''
-        control_files = encodedcc.get_ENCODE(obj["possible_controls"][0]["accession"], self.connection, frame="embedded").get("files", [])
+        control_files = encodedcc.get_ENCODE(
+            obj["possible_controls"][0]["accession"], self.connection, frame="embedded").get("files", [])
         if len(control_files) == 0:
             if self.DEBUG:
-                print("Control object {} has no files".format(obj["possible_controls"][0]["accession"]), file=sys.stderr)
+                print("Control object {} has no files".format(
+                    obj["possible_controls"][0]["accession"]), file=sys.stderr)
             return
         for c in control_files:
             if c.get("file_type", "") == "fastq":
@@ -126,14 +130,16 @@ class BackFill:
                 for e in obj["files"]:
                     if e.get("file_type", "") == "fastq":
                         if not self.MISSING or (self.MISSING and not e.get("controlled_by")):
-                                exp_list.append(e["accession"])
+                            exp_list.append(e["accession"])
                 for exp in exp_list:
-                    temp = {"ExpAcc": obj["accession"], "Method": "Single", "ExpFile": exp, "ConFile": c["accession"]}
+                    temp = {"ExpAcc": obj["accession"], "Method": "Single",
+                            "ExpFile": exp, "ConFile": c["accession"]}
                     self.dataList.append(temp)
                     if self.update:
                         self.updater(exp, c["accession"])
                     if self.DEBUG:
-                        print("ExpFile: {}, ConFile: {}".format(temp["ExpFile"], temp["ConFile"]))
+                        print("ExpFile: {}, ConFile: {}".format(
+                            temp["ExpFile"], temp["ConFile"]))
 
     def pair_dict_maker(self, x_data, x):
         ''' helper function makes the exp_data 
@@ -149,17 +155,20 @@ class BackFill:
     def multi_rep(self, obj):
         '''one control, with one replicate in
         control per replicate in experiment'''
-        control_files = encodedcc.get_ENCODE(obj["possible_controls"][0]["accession"], self.connection, frame="embedded").get("files", [])
+        control_files = encodedcc.get_ENCODE(
+            obj["possible_controls"][0]["accession"], self.connection, frame="embedded").get("files", [])
         control_replicates = obj["possible_controls"][0].get("replicates", [])
         exp_data = {}
         con_data = {}
         if len(control_replicates) != len(obj["replicates"]):
             if self.DEBUG:
-                print("Control has {} replicates and experiment has {} replicates".format(len(control_replicates), len(obj["replicates"])), file=sys.stderr)
+                print("Control has {} replicates and experiment has {} replicates".format(
+                    len(control_replicates), len(obj["replicates"])), file=sys.stderr)
             return
         if len(control_files) == 0:
             if self.DEBUG:
-                print("Control {} has no files".format(obj["possible_controls"][0]["accession"]), file=sys.stderr)
+                print("Control {} has no files".format(
+                    obj["possible_controls"][0]["accession"]), file=sys.stderr)
             return
         for e in obj["files"]:
             if e.get("file_type", "") == "fastq":
@@ -185,27 +194,32 @@ class BackFill:
                     temp_list.append(y_key)
             if self.ignore_runtype:
                 for t in temp_list:
-                    temp = {"ExpAcc": obj["accession"], "Method": "Multi-runtype ignored", "ExpFile": x_key, "ConFile": t}
+                    temp = {
+                        "ExpAcc": obj["accession"], "Method": "Multi-runtype ignored", "ExpFile": x_key, "ConFile": t}
                     self.dataList.append(temp)
                     if self.update:
                         self.updater(x_key, t)
                     if self.DEBUG:
-                        print("ExpFile: {}, ConFile: {}".format(temp["ExpFile"], temp["ConFile"]))
+                        print("ExpFile: {}, ConFile: {}".format(
+                            temp["ExpFile"], temp["ConFile"]))
             else:
                 for t in temp_list:
-                    temp = {"ExpAcc": obj["accession"], "Method": "Multi", "ExpFile": t, "ConFile": x_key}
+                    temp = {
+                        "ExpAcc": obj["accession"], "Method": "Multi", "ExpFile": t, "ConFile": x_key}
                     self.dataList.append(temp)
                     if self.update:
                         self.updater(t, x_key)
                     if self.DEBUG:
-                        print("ExpFile: {}, ConFile: {}".format(temp["ExpFile"], temp["ConFile"]))
+                        print("ExpFile: {}, ConFile: {}".format(
+                            temp["ExpFile"], temp["ConFile"]))
 
     def multi_control(self, obj):
         '''multiple controls, match on biosample'''
         con_data = {}
         val = True
         for con in obj["possible_controls"]:
-            c = encodedcc.get_ENCODE(con["accession"], self.connection, frame="embedded")
+            c = encodedcc.get_ENCODE(
+                con["accession"], self.connection, frame="embedded")
             if c.get("replicates"):
                 for rep in c["replicates"]:
                     if c.get("files"):
@@ -219,11 +233,13 @@ class BackFill:
                                     con_data[con_bio_acc] = con_file_acc
                     else:
                         if self.DEBUG:
-                            print("No files found for control {}".format(con["accession"]), file=sys.stderr)
+                            print("No files found for control {}".format(
+                                con["accession"]), file=sys.stderr)
                         val = False
             else:
                 if self.DEBUG:
-                    print("No replicates found in control {}".format(con["accession"]), file=sys.stderr)
+                    print("No replicates found in control {}".format(
+                        con["accession"]), file=sys.stderr)
                 val = False
 
         if val:
@@ -241,12 +257,14 @@ class BackFill:
 
             for key in exp_data.keys():
                 if con_data.get(key):
-                    temp = {"ExpAcc": obj["accession"], "Method": "Biosample", "ExpFile": exp_data[key], "ConFile": con_data[key]}
+                    temp = {"ExpAcc": obj["accession"], "Method": "Biosample",
+                            "ExpFile": exp_data[key], "ConFile": con_data[key]}
                     self.dataList.append(temp)
                     if self.update:
                         self.updater(exp_data[key], con_data[key])
                     if self.DEBUG:
-                        print("Biosample: {}, ExpFile: {}, ConFile: {}".format(key, temp["ExpFile"], temp["ConFile"]))
+                        print("Biosample: {}, ExpFile: {}, ConFile: {}".format(
+                            key, temp["ExpFile"], temp["ConFile"]))
 
 
 def main():
@@ -265,7 +283,8 @@ def main():
             accessions = args.infile.split(",")
     elif args.query:
         if "search" in args.query:
-            temp = encodedcc.get_ENCODE(args.query, connection).get("@graph", [])
+            temp = encodedcc.get_ENCODE(
+                args.query, connection).get("@graph", [])
         else:
             temp = [encodedcc.get_ENCODE(args.query, connection)]
         if any(temp):
@@ -290,21 +309,25 @@ def main():
             for c in check:
                 if not obj.get(c):
                     if args.debug:
-                        print("Missing {} for {}".format(c, acc), file=sys.stderr)
+                        print("Missing {} for {}".format(
+                            c, acc), file=sys.stderr)
                     isValid = False
             if obj.get("possible_controls"):
                 for p in obj["possible_controls"]:
                     for c in check:
                         if not obj.get(c):
                             if args.debug:
-                                print("Missing {} for {}".format(c, p["accession"]), file=sys.stderr)
+                                print("Missing {} for {}".format(
+                                    c, p["accession"]), file=sys.stderr)
                             isValid = False
             else:
                 isValid = False
                 if args.debug:
-                    print("Missing possible_controls for {}".format(acc), file=sys.stderr)
+                    print("Missing possible_controls for {}".format(
+                        acc), file=sys.stderr)
             if isValid:
-                backfill = BackFill(connection, debug=args.debug, missing=args.missing, update=args.update, ignore_runtype=args.ignore_runtype)
+                backfill = BackFill(connection, debug=args.debug, missing=args.missing,
+                                    update=args.update, ignore_runtype=args.ignore_runtype)
                 if args.method == "single":
                     if args.debug:
                         print("SINGLE REP {}".format(acc))
@@ -322,7 +345,8 @@ def main():
                     exp_con = len(obj["possible_controls"])
                     if exp_con == 1:
                         # one possible control
-                        con_rep = len(obj["possible_controls"][0]["replicates"])
+                        con_rep = len(obj["possible_controls"]
+                                      [0]["replicates"])
                         if con_rep == exp_rep:
                             # same number experiment replicates as control replicates
                             # method is multi
@@ -337,7 +361,8 @@ def main():
                             backfill.single_rep(obj)
                         else:
                             if args.debug:
-                                print("Experiment {} contains {} experiment replicates and {} control replicates and so does not fit the current pattern!".format(acc, exp_rep, con_rep))
+                                print("Experiment {} contains {} experiment replicates and {} control replicates and so does not fit the current pattern!".format(
+                                    acc, exp_rep, con_rep))
                     elif exp_con > 1:
                         # more than one possible control
                         con_reps = 0
@@ -352,15 +377,19 @@ def main():
                             backfill.multi_control(obj)
                         else:
                             if args.debug:
-                                print("Experiment {} contains {} experiment replicates and {} control replicates between {} total controls and so does not fit the current pattern!".format(acc, exp_rep, con_rep, exp_con))
+                                print("Experiment {} contains {} experiment replicates and {} control replicates between {} total controls and so does not fit the current pattern!".format(
+                                    acc, exp_rep, con_rep, exp_con))
                     else:
                         if args.debug:
-                            print("Experiment {} does not fit any of the current patterns!".format(acc))
+                            print(
+                                "Experiment {} does not fit any of the current patterns!".format(acc))
 
                 if len(backfill.dataList) > 0:
                     print("Experiment\tMethod\tExperimentFile\tControlFile")
                     for data in backfill.dataList:
-                        print("{ExpAcc}\t{Method}\t{ExpFile}\t{ConFile}".format(ExpAcc=data["ExpAcc"], Method=data["Method"], ExpFile=data["ExpFile"], ConFile=data["ConFile"]))
+                        print("{ExpAcc}\t{Method}\t{ExpFile}\t{ConFile}".format(
+                            ExpAcc=data["ExpAcc"], Method=data["Method"], ExpFile=data["ExpFile"], ConFile=data["ConFile"]))
+
 
 if __name__ == '__main__':
-        main()
+    main()

@@ -36,11 +36,13 @@ def get_without_ESearch(obj_id, connection):
     '''GET an ENCODE object as JSON and return as dict'''
     url = urljoin(connection.server, obj_id + "?limit=all")
     logging.debug('GET %s' % (url))
-    response = requests.get(url, auth=connection.auth, headers=connection.headers)
+    response = requests.get(url, auth=connection.auth,
+                            headers=connection.headers)
     logging.debug('GET RESPONSE code %s' % (response.status_code))
     try:
         if response.json():
-            logging.debug('GET RESPONSE JSON: %s' % (json.dumps(response.json(), indent=4, separators=(',', ': '))))
+            logging.debug('GET RESPONSE JSON: %s' % (json.dumps(
+                response.json(), indent=4, separators=(',', ': '))))
     except:
         logging.debug('GET RESPONSE text %s' % (response.text))
     if not response.status_code == 200:
@@ -107,7 +109,8 @@ def main():
     headings = []
     for schema_property in object_schema["properties"]:
         property_type = object_schema["properties"][schema_property]["type"]
-        if isinstance(property_type, list):  # hack to deal with multi-typed properties, just pick the first one
+        # hack to deal with multi-typed properties, just pick the first one
+        if isinstance(property_type, list):
             property_type = property_type[0]
         if property_type == 'string':  # if it's a string type, the heading is just the property name
             headings.append(schema_property)
@@ -125,7 +128,8 @@ def main():
                 headings.append(schema_property + ':array')
             else:
                 try:
-                    headings.append(schema_property + ':' + object_schema["properties"][schema_property][whateveritscalled]["type"] + ':array')
+                    headings.append(
+                        schema_property + ':' + object_schema["properties"][schema_property][whateveritscalled]["type"] + ':array')
                 except:
                     headings.append(schema_property + ':mixed:array')
         else:  # it isn't a string, and it isn't an array, so make the heading property_name:type
@@ -146,7 +150,8 @@ def main():
     if 'user' in supplied_name:
         headings.append('title')
 
-    exclude_unsubmittable = ['accession', 'uuid', 'schema_version', 'alternate_accessions', 'submitted_by']
+    exclude_unsubmittable = [
+        'accession', 'uuid', 'schema_version', 'alternate_accessions', 'submitted_by']
 
     global collection
     if args.query:
@@ -184,10 +189,13 @@ def main():
                 try:
                     embedded_key = obj[prop_key.split('.')[0]]
                     if '/' in embedded_key:
-                        embedded_obj = encodedcc.get_ENCODE(embedded_key, connection)
+                        embedded_obj = encodedcc.get_ENCODE(
+                            embedded_key, connection)
                     else:
-                        embedded_obj = encodedcc.get_ENCODE(prop_key.split('.')[0] + '/' + obj[prop_key.split('.')[0]], connection)
-                    embedded_value_string = json.dumps(embedded_obj[prop_key.split('.')[1]]).lstrip('"').rstrip('"')
+                        embedded_obj = encodedcc.get_ENCODE(prop_key.split(
+                            '.')[0] + '/' + obj[prop_key.split('.')[0]], connection)
+                    embedded_value_string = json.dumps(
+                        embedded_obj[prop_key.split('.')[1]]).lstrip('"').rstrip('"')
                     if embedded_value_string == '[]':
                         embedded_value_string = ""
                 except KeyError:
@@ -197,6 +205,7 @@ def main():
                 rowstring += '\t'
         rowstring = rowstring.rstrip()
         print(rowstring)
+
 
 if __name__ == '__main__':
     main()

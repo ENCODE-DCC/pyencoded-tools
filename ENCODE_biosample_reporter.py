@@ -92,5 +92,6 @@ def main():
     for d in data:
         writer.writerow(d)
 
+
 if __name__ == '__main__':
-        main()
+    main()
