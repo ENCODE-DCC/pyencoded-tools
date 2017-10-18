@@ -1,5 +1,8 @@
 ## Purpose
 _qancode_ automates ENCODE release testing (QA) tasks that may require manual review.
+Additional documentation under ENCODE drive 'How To: QA Automation' https://docs.google.com/document/d/1G1-TofLknZKq4FUVUjhqMKqjkH5sRhRS03tUXi-NKZU/edit?usp=sharing
+Information on how _qancode_ relates to the older, manual version of QA can be found here: https://docs.google.com/document/d/1e-sc79XioOq_D7TRn4EAo4jEfg7riWFwpjUNoVMZCSo/edit?usp=sharing
+
 
 ## Examples
 Run _qancode_ package in interactive Python session:
@@ -56,5 +59,5 @@ qa.find_differences(browsers=['Safari'],
 * Chrome webdriver (https://sites.google.com/a/chromium.org/chromedriver/downloads)
 * Firefox webdriver (https://github.com/mozilla/geckodriver/releases)
 * OSX >10.12.5 and Safari Technology Preview Edition (https://developer.apple.com/safari/technology-preview) (bug in Safari 10.1.1 prevents Selenium script from running)
-
+* Collection of browser and selenium driver downloads that currently work for _qancode_: https://drive.google.com/drive/u/1/folders/0Bw5F9KFA-sq5aWx5Vlc3QUlfWmM
 
