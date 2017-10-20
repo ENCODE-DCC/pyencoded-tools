@@ -56,5 +56,9 @@ qa.find_differences(browsers=['Safari'],
 * Chrome webdriver (https://sites.google.com/a/chromium.org/chromedriver/downloads)
 * Firefox webdriver (https://github.com/mozilla/geckodriver/releases)
 * OSX >10.12.5 and Safari Technology Preview Edition (https://developer.apple.com/safari/technology-preview) (bug in Safari 10.1.1 prevents Selenium script from running)
+* Browser and Selenium driver downloads that currently work for _qancode_ (https://drive.google.com/drive/u/1/folders/0Bw5F9KFA-sq5aWx5Vlc3QUlfWmM)
 
+## Additional documentation
+* [How To: QA Automation](https://docs.google.com/document/d/1G1-TofLknZKq4FUVUjhqMKqjkH5sRhRS03tUXi-NKZU/edit?usp=sharing)
 
+* [_qancode_ versus  manual  QA](https://docs.google.com/document/d/1e-sc79XioOq_D7TRn4EAo4jEfg7riWFwpjUNoVMZCSo/edit?usp=sharing)
