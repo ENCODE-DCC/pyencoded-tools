@@ -157,6 +157,9 @@ class Data_Release():
         self.searched = []
         self.connection = connection
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
+        # Fix for WRAN-708, new objects in profiles that don't have properties.
+        temp = {k: v for k, v in temp.items()
+                if not k.startswith('_') or v.get('properties') is not None}
 
         ignore = ["Lab", "Award", "Platform",
                   "Organism", "Reference", "AccessKey", "User", "AnalysisStep",
