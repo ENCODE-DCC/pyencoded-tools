@@ -38,7 +38,8 @@ CSV_ARGS = {'delimiter': ',',
             'dialect': 'excel'}
 
 GET_HEADERS = {'accept': 'application/json'}
-POST_HEADERS = {'accept': 'application/json', 'content-type': 'application/json'}
+POST_HEADERS = {'accept': 'application/json',
+                'content-type': 'application/json'}
 
 
 def get_args():
@@ -74,13 +75,15 @@ def get_args():
                         Default is --encvaldata=%s" % (os.path.expanduser("~/encValData/")),
                         default=os.path.expanduser("~/encValData/"))
     parser.add_argument('--validatefiles',
-                        help="validateFiles program needed to run script.  Default is --validatefiles=%s" % (os.path.expanduser("~/validateFiles")),
+                        help="validateFiles program needed to run script.  Default is --validatefiles=%s" % (
+                            os.path.expanduser("~/validateFiles")),
                         default=os.path.expanduser("~/validateFiles"))
 
     args = parser.parse_args()
 
     if args.debug:
-        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+        logging.basicConfig(
+            format='%(levelname)s:%(message)s', level=logging.DEBUG)
     else:  # use the defaulf logging level
         logging.basicConfig(format='%(levelname)s:%(message)s')
 
@@ -90,10 +93,12 @@ def get_args():
         logger.setLevel(logging.INFO)
 
     if not os.path.isdir(args.encvaldata):
-        logger.error('No ENCODE validation data.  git clone https://github.com/ENCODE-DCC/encValData.git')
+        logger.error(
+            'No ENCODE validation data.  git clone https://github.com/ENCODE-DCC/encValData.git')
         sys.exit(1)
     if not os.path.exists(args.validatefiles):
-        logger.error("validateFiles not found. See http://hgdownload.cse.ucsc.edu/admin/exe/")
+        logger.error(
+            "validateFiles not found. See http://hgdownload.cse.ucsc.edu/admin/exe/")
         sys.exit(1)
 
     return args
@@ -165,10 +170,12 @@ def validate_file(f_obj, encValData, assembly=None, as_path=None):
     is_gzipped = magic_number == b'\x1f\x8b'
     if file_format in gzip_types:
         if not is_gzipped:
-            logger.warning('%s: Expect %s format to be gzipped' % (path, file_format))
+            logger.warning('%s: Expect %s format to be gzipped' %
+                           (path, file_format))
     else:
         if is_gzipped:
-            logger.warning('%s: Expect %s format to be un-gzipped' % (path, file_format))
+            logger.warning('%s: Expect %s format to be un-gzipped' %
+                           (path, file_format))
 
     if assembly:
         chromInfo = '-chromInfo=%s/%s/chrom.sizes' % (encValData, assembly)
@@ -240,11 +247,14 @@ def validate_file(f_obj, encValData, assembly=None, as_path=None):
     validate_args = validate_map.get((file_format, file_format_type), "")
 
     if validate_args == "":
-        logger.warning('No rules to validate file_format %s and file_format_type %s' % (file_format, file_format_type))
+        logger.warning('No rules to validate file_format %s and file_format_type %s' % (
+            file_format, file_format_type))
         return False
     if validate_args is not None:
-        if (file_format, file_format_type) in [('bed', 'bed3'), ('bed', 'bed3+')] and as_file:  # TODO: Update file schema and change to bed3+
-            validate_args = ['-type=bed3+', chromInfo]  # TODO: Update file schema.  This is to foce bed3+ for validateFiles but pass bed3 to file_format_type
+        # TODO: Update file schema and change to bed3+
+        if (file_format, file_format_type) in [('bed', 'bed3'), ('bed', 'bed3+')] and as_file:
+            # TODO: Update file schema.  This is to foce bed3+ for validateFiles but pass bed3 to file_format_type
+            validate_args = ['-type=bed3+', chromInfo]
             validate_args.append(as_file)
 
         tokens = ['validateFiles'] + validate_args + [path]
@@ -276,7 +286,8 @@ def get_asfile(uri_json, connection):
             logger.error("Failed to get ENCODE object %s" % (uri))
             return None
         document_obj = r.json()
-        r = requests.get(urljoin(connection.server, document_obj['uuid'] + '/' + document_obj['attachment']['href']), auth=connection.auth)
+        r = requests.get(urljoin(
+            connection.server, document_obj['uuid'] + '/' + document_obj['attachment']['href']), auth=connection.auth)
         try:
             r.raise_for_status()
         except:
@@ -292,9 +303,9 @@ def process_row(row, connection):
     flowcell_dict = {}
     if row.get("file_format", "") == "fastq":
         for header, sequence, qual_header, quality in encodedcc.fastq_read(connection, filename=row["submitted_file_name"]):
-                sequence = sequence.decode("UTF-8")
-                read_length = len(sequence)
-                json_payload.update({"read_length": read_length})
+            sequence = sequence.decode("UTF-8")
+            read_length = len(sequence)
+            json_payload.update({"read_length": read_length})
     for key in row.keys():
         k = key.split(":")
         if k[0] in ["flowcell", "machine", "lane", "barcode"]:
@@ -318,7 +329,8 @@ def process_row(row, connection):
                 try:
                     json_payload.update({k[0]: json.loads('"%s"' % (value))})
                 except:
-                    logger.warning('Could not convert field %s value %s to JSON' % (k[0], value))
+                    logger.warning(
+                        'Could not convert field %s value %s to JSON' % (k[0], value))
                     return None
     if any(flowcell_dict):
         flowcell_list = [flowcell_dict]
@@ -334,20 +346,24 @@ def process_row(row, connection):
 def uploader(file_object, update):
     aws_return_code = encodedcc.upload_file(file_object, update)
     if aws_return_code:
-        logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_return_code))
+        logger.warning('Row %d: Non-zero AWS upload return code %d' %
+                       (aws_return_code))
         print("Retrying upload to S3...")
         creds = file_object["upload_credentials"]
         expire = parse(creds["expiration"]).date()
         now = datetime.datetime.now().date()
         if now > expire:
-            new_file_object = encodedcc.ENC_Item(connection, file_object["@id"])
+            new_file_object = encodedcc.ENC_Item(
+                connection, file_object["@id"])
             print("Your upload credentials are stale.  Getting new credentials.")
             file_object = new_file_object.new_creds()
 
         aws_retry = encodedcc.upload_file(file_object, update)
         if aws_retry:
-            logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_retry))
-            encodedcc.patch_ENCODE(file_object["@id"], connection, {"status": "upload failed"})
+            logger.warning(
+                'Row %d: Non-zero AWS upload return code %d' % (aws_retry))
+            encodedcc.patch_ENCODE(file_object["@id"], connection, {
+                                   "status": "upload failed"})
     return aws_return_code
 
 
@@ -357,30 +373,37 @@ def main():
     key = encodedcc.ENC_Key(args.keyfile, args.key)
     connection = encodedcc.ENC_Connection(key)
     if not test_encode_keys(connection):
-        logger.error("Invalid ENCODE server or keys: server=%s auth=%s" % (connection.server, connection.auth))
+        logger.error("Invalid ENCODE server or keys: server=%s auth=%s" %
+                     (connection.server, connection.auth))
         sys.exit(1)
 
     input_csv, output_csv = init_csvs(args.infile, args.outfile)
 
     for n, row in enumerate(input_csv, start=2):  # row 1 is the header
-        if row.get("file_format_specifications"):  #if there is no "file_format_spec" then no point in running get_asfile()
+        # if there is no "file_format_spec" then no point in running get_asfile()
+        if row.get("file_format_specifications"):
             as_file = get_asfile(row['file_format_specifications'], connection)
             as_file.close()  # validateFiles needs a closed file for -as, otherwise it gives a return code of -11
-            validated = validate_file(row, args.encvaldata, row.get('assembly'), as_file.name)
+            validated = validate_file(
+                row, args.encvaldata, row.get('assembly'), as_file.name)
             os.unlink(as_file.name)
         else:
-            validated = validate_file(row, args.encvaldata, row.get('assembly'))
+            validated = validate_file(
+                row, args.encvaldata, row.get('assembly'))
 
         if not validated:
-            logger.warning('Skipping row %d: file %s failed validation' % (n, row['submitted_file_name']))
+            logger.warning('Skipping row %d: file %s failed validation' % (
+                n, row['submitted_file_name']))
             continue
 
         json_payload = process_row(row, connection)
         if not json_payload:
-            logger.warning('Skipping row %d: invalid field format for JSON' % (n))
+            logger.warning(
+                'Skipping row %d: invalid field format for JSON' % (n))
             continue
 
-        file_object = encodedcc.post_file(json_payload, connection, args.update)
+        file_object = encodedcc.post_file(
+            json_payload, connection, args.update)
         if isinstance(file_object, requests.models.Response):
             if file_object.status_code == 409:
                 print("POST Conflict", file_object.json())
@@ -388,24 +411,29 @@ def main():
                 if i.lower() == "y":
                     detail = file_object.json()["detail"]
                     # pull out the list with the 'key conflict' and turn it into a list
-                    conflict = ast.literal_eval(detail.lstrip("Keys conflict: "))
+                    conflict = ast.literal_eval(
+                        detail.lstrip("Keys conflict: "))
                     # get the first tuple in the list
                     conflict = conflict[0]
                     # the second item in the tuple is the value
                     obj = conflict[1]
-                    print("Getting upload credentials from conflicting identifier {}".format(obj))
+                    print(
+                        "Getting upload credentials from conflicting identifier {}".format(obj))
                     if ":" in obj:
                         obj = quote(obj)
                     temp_object = encodedcc.get_ENCODE(obj, connection)
-                    file_object = encodedcc.ENC_Item(connection, temp_object["@id"])
+                    file_object = encodedcc.ENC_Item(
+                        connection, temp_object["@id"])
                     print("Uploading file to S3")
                     aws_return_code = uploader(file_object, args.update)
                 else:
-                    logger.warning('Skipping row %d: POST file object failed' % (n))
+                    logger.warning(
+                        'Skipping row %d: POST file object failed' % (n))
                     aws_return_code = None
         else:
             if not file_object:
-                logger.warning('Skipping row %d: POST file object failed' % (n))
+                logger.warning(
+                    'Skipping row %d: POST file object failed' % (n))
                 aws_return_code = None
                 continue
             else:

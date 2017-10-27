@@ -135,13 +135,13 @@ def main():
                     '&type=Replicate' +
                     '&type=Treatment&format=json&' +
                     'frame=object&limit=all&' + query, keypair)['@graph']
-    print ('There are ' + str(len(objects)) +
-           ' objects that should be inspected on the portal')
+    print('There are ' + str(len(objects)) +
+          ' objects that should be inspected on the portal')
     counter = 0
     for obj in objects:
         counter += 1
         if counter % 1000 == 0:
-            print ('Script processed ' + str(counter) + ' objects')
+            print('Script processed ' + str(counter) + ' objects')
         if obj['status'] not in ['replaced']:
             patching_data = {}
 
@@ -211,16 +211,16 @@ def main():
             fix_replaced_references(obj, 'library',
                                     patching_data, keypair, server)
             if patching_data:
-                print ('Patching object ' +
-                       obj['@type'][0] + '\t' + obj['uuid'])
-                print ('OLD DATA:')
+                print('Patching object ' +
+                      obj['@type'][0] + '\t' + obj['uuid'])
+                print('OLD DATA:')
                 for k in patching_data:
-                    print ('\t' + k + '\t' + str(obj[k]))
-                print ('---------')
-                print ('NEW DATA:')
+                    print('\t' + k + '\t' + str(obj[k]))
+                print('---------')
+                print('NEW DATA:')
                 for k in patching_data:
-                    print ('\t' + k + '\t' + str(patching_data[k]))
-                print ('---------')
+                    print('\t' + k + '\t' + str(patching_data[k]))
+                print('---------')
                 encodedcc.patch_ENCODE(obj['uuid'],
                                        connection, patching_data)
 

@@ -59,25 +59,26 @@ def main():
         'File': 'ENCFF'
     }
     if object_type not in object_types:
-        print ('ERROR - Unrecognized object type : ' + object_type +
-               ', please specify type from the following list : ' +
-               str(sorted(object_types.keys())))
+        print('ERROR - Unrecognized object type : ' + object_type +
+              ', please specify type from the following list : ' +
+              str(sorted(object_types.keys())))
     else:
         is_valid = True
         attach = ''
         for acc in ACCESSIONS:
             if acc.startswith(object_types[object_type]) is False:
-                print ('ERROR - Accession ' + acc +
-                       ' does not match specified object type ' + object_type)
+                print('ERROR - Accession ' + acc +
+                      ' does not match specified object type ' + object_type)
                 is_valid = False
             if len(acc) != 11:
-                print ('ERROR - Accession ' + acc +
-                       ' does not match ENCODE accession format ' +
-                       '(ENCXY123ABC) length')
+                print('ERROR - Accession ' + acc +
+                      ' does not match ENCODE accession format ' +
+                      '(ENCXY123ABC) length')
                 is_valid = False
             attach += '&accession=' + acc
         if is_valid:
-            print (server + 'search/?type=' + object_type + attach)
+            print(server + 'search/?type=' + object_type + attach)
+
 
 if __name__ == '__main__':
     main()

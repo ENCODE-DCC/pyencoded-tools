@@ -325,7 +325,7 @@ def expose_objects(post_json, json_properties):
     '''
     for key in post_json.keys():
         if ((isinstance(post_json[key], list))
-            and (json_properties[key]['type'] == 'object')):
+                and (json_properties[key]['type'] == 'object')):
             if len(post_json[key]) == 1:
                 post_json[key] = post_json[key][0]
     return post_json

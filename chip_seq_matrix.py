@@ -24,6 +24,8 @@ For more details:
 Example command:
 python3 chip_seq_matrix.py --keyfile keypairs.json --key test --lab bing-ren --organism 'Mus musculus' --target 'histone' 
 '''
+
+
 def getArgs():
     parser = argparse.ArgumentParser(
         description=__doc__, epilog=EPILOG,
@@ -55,6 +57,7 @@ def getArgs():
                         help="Print debug messages.  Default is False.")
     args = parser.parse_args()
     return args
+
 
 def encoded_get(url, keypair=None, frame='object', return_response=False):
     url_obj = urllib.parse.urlsplit(url)
@@ -211,7 +214,7 @@ def is_compliant_library_complexity(experiment):
         for au in list_of_audits:
             if au['category'] in ['insufficient library complexity',
                                   'poor library complexity']:
-                    return False
+                return False
     return True
 
 
@@ -222,7 +225,7 @@ def is_not_moderate_library_complexity(experiment):
             list_of_audits.extend(experiment['audit']['WARNING'])
         for au in list_of_audits:
             if au['category'] in ['moderate library complexity']:
-                    return False
+                return False
     return True
 
 
@@ -234,7 +237,7 @@ def is_compliant_library_bottlenecking(experiment):
         for au in list_of_audits:
             if au['category'] in ['severe bottlenecking',
                                   'moderate bottlenecking']:
-                    return False
+                return False
     return True
 
 
@@ -245,7 +248,7 @@ def is_not_mild_library_bottlenecking(experiment):
             list_of_audits.extend(experiment['audit']['WARNING'])
         for au in list_of_audits:
             if au['category'] in ['mild bottlenecking']:
-                    return False
+                return False
     return True
 
 
@@ -269,8 +272,8 @@ def main():
                                             '&format=json&frame=' +
                                             'page&limit=all',
                                             keypair)['@graph']
-    print ("retreived "+str(len(histone_experiments_pages)) +
-           " experiment pages")
+    print("retreived " + str(len(histone_experiments_pages)) +
+          " experiment pages")
 
     histone_controls_pages = encoded_get(server +
                                          'search/?type=Experiment' +
@@ -279,7 +282,7 @@ def main():
                                          '&target.investigated_as=control' +
                                          lab + '&format=json&frame=' +
                                          'page&limit=all', keypair)['@graph']
-    print ("retreived "+str(len(histone_controls_pages)) + " control pages")
+    print("retreived " + str(len(histone_controls_pages)) + " control pages")
 
     histone_experiments_objects = encoded_get(server +
                                               'search/?type=Experiment' +
@@ -290,8 +293,8 @@ def main():
                                               '&format=json&frame=' +
                                               'embedded&limit=all',
                                               keypair)['@graph']
-    print ("retreived "+str(len(histone_experiments_objects)) +
-           " experiment objects")
+    print("retreived " + str(len(histone_experiments_objects)) +
+          " experiment objects")
 
     histone_controls_objects = encoded_get(server +
                                            'search/?type=Experiment' +
@@ -301,8 +304,8 @@ def main():
                                            lab + '&format=json&frame=' +
                                            'embedded&limit=all',
                                            keypair)['@graph']
-    print ("retreived "+str(len(histone_controls_objects)) +
-           " control objects")
+    print("retreived " + str(len(histone_controls_objects)) +
+          " control objects")
 
     matrix = {}
     control_matrix = {}
@@ -345,7 +348,7 @@ def main():
                                                  entry['aliases']))
         else:
             control_matrix[mark][sample].append((entry['accession'],
-                                                'NO ALIASES'))
+                                                 'NO ALIASES'))
         sample_types.add(sample)
         marks.add(mark)
 
@@ -357,10 +360,11 @@ def main():
         #  check only experiments that are not DELETED/REVOKED/REPLACED
         if is_interesting(obj):
             if mone % 10 == 0:
-                print ('processed '+str(mone) + ' out of ' +
-                       str(len(histone_experiments_dict.keys())))
+                print('processed ' + str(mone) + ' out of ' +
+                      str(len(histone_experiments_dict.keys())))
 
-            statuses = {'replication': [], 'antibody': [], 'control': [], 'files': [], 'qc': []}
+            statuses = {'replication': [], 'antibody': [],
+                        'control': [], 'files': [], 'qc': []}
             if is_replicated(obj) is False or is_replicated(page) is False:
                 statuses['replication'].append('unreplicated')
             if is_antibody_eligible(page) is False:
@@ -372,7 +376,8 @@ def main():
             if is_not_mismatched_control_run_type(page) is False:
                 statuses['control'].append('mismatched controled_by run_type')
             if is_not_mismatched_control_read_length(page) is False:
-                statuses['control'].append('mismatched controled_by read_length')
+                statuses['control'].append(
+                    'mismatched controled_by read_length')
             if is_not_missing_controls(page) is False:
                 statuses['control'].append('missing control')
             if is_not_missing_paired_with(page) is False:
@@ -426,28 +431,32 @@ def main():
 
             rep_dict = {}
             for file_id in obj['original_files']:
-                file_object = encodedcc.get_ENCODE(file_id.split('/')[2], connection, 'embedded')
+                file_object = encodedcc.get_ENCODE(
+                    file_id.split('/')[2], connection, 'embedded')
                 if file_object['status'] in FILE_IGNORE_STATUS:
                     continue
                 if file_object['file_format'] == 'fastq':
                     if 'replicate' in file_object:
                         bio_rep_number = file_object['replicate']['biological_replicate_number']
                         tec_rep_number = file_object['replicate']['technical_replicate_number']
-                        key = (bio_rep_number,tec_rep_number)
+                        key = (bio_rep_number, tec_rep_number)
                         if key not in rep_dict:
                             rep_dict[key] = set()
                         if 'read_length' in file_object and 'run_type' in file_object:
                             if file_object['run_type'] == 'single-ended':
-                                record_val = str(file_object['read_length'])+'SE'
+                                record_val = str(
+                                    file_object['read_length']) + 'SE'
                             else:
-                                record_val = str(file_object['read_length'])+'PE'
+                                record_val = str(
+                                    file_object['read_length']) + 'PE'
                             rep_dict[key].add(record_val)
             seq_info_string = ''
             for k in sorted(rep_dict.keys()):
                 reps_string = ''
                 for member in rep_dict[k]:
                     reps_string += member + ', '
-                seq_info_string += 'REP' + str(k[0]) + '.' + str(k[1]) + ' ' +reps_string[:-2]+'\r'
+                seq_info_string += 'REP' + \
+                    str(k[0]) + '.' + str(k[1]) + ' ' + reps_string[:-2] + '\r'
 
             histone_experiments_dict[ac]['seq_info'] = seq_info_string
 
@@ -459,7 +468,8 @@ def main():
         obj = histone_controls_dict[ac]['object']
         if is_interesting(obj):
             if mone % 10 == 0:
-                print ('processed '+str(mone) + ' out of ' + str(len(histone_controls_dict.keys())))
+                print('processed ' + str(mone) + ' out of ' +
+                      str(len(histone_controls_dict.keys())))
             statuses = {'replication': [], 'files': [], 'qc': []}
             if is_replicated(obj) is False or is_replicated(page) is False:
                 statuses['replication'].append('unreplicated')
@@ -478,32 +488,33 @@ def main():
             if is_not_mild_library_bottlenecking(page) is False:
                 statuses['qc'].append('mild library bottlenecking')
 
-
         histone_controls_dict[ac]['statuses'] = statuses
         rep_dict = {}
-        for file_id in obj['original_files']:     
-            file_object = encodedcc.get_ENCODE(file_id.split('/')[2], connection, 'embedded')
+        for file_id in obj['original_files']:
+            file_object = encodedcc.get_ENCODE(
+                file_id.split('/')[2], connection, 'embedded')
             if file_object['status'] in FILE_IGNORE_STATUS:
                 continue
             if file_object['file_format'] == 'fastq':
                 if 'replicate' in file_object:
                     bio_rep_number = file_object['replicate']['biological_replicate_number']
                     tec_rep_number = file_object['replicate']['technical_replicate_number']
-                    key = (bio_rep_number,tec_rep_number)
+                    key = (bio_rep_number, tec_rep_number)
                     if key not in rep_dict:
                         rep_dict[key] = set()
                     if 'read_length' in file_object and 'run_type' in file_object:
                         if file_object['run_type'] == 'single-ended':
-                            record_val = str(file_object['read_length'])+'SE'
+                            record_val = str(file_object['read_length']) + 'SE'
                         else:
-                            record_val = str(file_object['read_length'])+'PE'
+                            record_val = str(file_object['read_length']) + 'PE'
                         rep_dict[key].add(record_val)
         seq_info_string = ''
         for k in sorted(rep_dict.keys()):
             reps_string = ''
             for member in rep_dict[k]:
                 reps_string += member + ', '
-            seq_info_string += 'REP' + str(k[0]) + '.' + str(k[1]) + ' ' +reps_string[:-2]+'\r'
+            seq_info_string += 'REP' + \
+                str(k[0]) + '.' + str(k[1]) + ' ' + reps_string[:-2] + '\r'
         histone_controls_dict[ac]['seq_info'] = seq_info_string
 
     if args.target == "histone":
@@ -526,7 +537,6 @@ def main():
         for sample in sample_types:
             row = {'sample': sample}
 
-
             for mark in marks_to_print:
                 if mark != 'control':
                     if sample in matrix[mark]:
@@ -544,7 +554,8 @@ def main():
                                     statuses_string = ''
                                     for status in statuses[k]:
                                         statuses_string += '-' + status + '\r'
-                                    accessionStatuses[acc].append(statuses_string)
+                                    accessionStatuses[acc].append(
+                                        statuses_string)
                         cell_info = ''
                         for acc in accessionStatuses:
                             if len(accessionStatuses[acc]) < 1:
@@ -555,13 +566,13 @@ def main():
                             else:
                                 statuses_string = ''
                                 for status in accessionStatuses[acc]:
-                                        statuses_string += status
+                                    statuses_string += status
                                 cell_info += acc + ' ' + histone_experiments_dict[acc]['object']['status'] + \
                                                    '\r' + str(aliases[acc]) + '\r' + \
                                                    statuses_string
                             cell_info += '\r\n'
-                        row.update({mark: 'Experiments number : '+str(total)+'\r' +
-                                   cell_info})
+                        row.update({mark: 'Experiments number : ' + str(total) + '\r' +
+                                    cell_info})
                     else:
                         row.update({mark: 'NONE'})
                 else:
@@ -580,7 +591,8 @@ def main():
                                     statuses_string = ''
                                     for status in statuses[k]:
                                         statuses_string += '-' + status + '\r'
-                                    accessionStatuses[acc].append(statuses_string)
+                                    accessionStatuses[acc].append(
+                                        statuses_string)
                         cell_info = ''
                         for acc in accessionStatuses:
                             if len(accessionStatuses[acc]) < 1:
@@ -589,18 +601,17 @@ def main():
                             else:
                                 statuses_string = ''
                                 for status in accessionStatuses[acc]:
-                                        statuses_string += status
+                                    statuses_string += status
                                 cell_info += acc + ' ' + histone_controls_dict[acc]['object']['status'] + \
                                                    '\r' + str(aliases[acc]) + '\r' + \
                                                    statuses_string
                             cell_info += '\r\n'
-                        row.update({mark: 'Experiments number : '+str(total)+'\r' +
+                        row.update({mark: 'Experiments number : ' + str(total) + '\r' +
                                           cell_info})
                     else:
                         row.update({mark: 'NONE'})
 
             writer.writerow(row)
-
 
     with open(args.run_type_matrix, 'w') as output:
         fields = ['sample'] + marks_to_print
@@ -626,7 +637,8 @@ def main():
                                     statuses_string = ''
                                     for status in statuses[k]:
                                         statuses_string += '-' + status + '\r'
-                                    accessionStatuses[acc].append(statuses_string)
+                                    accessionStatuses[acc].append(
+                                        statuses_string)
                         cell_info = ''
                         for acc in accessionStatuses:
                             cell_info += acc + ' ' + \
@@ -634,10 +646,10 @@ def main():
                                                '\r' + str(aliases[acc]) + \
                                                '\r' + \
                                                histone_experiments_dict[acc]['seq_info']
-                           
+
                             cell_info += '\r\n'
-                        row.update({mark: 'Experiments number : '+str(total)+'\r' +
-                                   cell_info})
+                        row.update({mark: 'Experiments number : ' + str(total) + '\r' +
+                                    cell_info})
                     else:
                         row.update({mark: 'NONE'})
                 else:
@@ -656,21 +668,23 @@ def main():
                                     statuses_string = ''
                                     for status in statuses[k]:
                                         statuses_string += '-' + status + '\r'
-                                    accessionStatuses[acc].append(statuses_string)
+                                    accessionStatuses[acc].append(
+                                        statuses_string)
                         cell_info = ''
                         for acc in accessionStatuses:
 
                             cell_info += acc + ' ' + histone_controls_dict[acc]['object']['status'] + \
                                                '\r' + str(aliases[acc]) + '\r' + \
                                                histone_controls_dict[acc]['seq_info']
-                           
+
                             cell_info += '\r\n'
-                        row.update({mark: 'Experiments number : '+str(total)+'\r' +
+                        row.update({mark: 'Experiments number : ' + str(total) + '\r' +
                                           cell_info})
                     else:
                         row.update({mark: 'NONE'})
 
             writer.writerow(row)
+
 
 if __name__ == '__main__':
     main()

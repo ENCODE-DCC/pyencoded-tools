@@ -16,7 +16,6 @@ someID  2,3     compliant           get it?  important_document.pdf
 someID  1,4     not compliant       got it   important_document.pdf
 someID  5       pending dcc review  good     important_document.pdf
 
-
 Useage:
 
     %(prog)s --infile MyFile.txt --user 4eg4-some-uuid-ks87
@@ -70,7 +69,8 @@ def main():
     if args.update:
         assert args.user, "A user must be provided to run this script!"
         user = encodedcc.get_ENCODE(args.user, connection).get("@id")
-        assert user, "{} was not found in the ENCODE database as a registered user. Please try again".format(args.user)
+        assert user, "{} was not found in the ENCODE database as a registered user. Please try again".format(
+            args.user)
 
     data = []
     idList = []
@@ -139,8 +139,10 @@ def main():
                 print("Found lanes in the file not in ENCODE")
                 flag = True
             if flag:
-                print("Some problem was found with the number of lanes in the file as compared to ENCODE")
-                print("Do you want to continue running the program or exit and check the data?")
+                print(
+                    "Some problem was found with the number of lanes in the file as compared to ENCODE")
+                print(
+                    "Do you want to continue running the program or exit and check the data?")
                 i = input("Continue? y/n ")
                 assert i.upper() == "Y"
                 # exit the script
@@ -149,8 +151,10 @@ def main():
                     for lane in line["lanes"]:
                         if int(lane) == r["lane"]:
                             if line["lane_status"].lower() == "pending dcc review":
-                                print("can't set to pending review, need manual override")
-                                fin = input("Change the status to 'pending dcc review'? y/n ")
+                                print(
+                                    "can't set to pending review, need manual override")
+                                fin = input(
+                                    "Change the status to 'pending dcc review'? y/n ")
                                 if fin.upper() == "Y":
                                     r["lane_status"] = line["lane_status"].lower()
                                     for link in enc_docs:
@@ -173,7 +177,8 @@ def main():
                 else:
                     other = other + 1
             if other > 0:
-                print("not all lanes have allowed status, antibody characterization status set to not compliant")
+                print(
+                    "not all lanes have allowed status, antibody characterization status set to not compliant")
                 new_antibody["status"] = "not compliant"
             elif enc_comp > 0:
                 new_antibody["status"] = "compliant"
@@ -203,5 +208,6 @@ def main():
         else:
             print("PATCH data:", new_antibody)
 
+
 if __name__ == '__main__':
-        main()
+    main()

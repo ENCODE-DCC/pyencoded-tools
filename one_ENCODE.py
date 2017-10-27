@@ -128,7 +128,8 @@ def main():
         uuid_response = {}
         accession_response = {}
         try:
-            id_response = encodedcc.get_ENCODE(args.id, connection, frame=args.frame)
+            id_response = encodedcc.get_ENCODE(
+                args.id, connection, frame=args.frame)
         except:
             id_response = {}
             new_object = True
@@ -161,7 +162,8 @@ def main():
             uuid_response = {}
             new_object = True
         if 'accession' in new_json:
-            accession_response = encodedcc.get_ENCODE(new_json['accession'], connection)
+            accession_response = encodedcc.get_ENCODE(
+                new_json['accession'], connection)
             if accession_response.get("code") == 404:
                 accession_response = {}
                 new_object = True
@@ -170,7 +172,8 @@ def main():
             new_object = True
 
         if new_object:
-            print("No identifier in new JSON object.  Assuming POST or PUT with auto-accessioning.")
+            print(
+                "No identifier in new JSON object.  Assuming POST or PUT with auto-accessioning.")
 
     object_exists = False
     if id_response:
@@ -216,7 +219,8 @@ def main():
         else:
             print("Error! JSON object does not contain one of the supported types")
             print("Provided type:", type_list[0])
-            print("Please either change the JSON file or define the type with the --type feature")
+            print(
+                "Please either change the JSON file or define the type with the --type feature")
             sys.exit(1)
     else:
         print("No type found for JSON object!")
@@ -248,7 +252,8 @@ def main():
                 filename = new_json['attachment']['download']
                 print("Setting filename to %s" % (filename))
             except:
-                print("Must specify either href or filename for attachment", file=sys.stderr)
+                print(
+                    "Must specify either href or filename for attachment", file=sys.stderr)
             if new_json['attachment'].get('type'):
                 mime_type = new_json['attachment'].get('type')
             else:
@@ -258,7 +263,8 @@ def main():
                     #detected_type = magic.from_file(filename, mime=True)
                     print("Detected mime type %s" % (mime_type))
                 except:
-                    print("Failed to detect mime type in file %s" % (filename), file=sys.stderr)
+                    print("Failed to detect mime type in file %s" %
+                          (filename), file=sys.stderr)
             try:
                 with open(filename, 'rb') as stream:
                     print("opened")
@@ -277,26 +283,30 @@ def main():
             if not GET_ONLY:
                 print("Replacing existing object")
                 if args.update:
-                    e = encodedcc.replace_ENCODE(identifier, connection, new_json)
+                    e = encodedcc.replace_ENCODE(
+                        identifier, connection, new_json)
                     print(e)
         else:
             if not GET_ONLY:
                 print("PATCHing existing object")
                 if args.update:
-                    e = encodedcc.patch_ENCODE(identifier, connection, new_json)
+                    e = encodedcc.patch_ENCODE(
+                        identifier, connection, new_json)
                     print(e)
     elif new_object:
         if args.force_put:
             if not GET_ONLY:
                 print("PUT'ing new object")
                 if args.update:
-                    e = encodedcc.replace_ENCODE(identifier, connection, new_json)
+                    e = encodedcc.replace_ENCODE(
+                        identifier, connection, new_json)
                     print(e)
         else:
             if not GET_ONLY:
                 print("POST'ing new object")
                 if not any(collection):
-                    print("ERROR: Unable to POST to non-existing collection {}".format(collection))
+                    print(
+                        "ERROR: Unable to POST to non-existing collection {}".format(collection))
                     sys.exit(1)
                 if args.update:
                     e = encodedcc.new_ENCODE(connection, collection, new_json)

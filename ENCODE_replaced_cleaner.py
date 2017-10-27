@@ -94,24 +94,25 @@ def main():
                             'search/?type=Item&accession=' + acc,
                             connection)['@graph']
                         for object_to_clean in to_clean_objects:
-                            print (object_to_clean['uuid'] +
-                                   ' alternate accessions list ' +
-                                   str(object_to_clean[
-                                       'alternate_accessions']) +
-                                   ' is removed')
+                            print(object_to_clean['uuid'] +
+                                  ' alternate accessions list ' +
+                                  str(object_to_clean[
+                                      'alternate_accessions']) +
+                                  ' is removed')
                             encodedcc.patch_ENCODE(
                                 object_to_clean['uuid'],
                                 connection,
                                 {"alternate_accessions": []})
 
-                    print (uuid + ' is patched with ' +
-                           str({"alternate_accessions": list(
-                                uuid_2_alternate_accessions[uuid])}))
+                    print(uuid + ' is patched with ' +
+                          str({"alternate_accessions": list(
+                              uuid_2_alternate_accessions[uuid])}))
                     encodedcc.patch_ENCODE(
                         uuid,
                         connection,
                         {"alternate_accessions": list(
                             uuid_2_alternate_accessions[uuid])})
+
 
 if __name__ == '__main__':
     main()

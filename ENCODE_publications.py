@@ -124,8 +124,10 @@ class PublicationUpdate:
             for PMID, published_by, categories, catch1, code, catch2, title in reader:
                 categories = categories.replace(";", ",").rstrip(" ")
                 published_by = published_by.replace(";", ",").rstrip(" ")
-                cat = [x.strip(' ').lower() for x in categories.rstrip(',').split(",")]
-                pub = [x.strip(' ') for x in published_by.rstrip(',').split(",")]
+                cat = [x.strip(' ').lower()
+                       for x in categories.rstrip(',').split(",")]
+                pub = [x.strip(' ')
+                       for x in published_by.rstrip(',').split(",")]
                 temp = {"published_by": pub, "categories": cat}
                 self.consortium_dict[PMID] = temp
         self.consortium_ids = list(self.consortium_dict.keys())
@@ -137,9 +139,12 @@ class PublicationUpdate:
             for PMID, published_by, categories, data_used, catch1, catch2, title, catch3, catch4, catch5, catch6, catch7, catch8, catch9, catch10, catch11, catch12, catch13, catch14, catch15, catch16, catch17, catch18 in reader:
                 categories = categories.replace(";", ",").rstrip(" ")
                 published_by = published_by.replace(";", ",").rstrip(" ")
-                cat = [x.strip(' ').lower() for x in categories.rstrip(',').split(",")]
-                pub = [x.strip(' ') for x in published_by.rstrip(',').split(",")]
-                temp = {"published_by": pub, "categories": cat, "data_used": data_used}
+                cat = [x.strip(' ').lower()
+                       for x in categories.rstrip(',').split(",")]
+                pub = [x.strip(' ')
+                       for x in published_by.rstrip(',').split(",")]
+                temp = {"published_by": pub,
+                        "categories": cat, "data_used": data_used}
                 self.community_dict[PMID] = temp
         self.community_ids = list(self.community_dict.keys())
 
@@ -165,29 +170,35 @@ class PublicationUpdate:
     def check_ENCODE(self, idList, connection, otherIdList=[], bothDicts={}):
         for pmid in idList:
             extraData = bothDicts.get(pmid)
-            ENCODEvalue = encodedcc.get_ENCODE("/search/?type=publication&searchTerm=PMID:" + pmid, connection)
+            ENCODEvalue = encodedcc.get_ENCODE(
+                "/search/?type=publication&searchTerm=PMID:" + pmid, connection)
             if ENCODEvalue.get("@graph"):
                 log = "PMID " + pmid + " is listed in ENCODE"
                 logger.info('%s' % log)
                 uuid = ENCODEvalue.get("@graph")[0].get("uuid")
                 if not self.CREATE_ONLY:
-                    self.compare_entrez_ENCODE(uuid, pmid, connection, extraData)
+                    self.compare_entrez_ENCODE(
+                        uuid, pmid, connection, extraData)
             else:
                 if self.CREATE_ONLY:
                     self.get_entrez([pmid])
                 titleEntrez = self.entrezDict[pmid].get("title")
                 found = False
                 for otherID in otherIdList:
-                    titleENCODE = encodedcc.get_ENCODE("/search/?type=publication&searchTerm=" + otherID, connection)
+                    titleENCODE = encodedcc.get_ENCODE(
+                        "/search/?type=publication&searchTerm=" + otherID, connection)
                     if titleENCODE.get("title") == titleEntrez:
-                        log = pmid + " is in ENCODE by a different name " + titleENCODE.get("uuid")
+                        log = pmid + " is in ENCODE by a different name " + \
+                            titleENCODE.get("uuid")
                         logger.warning('%s' % log)
-                        self.compare_entrez_ENCODE(titleENCODE.get("uuid"), pmid, connection, extraData)
+                        self.compare_entrez_ENCODE(titleENCODE.get(
+                            "uuid"), pmid, connection, extraData)
                         if self.UPDATE:
                             newIdent = titleENCODE.get("identifiers")
                             newIdent.append("PMID:" + pmid)
                             patch_dict = {"identifiers": newIdent}
-                            encodedcc.patch_ENCODE(titleENCODE.get("uuid"), connection, patch_dict)
+                            encodedcc.patch_ENCODE(titleENCODE.get(
+                                "uuid"), connection, patch_dict)
                         found = True
                 if found is False:
                     log = "This publication is not listed in ENCODE " + pmid
@@ -216,7 +227,8 @@ class PublicationUpdate:
                         }
                         if extraData.get("data_used"):
                             post_dict["data_used"] = extraData.get("data_used")
-                        encodedcc.new_ENCODE(connection, "publications", post_dict)
+                        encodedcc.new_ENCODE(
+                            connection, "publications", post_dict)
 
     def compare_entrez_ENCODE(self, uuid, pmid, connection, extraData={}):
         '''compares value in ENCODE database to results from Entrez
@@ -238,13 +250,15 @@ class PublicationUpdate:
                     else:
                         log = "\"" + key + "\" value in encode database does not match value in entrez database"
                         logger.warning('%s' % log)
-                        log = "\tENTREZ: " + entrez[key] + "\n\tENCODE: " + encode[key]
+                        log = "\tENTREZ: " + \
+                            entrez[key] + "\n\tENCODE: " + encode[key]
                         logger.warning('%s' % log)
                         if self.UPDATE or self.UPDATE_ONLY:
                             log = "PATCH in the new value for \"" + key + "\""
                             logger.info('%s' % log)
                             patch_dict = {key: entrez[key]}
-                            encodedcc.patch_ENCODE(uuid, connection, patch_dict)
+                            encodedcc.patch_ENCODE(
+                                uuid, connection, patch_dict)
                             patch = True
                 else:
                     log = "ENCODE missing \"" + key + "\" from Entrez.  New key and value must be added"
@@ -262,12 +276,15 @@ class PublicationUpdate:
                             log = "encode \"" + key + "\" matches data in file"
                             logger.info('%s' % log)
                         else:
-                            log = "encode \"" + key + "\" value" + str(encode.get(key, [])) + "does not match file"
+                            log = "encode \"" + key + "\" value" + \
+                                str(encode.get(key, [])) + \
+                                "does not match file"
                             logger.warning('%s' % log)
                             if self.UPDATE:
                                 if any(extraData[key]):
                                     patch_dict = {key: extraData[key]}
-                                    encodedcc.patch_ENCODE(uuid, connection, patch_dict)
+                                    encodedcc.patch_ENCODE(
+                                        uuid, connection, patch_dict)
                                     patch = True
                                 else:
                                     log = "No value in file to input for \"" + key + "\""
@@ -277,16 +294,20 @@ class PublicationUpdate:
                             log = "encode \"" + key + "\" matches data in file"
                             logger.info('%s' % log)
                         else:
-                            log = "encode \"" + key + "\" value" + str(encode.get(key, "")) + "does not match file"
+                            log = "encode \"" + key + "\" value" + \
+                                str(encode.get(key, "")) + \
+                                "does not match file"
                             logger.warning('%s' % log)
                             if self.UPDATE:
                                 patch_dict = {key: extraData[key]}
-                                encodedcc.patch_ENCODE(uuid, connection, patch_dict)
+                                encodedcc.patch_ENCODE(
+                                    uuid, connection, patch_dict)
                                 patch = True
             if encode.get("status", "") != "published" and (self.UPDATE or self.UPDATE_ONLY):
                 log = "Setting status to published"
                 logger.info('%s' % log)
-                encodedcc.patch_ENCODE(uuid, connection, {"status": "published"})
+                encodedcc.patch_ENCODE(
+                    uuid, connection, {"status": "published"})
                 patch = True
             if patch is True:
                 self.PATCH_COUNT += 1
@@ -299,8 +320,10 @@ class PublicationUpdate:
                         &published_by=community&field=identifiers&limit=all"
         consortium_url = "/search/?type=publication&status=published\
                         &published_by!=community&field=identifiers&limit=all"
-        communityResult = encodedcc.get_ENCODE(community_url, connection).get("@graph")
-        consortiumResult = encodedcc.get_ENCODE(consortium_url, connection).get("@graph")
+        communityResult = encodedcc.get_ENCODE(
+            community_url, connection).get("@graph")
+        consortiumResult = encodedcc.get_ENCODE(
+            consortium_url, connection).get("@graph")
         communityPMIDfromENCODE = []  # list of PMID from ENCODE site
         communityOtherID = []  # list of non-PMID ids from ENCODE site
         for pub in communityResult:
@@ -316,7 +339,8 @@ class PublicationUpdate:
                     uuid = pub.get("@id")
                     communityOtherID.append(uuid)
                     # this is something that does not have a PMID yet, find it and PATCH it in
-        community_ENCODE_Only = list(set(communityPMIDfromENCODE) - set(communityList))
+        community_ENCODE_Only = list(
+            set(communityPMIDfromENCODE) - set(communityList))
         consortiumPMIDfromENCODE = []  # list of PMID from ENCODE site
         consortiumOtherID = []  # list of non-PMID ids from ENCODE site
         for pub in consortiumResult:
@@ -332,7 +356,8 @@ class PublicationUpdate:
                     uuid = pub.get("@id")
                     consortiumOtherID.append(uuid)
                     # this is something that does not have a PMID yet, find it and PATCH it in
-        consortium_ENCODE_Only = list(set(consortiumPMIDfromENCODE) - set(consortiumList))
+        consortium_ENCODE_Only = list(
+            set(consortiumPMIDfromENCODE) - set(consortiumList))
         return community_ENCODE_Only, communityOtherID, consortium_ENCODE_Only, consortiumOtherID
 
 
@@ -358,13 +383,16 @@ def main():
         publication.setup_publication()
         pmidList = publication.consortium_ids + publication.community_ids
         mergeDicts = publication.consortium_dict.copy()
-        mergeDicts.update(publication.community_dict)  # holds published_by, categories, and data_used
+        # holds published_by, categories, and data_used
+        mergeDicts.update(publication.community_dict)
 
         if not CREATE_ONLY:
             publication.get_entrez(pmidList)
 
-        community_ENCODE_Only, communityOtherID, consortium_ENCODE_Only, consortiumOtherID = publication.find_ENCODE_extras(publication.community_ids, publication.consortium_ids, connection)
-        total_ENCODE_only = len(community_ENCODE_Only) + len(consortium_ENCODE_Only)
+        community_ENCODE_Only, communityOtherID, consortium_ENCODE_Only, consortiumOtherID = publication.find_ENCODE_extras(
+            publication.community_ids, publication.consortium_ids, connection)
+        total_ENCODE_only = len(community_ENCODE_Only) + \
+            len(consortium_ENCODE_Only)
         allOtherIDs = communityOtherID + consortiumOtherID
         publication.check_ENCODE(pmidList, connection, allOtherIDs, mergeDicts)
         log = str(total_ENCODE_only) + " items in ENCODE but not in files"
@@ -406,24 +434,30 @@ def main():
                     log = "No possible PMID found for " + uuid
                     logger.error('%s' % log)
                 else:
-                    handle = Entrez.efetch(db="pubmed", id=idlist, rettype="medline", retmode="text")
+                    handle = Entrez.efetch(
+                        db="pubmed", id=idlist, rettype="medline", retmode="text")
                     records = Medline.parse(handle)
                     # save the records, you can convert them to a list
                     records = list(records)
                     for record in records:
                         pm = record.get("PMID")
                         ti = record.get("TI")
-                        log = "Publication " + uuid + " with title \"" + title + "\" matches PMID:" + pm + " with title \"" + ti + "\""
+                        log = "Publication " + uuid + " with title \"" + title + \
+                            "\" matches PMID:" + pm + " with title \"" + ti + "\""
                         logger.info('%s' % log)
                         identifiers.append("PMID:" + pm)
-                        encodedcc.patch_ENCODE(uuid, connection, {"identifiers": identifiers})
+                        encodedcc.patch_ENCODE(
+                            uuid, connection, {"identifiers": identifiers})
                         pmid_uuid_dict[pm] = uuid
         pmidList = list(pmid_uuid_dict.keys())
         publication.get_entrez(pmidList)
         with open("pub_update.txt", "w") as f:
             for pmid in pmid_uuid_dict.keys():
-                publication.compare_entrez_ENCODE(pmid_uuid_dict[pmid], pmid, connection)
-            f.write(str(len(pmid_uuid_dict.keys())) + " publications checked " + str(publication.PATCH_COUNT) + " publications PATCHed")
+                publication.compare_entrez_ENCODE(
+                    pmid_uuid_dict[pmid], pmid, connection)
+            f.write(str(len(pmid_uuid_dict.keys())) + " publications checked " +
+                    str(publication.PATCH_COUNT) + " publications PATCHed")
+
 
 if __name__ == '__main__':
     main()

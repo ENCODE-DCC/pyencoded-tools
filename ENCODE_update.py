@@ -63,7 +63,8 @@ def upload_file(credentials, f_path):
     logger.info("Uploading file.")
     start = time.time()
     try:
-        subprocess.check_call(['aws', 's3', 'cp', f_path, credentials['upload_url'], '--quiet'], env=env)
+        subprocess.check_call(
+            ['aws', 's3', 'cp', f_path, credentials['upload_url'], '--quiet'], env=env)
     except subprocess.CalledProcessError as e:
         # The aws command returns a non-zero exit code on error.
         logger.error("Upload failed with exit code %d" % e.returncode)
@@ -109,9 +110,11 @@ def main():
     args = parser.parse_args()
 
     if args.debug:
-        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+        logging.basicConfig(
+            format='%(levelname)s:%(message)s', level=logging.DEBUG)
     else:
-        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+        logging.basicConfig(
+            format='%(levelname)s:%(message)s', level=logging.INFO)
 
     key = ENC_Key(args.keyfile, args.key)  # get the keypair
     connection = ENC_Connection(key)  # initialize the connection object
@@ -148,7 +151,8 @@ def main():
                         # for line in subreader:
                         #   for s in line:
                         #       array_items.append(s)
-                        print("new_metadata_string is %s" % (new_metadata_string))
+                        print("new_metadata_string is %s" %
+                              (new_metadata_string))
                         array_items = json.loads(new_metadata_string)
                         print("array_items is %s" % (array_items))
                         json_obj = {prop_name: array_items}
@@ -157,10 +161,12 @@ def main():
                     elif prop_type == 'float':
                         json_obj = {prop_name: float(new_metadata_string)}
                     else:
-                        json_obj = {prop_name: new_metadata_string}  # default is string
+                        # default is string
+                        json_obj = {prop_name: new_metadata_string}
                     enc_object.properties.update(json_obj)
             if 'submitted_file_name' in enc_object.properties:
-                path = os.path.expanduser(enc_object.get('submitted_file_name'))
+                path = os.path.expanduser(
+                    enc_object.get('submitted_file_name'))
                 path = os.path.abspath(path)
                 basename = os.path.basename(path)
                 enc_object.properties.update({
@@ -171,7 +177,8 @@ def main():
                 logger.info('Syncing %s' % (obj_id))
             else:
                 logger.info('Syncing new object')
-            logger.debug('%s' % (json.dumps(enc_object.properties, sort_keys=True, indent=4, separators=(',', ': '))))
+            logger.debug('%s' % (json.dumps(enc_object.properties,
+                                            sort_keys=True, indent=4, separators=(',', ': '))))
             if not args.dryrun:
                 new_object = enc_object.sync()
                 try:
@@ -185,6 +192,7 @@ def main():
                         print(upload_credentials)
                         rc = upload_file(upload_credentials, path)
                         print("Upload rc: %d" % (rc))
+
 
 if __name__ == '__main__':
     main()

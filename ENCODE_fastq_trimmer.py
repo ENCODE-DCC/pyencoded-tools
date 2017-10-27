@@ -79,7 +79,8 @@ def trim_file(url, connection, filename, size):
                 header = next(gzfile)
                 sequence = next(gzfile)[:-1][:size] + b'\n'
                 qual_header = next(gzfile)
-                quality = next(gzfile)[:-1][:size] + b'\n'  # snip off newline, trim to size, add back newline
+                # snip off newline, trim to size, add back newline
+                quality = next(gzfile)[:-1][:size] + b'\n'
                 outfile.write(header)
                 outfile.write(sequence)
                 outfile.write(qual_header)
@@ -133,7 +134,8 @@ def main():
         # alter values of some items
         file_data["submitted_file_name"] = filename
         file_data["read_length"] = size
-        file_data["aliases"] = ["j-michael-cherry:{acc}-{size}".format(acc=acc, size=size)]
+        file_data["aliases"] = [
+            "j-michael-cherry:{acc}-{size}".format(acc=acc, size=size)]
 
         # conditional items, only change under particular circumstances
         if line.get("run_type"):
@@ -143,7 +145,8 @@ def main():
 
         if line.get("paired_with"):
             # file has partner, time for fancy stuff
-            pair = "j-michael-cherry:{acc}-{size}".format(acc=line["paired_with"], size=size)
+            pair = "j-michael-cherry:{acc}-{size}".format(
+                acc=line["paired_with"], size=size)
             file_data["paired_with"] = pair
         print(file_data)
 
@@ -155,7 +158,8 @@ def main():
         # post on aws
         aws_return_code = encodedcc.upload_file(file_object, args.update)
         if aws_return_code:
-            logger.warning('Row %d: Non-zero AWS upload return code %d' % (aws_return_code))
+            logger.warning(
+                'Row %d: Non-zero AWS upload return code %d' % (aws_return_code))
 
         if args.update:
             # remove file because space reasons
@@ -164,4 +168,4 @@ def main():
 
 
 if __name__ == '__main__':
-        main()
+    main()
