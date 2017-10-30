@@ -271,14 +271,24 @@ async def parse_slack_output(slack_rtm_output):
 
 async def main_loop():
     READ_WEBSOCKET_DELAY = 1
+    retry = 10
     if slack_client.rtm_connect():
         print("ENBOT running.")
         while True:
-            command, channel, timestamp = await parse_slack_output(
-                slack_client.rtm_read())
-            if command and channel:
-                await handle_command(command, channel, timestamp)
-            await curio.sleep(READ_WEBSOCKET_DELAY)
+            try:
+                command, channel, timestamp = await parse_slack_output(
+                    slack_client.rtm_read())
+                if command and channel:
+                    await handle_command(command, channel, timestamp)
+                await curio.sleep(READ_WEBSOCKET_DELAY)
+            except (KeyboardInterrupt, SystemExit):
+                break
+            except Exception as e:
+                print(e)
+                print(slack_client.rtm_connect())
+                retry -= 1
+                if retry < 0:
+                    raise e
     else:
         print("Connection failed.")
 
