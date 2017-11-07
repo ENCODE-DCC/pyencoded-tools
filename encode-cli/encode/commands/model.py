@@ -250,6 +250,10 @@ def model(ctx, encode_object, search_type, field,
                         bold=True,
                         fg='blue')
             print(json.dumps(nested, indent=4, sort_keys=True))
+        if save:
+            json_path = os.path.expanduser('~/Desktop/output_objects.json')
+            with open(json_path, 'w') as f:
+                json.dump(json_objects, f, sort_keys=True, indent=4)
     else:
         click.secho('Using server: {}'.format(ctx.connection.server))
         encode_object = explore.check_inputs(encode_object, search_type, where)
@@ -259,6 +263,6 @@ def model(ctx, encode_object, search_type, field,
         df = make_df(sorted_flat)
         default_dict = build_default_dict(df)
         print(default_dict)
-    if save:
-        print('Saving to {}'.format(outfile))
-        pivot_df(df).to_excel(outfile)
+        if save:
+            print('Saving to {}'.format(outfile))
+            pivot_df(df).to_excel(outfile)
