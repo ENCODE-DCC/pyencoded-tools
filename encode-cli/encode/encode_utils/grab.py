@@ -55,9 +55,11 @@ def create_session():
     return aiohttp.ClientSession(connector=connector)
 
 
-session = create_session()
-
 # Utils.
+
+
+def make_associated_url(base_url):
+    return urljoin(base_url, '/search/?type={}&{}={}&{}&frame=embedded')
 
 
 def get_data(url):
@@ -81,7 +83,7 @@ async def async_get_data(url, session, request_auth=request_auth):
     return await r.json()
 
 
-def quick_grab_data(urls, session=session, loop=loop):
+def quick_grab_data(urls, session=None, loop=loop):
     f = [async_get_data(url, session) for url in urls]
     results = loop.run_until_complete(asyncio.gather(*f))
     try:
@@ -90,10 +92,10 @@ def quick_grab_data(urls, session=session, loop=loop):
         return results
 
 
-def get_associated(item_type, related_field, related_ids):
+def get_associated(item_type, related_field, related_ids, session=None):
     urls = [associated_search.format(item_type,
                                      related_field,
                                      related_id,
                                      json_all)
             for related_id in related_ids]
-    return quick_grab_data(urls)
+    return quick_grab_data(urls, session)

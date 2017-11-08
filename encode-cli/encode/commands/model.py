@@ -2,6 +2,9 @@ import click
 import json
 import os
 import pandas as pd
+import uuid
+
+from ..encode_utils import grab
 
 from collections import Counter, defaultdict
 from . import encodedcc, explore
@@ -78,11 +81,13 @@ def sort_last(x):
     return last_number
 
 
-def sort_flattened(flat):
-    k = sorted(flat, key=lambda x: sort_num(x))
-    s = sorted(k, key=lambda x: sort_alpha(x))
-    f = sorted(s, key=lambda x: sort_last(x))
-    data = [(x, flat[x]) for x in f]
+def sort_flattened(flat, return_data=False):
+    k = sorted(flat, key=lambda x: sort_alpha(x))
+    s = sorted(k, key=lambda x: sort_num(x))
+    # f = sorted(s, key=lambda x: sort_last(x))
+    data = s
+    if return_data:
+        data = [(x, flat[x]) for x in s]
     return data
 
 
@@ -191,6 +196,10 @@ def build_json(flat_data):
     return old
 
 
+def pull_identifier(f):
+    return f.get('@id', f.get('accession', f.get('uuid')))
+
+
 @click.command()
 @click.argument('encode_object',
                 default='/profiles/')
@@ -228,25 +237,36 @@ def build_json(flat_data):
 @click.option('--load/--no-load',
               default=False,
               help='Load flattened output to Excel.')
+@click.option('--get_associated/--no-get_associated',
+              default=False,
+              help='Get associated objects using --related_field.')
+@click.option('--related_field',
+              default=None,
+              help='For use with --get_associated.')
+@click.option('--related_object',
+              default=None,
+              help='For use with --get_associated.')
 @click.pass_obj
-def model(ctx, encode_object, search_type, field,
-          limit, frame, where, save, load, outfile, infile):
+def model(ctx, encode_object, search_type, field, get_associated,
+          related_field, related_object, limit, frame, where, save,
+          load, outfile, infile):
     '''
     Flatten or build ENCODE metadata.
     '''
     if load:
-        print('Loading {}'.format(outfile))
+        print('Loading {}'.format(infile))
         df = pd.read_excel(infile)
+        if 'object_id' not in df.columns:
+            df['object_id'] = [str(uuid.uuid4()) for x in df.iloc[:, 0].values]
         unpivot_df = df.melt(id_vars='object_id', var_name='path').dropna()
         default_dict = build_default_dict(unpivot_df)
         json_objects = []
         for k, v in default_dict.items():
             json_objects.append(build_json(v))
+        if search_type is not None:
+            click.secho(search_type, bold=True, fg='green')
         for i, nested in enumerate(json_objects, 1):
-            label = nested.get('accession',
-                               nested.get('@id',
-                                          nested.get('uuid')))
-            click.secho('\n*OBJECT {}*\n------------'.format(i, label[0]),
+            click.secho('*OBJECT {}*\n------------'.format(i),
                         bold=True,
                         fg='blue')
             print(json.dumps(nested, indent=4, sort_keys=True))
@@ -258,11 +278,24 @@ def model(ctx, encode_object, search_type, field,
         click.secho('Using server: {}'.format(ctx.connection.server))
         encode_object = explore.check_inputs(encode_object, search_type, where)
         response = explore.get_data(ctx, encode_object, limit, frame)
+        if get_associated:
+            assert related_field is not None and related_object is not None
+            grab.associated_search = grab.make_associated_url(
+                ctx.connection.server)
+            related_ids = [pull_identifier(f) for f in response]
+            session = grab.create_session()
+            response = grab.get_associated(related_object,
+                                           related_field,
+                                           related_ids,
+                                           session=session)
+            session.close()
         data = flatten_json(response)
-        sorted_flat = sort_flattened(data)
+        sorted_flat = sort_flattened(data, return_data=True)
         df = make_df(sorted_flat)
         default_dict = build_default_dict(df)
-        print(default_dict)
+        print(*sorted_flat, sep='\n')
         if save:
             print('Saving to {}'.format(outfile))
-            pivot_df(df).to_excel(outfile)
+            pivoted_df = pivot_df(df)
+            sorted_df = pivoted_df[sort_flattened(pivoted_df.columns)]
+            sorted_df.to_excel(outfile)
