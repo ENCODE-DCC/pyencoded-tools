@@ -82,12 +82,12 @@ def sort_last(x):
 
 
 def sort_flattened(flat, return_data=False):
-    k = sorted(flat, key=lambda x: sort_alpha(x))
-    s = sorted(k, key=lambda x: sort_num(x))
-    # f = sorted(s, key=lambda x: sort_last(x))
-    data = s
+    k = sorted(flat, key=lambda x: sort_num(x))
+    s = sorted(k, key=lambda x: sort_alpha(x))
+    f = sorted(s, key=lambda x: sort_last(x))
+    data = f
     if return_data:
-        data = [(x, flat[x]) for x in s]
+        data = [(x, flat[x]) for x in f]
     return data
 
 
@@ -278,22 +278,26 @@ def model(ctx, encode_object, search_type, field, get_associated,
         click.secho('Using server: {}'.format(ctx.connection.server))
         encode_object = explore.check_inputs(encode_object, search_type, where)
         response = explore.get_data(ctx, encode_object, limit, frame)
+        #response = {k: v for k, v in response.items() if k != '_subtypes'}
         if get_associated:
             assert related_field is not None and related_object is not None
             grab.associated_search = grab.make_associated_url(
                 ctx.connection.server)
             related_ids = [pull_identifier(f) for f in response]
             session = grab.create_session()
-            response = grab.get_associated(related_object,
-                                           related_field,
-                                           related_ids,
-                                           session=session)
+            response = grab.get_associated(
+                related_object,
+                related_field,
+                related_ids,
+                session=session
+            )
             session.close()
-        data = flatten_json(response)
-        sorted_flat = sort_flattened(data, return_data=True)
-        df = make_df(sorted_flat)
-        default_dict = build_default_dict(df)
-        print(*sorted_flat, sep='\n')
+        if response:
+            data = flatten_json(response)
+            sorted_flat = sort_flattened(data, return_data=True)
+            df = make_df(sorted_flat)
+            default_dict = build_default_dict(df)
+            print(*sorted_flat, sep='\n')
         if save:
             print('Saving to {}'.format(outfile))
             pivoted_df = pivot_df(df)
