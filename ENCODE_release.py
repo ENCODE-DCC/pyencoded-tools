@@ -5,6 +5,11 @@
 '''
 Releasenator changelog
 
+Version 1.4
+
+Blocks release of objects associated with HeLa data unless --hela flag
+specified.
+
 Version 1.3
 
 Releasenator will no longer release files that are associated with pielines
@@ -124,6 +129,9 @@ def getArgs():
     parser.add_argument('--debug',
                         help="Run script in debug mode.  Default is off",
                         action='store_true', default=False)
+    parser.add_argument('--hela',
+                        help='Force release of HeLa data.',
+                        action='store_true')
     args = parser.parse_args()
     if args.debug:
         logging.basicConfig(filename=args.outfile, filemode="w",
@@ -141,7 +149,7 @@ def getArgs():
 class Data_Release():
     def __init__(self, args, connection):
         # renaming some things so I can be lazy and not pass them around
-        self.releasenator_version = 1.3
+        self.releasenator_version = 1.4
         self.infile = args.infile
         self.outfile = args.outfile
         self.QUERY = args.query
@@ -156,6 +164,15 @@ class Data_Release():
         self.statusDict = {}
         self.searched = []
         self.connection = connection
+        self.HELA = args.hela
+        # Define objects associated with HeLa data.
+        self.hela_associated_objects = [
+            'Experiment',
+            'Biosample',
+            'File',
+            'Library',
+            'Replicate'
+        ]
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
         # Fix for WRAN-708, new objects in profiles that don't have properties.
         temp = {k: v for k, v in temp.items()
@@ -225,6 +242,8 @@ class Data_Release():
         if self.FORCE:
             print("WARNING: Objects that do not " +
                   "pass audit will be FORCE-released")
+        if self.HELA:
+            print('WARNING: Objects associated with HeLa data will be released')
         if self.LOGALL:
             print("Logging all statuses")
         if self.infile:
@@ -348,6 +367,50 @@ class Data_Release():
                 return [p['@id'] for p in pipelines]
         return False
 
+    def _get_associated_term_id(self, data_type, data):
+        """
+        Find biosample_term_id associated with particular object.
+        """
+        obj_id = None
+        if data_type == 'File':
+            # Get biosample_term_id in file.dataset.
+            obj_id = data.get('dataset')
+        elif data_type == 'Replicate':
+            # Get biosample_term_id in replicate.experiment.
+            obj_id = data.get('experiment')
+        elif data_type == 'Library':
+            # Get biosample_term_id in library.biosample.
+            obj_id = data.get('biosample')
+        else:
+            # For experiments and biosamples.
+            biosample_term_id = data.get('biosample_term_id')
+        if obj_id is not None:
+            # Return biosample_term_id of embedded object.
+            biosample_term_id = encodedcc.get_ENCODE(
+                obj_id,
+                self.connection
+            ).get('biosample_term_id')
+        return biosample_term_id
+
+    def associated_with_hela_data(self, data_type, data):
+        """
+        Block HeLa data if found.
+        """
+        if data_type in self.hela_associated_objects:
+            biosample_term_id = self._get_associated_term_id(data_type, data)
+            # Assumes EFO:000279 includes all HeLa data.
+            if biosample_term_id == 'EFO:0002791':
+                # Message to screen.
+                print('WARNING: Release of HeLa data prohibited unless '
+                      'explicitly approved by NHGRI. {} will not be released unless '
+                      '--hela flag specified. SKIPPING!'.format(data['@id']))
+                # Message to log.
+                logger.warning('WARNING: Trying to release HeLa '
+                               'data: {}. SKIPPING!'.format(data['@id']))
+                # Will prevent release of object.
+                return True
+        return False
+
     def get_status(self, obj, approved_for_update_types):
         '''take object get status, @type, @id, uuid
         {@id : [@type, status]}'''
@@ -426,17 +489,19 @@ class Data_Release():
         print("Releasenator version " + str(self.releasenator_version))
         for accession in self.ACCESSIONS:
             print("Processing accession: " + accession)
-            expandedDict = encodedcc.get_ENCODE(accession, self.connection)
-            objectStatus = expandedDict.get("status")
-            obj = expandedDict["@type"][0]
-
+            data = encodedcc.get_ENCODE(accession, self.connection)
+            data_status = data.get('status')
+            data_type = data['@type'][0]
+            if not self.HELA and self.associated_with_hela_data(data_type, data):
+                continue
             audit = encodedcc.get_ENCODE(accession, self.connection,
                                          "page").get("audit", {})
             passAudit = True
             logger.info('Releasenator version ' +
                         str(self.releasenator_version))
-            logger.info('%s' % "{}: {} Status: {}".format(obj, accession,
-                                                          objectStatus))
+            logger.info('{}: {} Status: {}'.format(data_type,
+                                                   accession,
+                                                   data_status))
             if audit.get("ERROR", ""):
                 logger.warning('%s' % "WARNING: Audit status: ERROR")
                 passAudit = False
@@ -446,9 +511,9 @@ class Data_Release():
             self.statusDict = {}
 
             self.get_status(
-                expandedDict,
+                data,
                 hi.dictionary_of_lower_levels.get(
-                    hi.levels_mapping.get(obj)))
+                    hi.levels_mapping.get(data_type)))
             if self.FORCE:
                 passAudit = True
 
