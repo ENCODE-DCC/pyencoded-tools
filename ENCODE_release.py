@@ -411,6 +411,20 @@ class Data_Release():
                 return True
         return False
 
+    def has_audit(self, accession):
+        # Another GET request for page frame.
+        audit = encodedcc.get_ENCODE(accession,
+                                     self.connection,
+                                     'page').get('audit', {})
+        if (audit.get('ERROR') is not None
+                or audit.get('NOT_COMPLIANT') is not None):
+            details = [v[0]['category'] for v in audit.values()]
+            message = 'WARNING: AUDIT on object: {}. SKIPPING!'.format(details)
+            print(message)
+            logger.warning(message)
+            return True
+        return False
+
     def get_status(self, obj, approved_for_update_types):
         '''take object get status, @type, @id, uuid
         {@id : [@type, status]}'''
@@ -486,37 +500,28 @@ class Data_Release():
         ignore = ["User",
                   "AntibodyCharacterization",
                   "Publication"]
-        print("Releasenator version " + str(self.releasenator_version))
+        version = 'Releasenator version {}'.format(self.releasenator_version)
+        print(version)
+        logger.info(version)
         for accession in self.ACCESSIONS:
-            print("Processing accession: " + accession)
+            print('Processing accession:', accession)
             data = encodedcc.get_ENCODE(accession, self.connection)
             data_status = data.get('status')
             data_type = data['@type'][0]
-            if not self.HELA and self.associated_with_hela_data(data_type, data):
-                continue
-            audit = encodedcc.get_ENCODE(accession, self.connection,
-                                         "page").get("audit", {})
-            passAudit = True
-            logger.info('Releasenator version ' +
-                        str(self.releasenator_version))
             logger.info('{}: {} Status: {}'.format(data_type,
                                                    accession,
                                                    data_status))
-            if audit.get("ERROR", ""):
-                logger.warning('%s' % "WARNING: Audit status: ERROR")
-                passAudit = False
-            if audit.get("NOT_COMPLIANT", ""):
-                logger.warning('%s' % "WARNING: Audit status: NOT COMPLIANT")
-                passAudit = False
+            # Skip if associated with HeLa data.
+            if not self.HELA and self.associated_with_hela_data(data_type, data):
+                continue
+            # Skip if has audit.
+            if not self.FORCE and self.has_audit(accession):
+                continue
             self.statusDict = {}
-
             self.get_status(
                 data,
                 hi.dictionary_of_lower_levels.get(
                     hi.levels_mapping.get(data_type)))
-            if self.FORCE:
-                passAudit = True
-
             named = []
             for key in sorted(self.statusDict.keys()):
                 name = self.statusDict[key][0]
@@ -541,8 +546,7 @@ class Data_Release():
                         # print (log)
                         logger.info(log)
                         if self.UPDATE:
-                            if passAudit:
-                                self.releasinator(name, key, status)
+                            self.releasinator(name, key, status)
                     named.append(name)
         print("Data written to file", self.outfile)
         if self.TIMING:
