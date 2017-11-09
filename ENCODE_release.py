@@ -418,7 +418,7 @@ class Data_Release():
                                      'page').get('audit', {})
         if (audit.get('ERROR') is not None
                 or audit.get('NOT_COMPLIANT') is not None):
-            details = [v[0]['category'] for k, v in audit.items()]
+            details = [v[0]['category'] for v in audit.values()]
             message = 'WARNING: AUDIT on object: {}. SKIPPING!'.format(details)
             print(message)
             logger.warning(message)
