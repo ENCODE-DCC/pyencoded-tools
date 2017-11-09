@@ -40,6 +40,10 @@ def get_data(ctx, encode_object, limit, frame):
         response = response['@graph']
     except KeyError:
         pass
+    try:
+        response = {k: v for k, v in response.items() if not k.startswith('_')}
+    except:
+        pass
     return response
 
 
