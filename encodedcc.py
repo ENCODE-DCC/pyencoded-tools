@@ -466,7 +466,8 @@ class GetFields():
         import csv
         from collections import deque
         self.setup()
-        self.header = ["accession"]
+        if not self.args.allfields:
+            self.header = ["accession"]
         for acc in self.accessions:
             acc = quote(acc)
             obj = get_ENCODE(acc, self.connection)
