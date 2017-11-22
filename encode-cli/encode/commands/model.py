@@ -200,6 +200,29 @@ def pull_identifier(f):
     return f.get('@id', f.get('accession', f.get('uuid')))
 
 
+def match_path(path, f):
+    split_path = split_dot(path)
+    split_filter = split_dot(f)
+    split_path_clean = [
+        p for p in split_path if not isinstance(make_int(p), int)
+    ]
+    for p, f in zip(split_path_clean, split_filter):
+        if f == '*':
+            continue
+        elif p != f:
+            return False
+    return True
+
+
+def filter_path(filters, flat_data):
+    filtered_data = []
+    for f in filters:
+        filtered = [x for x in flat_data if match_path(x[0], f)]
+        if filtered:
+            filtered_data.extend(filtered)
+    return filtered_data
+
+
 @click.command()
 @click.argument('encode_object',
                 default='/profiles/')
@@ -246,10 +269,12 @@ def pull_identifier(f):
 @click.option('--related_object',
               default=None,
               help='For use with --get_associated.')
+@click.option('--filt', '-f',
+              multiple=True, default=['all'])
 @click.pass_obj
 def model(ctx, encode_object, search_type, field, get_associated,
           related_field, related_object, limit, frame, where, save,
-          load, outfile, infile):
+          load, outfile, infile, filt):
     '''
     Flatten or build ENCODE metadata.
     '''
@@ -278,7 +303,6 @@ def model(ctx, encode_object, search_type, field, get_associated,
         click.secho('Using server: {}'.format(ctx.connection.server))
         encode_object = explore.check_inputs(encode_object, search_type, where)
         response = explore.get_data(ctx, encode_object, limit, frame)
-        #response = {k: v for k, v in response.items() if k != '_subtypes'}
         if get_associated:
             assert related_field is not None and related_object is not None
             grab.associated_search = grab.make_associated_url(
@@ -295,9 +319,14 @@ def model(ctx, encode_object, search_type, field, get_associated,
         if response:
             data = flatten_json(response)
             sorted_flat = sort_flattened(data, return_data=True)
-            df = make_df(sorted_flat)
-            default_dict = build_default_dict(df)
-            print(*sorted_flat, sep='\n')
+            if 'all' not in filt:
+                sorted_flat = filter_path(filt, sorted_flat)
+            if sorted_flat:
+                df = make_df(sorted_flat)
+                default_dict = build_default_dict(df)
+                print(*sorted_flat, sep='\n')
+            else:
+                print('No results found')
         if save:
             print('Saving to {}'.format(outfile))
             pivoted_df = pivot_df(df)
