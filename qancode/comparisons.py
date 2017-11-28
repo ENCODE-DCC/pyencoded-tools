@@ -201,7 +201,7 @@ class CompareScreenShots(URLComparison):
                 return False
         return True
 
-    def pad_if_different_shape(self, image_one, image_two):
+    def pad_if_different_shape_vertical(self, image_one, image_two):
         image_one_row_number = image_one.shape[0]
         image_two_row_number = image_two.shape[0]
         pad_shape = abs(image_one_row_number - image_two_row_number)
@@ -211,6 +211,18 @@ class CompareScreenShots(URLComparison):
         else:
             image_one = np.pad(
                 image_one, ((0, pad_shape), (0, 0), (0, 0)), mode='constant')
+        return image_one, image_two
+
+    def pad_if_different_shape_horizontal(self, image_one, image_two):
+        image_one_column_number = image_one.shape[1]
+        image_two_column_number = image_two.shape[1]
+        pad_shape = abs(image_one_column_number - image_two_column_number)
+        if image_one_column_number > image_two_column_number:
+            image_two = np.pad(
+                image_two, ((0, 0), (pad_shape, 0), (0, 0)), mode='constant')
+        else:
+            image_one = np.pad(
+                image_one, ((0, 0), (pad_shape, 0), (0, 0)), mode='constant')
         return image_one, image_two
 
     def compute_image_difference(self):
@@ -233,8 +245,15 @@ class CompareScreenShots(URLComparison):
         image_one = cv2.imread(self.prod_data[0])
         image_two = cv2.imread(self.rc_data[0])
         if image_one.shape[0] != image_two.shape[0]:
-            image_one, image_two = self.pad_if_different_shape(
-                image_one, image_two)
+            image_one, image_two = self.pad_if_different_shape_vertical(
+                image_one,
+                image_two
+            )
+        if image_one.shape[1] != image_two.shape[1]:
+            image_one, image_two = self.pad_if_different_shape_horizontal(
+                image_one,
+                image_two
+            )
         difference = cv2.subtract(image_one, image_two)
         if not self.is_same(difference):
             self.diff_found = True
@@ -264,7 +283,8 @@ class CompareScreenShots(URLComparison):
             result = self.compute_image_difference()
             print('Distance metric: {}'.format(self.diff_distance_metric))
             return result
-        except IndexError:
-            print('{}COMPARISON ERROR. SKIPPING.{}'.format(bcolors.FAIL, bcolors.ENDC))
+        except:
+            print('{}COMPARISON ERROR. SKIPPING.{}'.format(bcolors.FAIL,
+                                                           bcolors.ENDC))
+
             return ('FAIL', self.item_type)
-    
