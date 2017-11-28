@@ -480,11 +480,11 @@ class GetScreenShot(SeleniumTask):
 
     def stitch_image(self, image_path):
         print('Stitching screenshot')
-        original_window_handle = self.driver.window_handles[0]
         self.driver.execute_script('window.scrollTo(0, {});'.format(0))
         image_slices = []
+        diff_calculated = False
+        ready_to_break = False
         while True:
-            self.driver.switch_to_window(original_window_handle)
             # Move client_height and scroll_height inside of loop for
             # dynamically expanding pages.
             client_height = self.driver.execute_script(
@@ -496,11 +496,20 @@ class GetScreenShot(SeleniumTask):
             time.sleep(1)
             image = Image.open(
                 BytesIO(self.driver.get_screenshot_as_png())).convert('RGB')
-            if ((((2 * client_height) + scroll_top) >= scroll_height)
-                    and not (np.allclose(scroll_height, (client_height + scroll_top), rtol=self.RTOL))):
+            # Prevents entering #2 right after #1 without going through next
+            # iteration first.
+            if diff_calculated:
+                ready_to_break = True
+            # 1. Calculates the nonredundant image size to keep on last
+            # iteration of scrolling.
+            if (2 * client_height + scroll_top >= scroll_height
+                    and not diff_calculated):
+                diff_calculated = True
                 difference_to_keep = abs(
                     (scroll_height - (client_height + scroll_top)))
-            if np.allclose(scroll_height, (client_height + scroll_top), rtol=self.RTOL):
+            # 2. Cuts last image based on difference_to_keep.
+            if (np.allclose(scroll_height, (client_height + scroll_top), rtol=self.RTOL)
+                    and ready_to_break):
                 image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
                 # Compensate for retina displays with twice as many pixels.
                 # Usual client_height is <900 given .set_window_size(1500, 950).
