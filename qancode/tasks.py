@@ -72,10 +72,7 @@ class Driver:
 
     def __init__(self, browser, url):
         print('Opening {} in {}'.format(url, browser))
-        if browser == 'Safari':
-            self.driver = webdriver.Safari(
-                port=0, executable_path='/Applications/Safari Technology Preview.app/Contents/MacOS/safaridriver')
-        elif browser == 'Firefox':
+        if browser == 'Firefox':
             # Allow automatic downloading of specified MIME types.
             mime_types = 'binary/octet-stream,application/x-gzip,application/gzip,application/pdf,text/plain,text/tsv,image/png,image/jpeg'
             fp = webdriver.FirefoxProfile()
