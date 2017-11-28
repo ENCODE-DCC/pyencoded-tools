@@ -480,9 +480,11 @@ class GetScreenShot(SeleniumTask):
 
     def stitch_image(self, image_path):
         print('Stitching screenshot')
+        original_window_handle = self.driver.window_handles[0]
         self.driver.execute_script('window.scrollTo(0, {});'.format(0))
         image_slices = []
         while True:
+            self.driver.switch_to_window(original_window_handle)
             # Move client_height and scroll_height inside of loop for
             # dynamically expanding pages.
             client_height = self.driver.execute_script(
