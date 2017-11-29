@@ -285,8 +285,12 @@ class CompareScreenShots(URLComparison):
             result = self.compute_image_difference()
             print('Distance metric: {}'.format(self.diff_distance_metric))
             return result
-        except:
-            print('{}COMPARISON ERROR. SKIPPING.{}'.format(bcolors.FAIL,
-                                                           bcolors.ENDC))
-
+        except Exception as e:
+            print(
+                '{}COMPARISON ERROR {}. SKIPPING.{}'.format(
+                    bcolors.FAIL,
+                    e,
+                    bcolors.ENDC
+                )
+            )
             return ('FAIL', self.item_type)
