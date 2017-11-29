@@ -482,8 +482,7 @@ class GetScreenShot(SeleniumTask):
         print('Stitching screenshot')
         self.driver.execute_script('window.scrollTo(0, {});'.format(0))
         image_slices = []
-        diff_calculated = False
-        ready_to_break = False
+        difference_to_keep = None
         while True:
             # Move client_height and scroll_height inside of loop for
             # dynamically expanding pages.
@@ -496,30 +495,24 @@ class GetScreenShot(SeleniumTask):
             time.sleep(1)
             image = Image.open(
                 BytesIO(self.driver.get_screenshot_as_png())).convert('RGB')
-            # Prevents entering #2 right after #1 without going through next
-            # iteration first.
-            if diff_calculated:
-                ready_to_break = True
-            # 1. Calculates the nonredundant image size to keep on last
-            # iteration of scrolling.
-            if (2 * client_height + scroll_top >= scroll_height
-                    and not diff_calculated):
-                diff_calculated = True
-                difference_to_keep = abs(
-                    (scroll_height - (client_height + scroll_top)))
-            # 2. Cuts last image based on difference_to_keep.
-            if (np.allclose(scroll_height, (client_height + scroll_top), rtol=self.RTOL)
-                    and ready_to_break):
+            if difference_to_keep is not None:
                 image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
                 # Compensate for retina displays with twice as many pixels.
                 # Usual client_height is <900 given .set_window_size(1500, 950).
                 # Image size will be twice that for retina displays.
                 pixel_scaler = 1 if image.shape[0] <= 950 else 2
+                # Cuts last image based on difference_to_keep.
                 y_bound_low = (image.shape[0] -
                                (pixel_scaler * difference_to_keep))
                 image = image[y_bound_low:, :]
                 image_slices.append(image)
                 break
+            elif 2 * client_height + scroll_top >= scroll_height:
+                # Calculates the nonredundant image size to keep on last
+                # iteration of scrolling.
+                difference_to_keep = abs(
+                    scroll_height - client_height + scroll_top
+                )
             image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
             image_slices.append(image)
             self.driver.execute_script(
