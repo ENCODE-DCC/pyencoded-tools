@@ -201,7 +201,8 @@ class CompareScreenShots(URLComparison):
                 return False
         return True
 
-    def pad_if_different_shape_vertical(self, image_one, image_two):
+    @staticmethod
+    def pad_if_different_shape_vertical(image_one, image_two):
         image_one_row_number = image_one.shape[0]
         image_two_row_number = image_two.shape[0]
         pad_shape = abs(image_one_row_number - image_two_row_number)
@@ -213,7 +214,8 @@ class CompareScreenShots(URLComparison):
                 image_one, ((0, pad_shape), (0, 0), (0, 0)), mode='constant')
         return image_one, image_two
 
-    def pad_if_different_shape_horizontal(self, image_one, image_two):
+    @staticmethod
+    def pad_if_different_shape_horizontal(image_one, image_two):
         image_one_column_number = image_one.shape[1]
         image_two_column_number = image_two.shape[1]
         pad_shape = abs(image_one_column_number - image_two_column_number)
