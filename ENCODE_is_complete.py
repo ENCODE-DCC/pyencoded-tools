@@ -113,18 +113,15 @@ def main():
             results['status issues'] = status_issues
 
         # Inspect files
-        query = "/search/?type=File&dataset=/experiments/"+obj['accession']+'/'
-        r =  get_ENCODE(query, connection, frame='embedded')
-        all_files = r['@graph']
 
-        good_files = [f for f in all_files
+        good_files = [f for f in obj['files']
                       if f['status'] in ['released', 'in progress']]
         fastqs = [f for f in obj['files'] if f['status']
                   in ['released', 'in progress']]
-        print("There are files in this experiment:", len(all_files))
+        print("There are files in this experiment:", len(obj['files']))
         print("There are good files in this experiment:", len(good_files))
         # look for unarchived processed files from other labs
-        processed_files = [f for f in all_files
+        processed_files = [f for f in obj['files']
                            if f['file_format'] != 'fastq']
         external_files = [f for f in processed_files if (
             f['lab']['name'] != 'encode-processing-pipeline')]
