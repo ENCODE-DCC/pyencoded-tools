@@ -175,9 +175,7 @@ class Data_Release():
         ]
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
         # Fix for WRAN-708, new objects in profiles that don't have properties.
-        temp = {k: v for k, v in temp.items()
-                if not k.startswith('_') or v.get('properties') is not None}
-
+        temp = {k: v for k, v in temp.items() if isinstance(v, dict) and v.get('properties')}
         ignore = ["Lab", "Award", "Platform",
                   "Organism", "Reference", "AccessKey", "User", "AnalysisStep",
                   "AnalysisStepVersion", "AnalysisStepRun", "Pipeline",
