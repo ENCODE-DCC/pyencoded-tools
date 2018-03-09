@@ -308,6 +308,9 @@ Use to define a different location for the encValData directory
 use to define a different location for the validateFiles script  
 validateFiles must be made executable for this to work
 
+Examples of the CSV files:
+
+[Single end FASTQ file submission example](examples/bam_test.csv)
 
 ### ENCODE_antibody_approver.py
 **_PLEASE NOTE:_** This script is a dryrun-default script, run it with the *--update* option to make any changes
