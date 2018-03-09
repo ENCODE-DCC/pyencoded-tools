@@ -1,0 +1,5 @@
+﻿dataset,replicate,run_type,read_length,submitted_file_name,file_format,output_type,lab,award,md5sum,platform
+identifier of the dataset the file will belong to,replicate identifier,single-ended,100,local path to the file being submitted,fastq,reads,lab identifier,award identifier,the value of md5sum,platform identifier
+,,,,,,,,,,
+example line:,,,,,,,,,,
+ENCSR123ABC,a474f310-a937-45cb-97ae-583324529e52,single-ended,100,my/folder/file.fq.gz,fastq,reads,/labs/encode/,awards/ABC1234,650b3d2fd04a216d1fb715d1b5b1d255,f9e6025e-727b-43cf-86a4-a0622f77991b

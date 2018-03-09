@@ -1,0 +1,5 @@
+dataset,submitted_file_name,file_format,output_type,lab,award,md5sum,assembly,derived_from:array,,
+identifier of the dataset the file will belong to,local path to the file being submitted,bam,alignments,lab identifier,award identifier,the value of md5sum,assembly version,identifiers of files the alignment file was derived from,,
+,,,,,,,,,,
+example line:,,,,,,,,,,
+ENCSR123ABC,my/folder/file.fq.gz,bam,alignments,/labs/encode/,awards/ABC1234,650b3d2fd04a216d1fb715d1b5b1d255,hg19,f9e6025e-727b-43cf-86a4-a0622f77991b,,

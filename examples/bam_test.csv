@@ -1,2 +1,0 @@
-dataset,submitted_file_name,file_format,output_type,lab,award,md5sum,aliases:array,assembly,derived_from:array
-identifier of the dataset the file will belong to,local path to the file being submitted,bam,alignments,lab identifier,award identifier,the value of md5sum,encode:file_3,assembly version,identifiers of files the alignment file was derived from
