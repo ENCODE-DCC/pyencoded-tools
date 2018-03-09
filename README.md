@@ -310,9 +310,9 @@ validateFiles must be made executable for this to work
 
 Examples of the CSV files:
 
-    For example of a single end FASTQ file submission CSV click [here](examples/fastq_SE.csv)
-    For example of a paired end FASTQ files submission CSV click [here](examples/fastq_PE.csv)
-    For example of a BAM file submission CSV click [here](examples/bam_file.csv)
+* For example of a single end FASTQ file submission CSV click [here](examples/fastq_SE.csv)
+* For example of a paired end FASTQ files submission CSV click [here](examples/fastq_PE.csv)
+* For example of a BAM file submission CSV click [here](examples/bam_file.csv)
     
 
 ### ENCODE_antibody_approver.py
