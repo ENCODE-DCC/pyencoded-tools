@@ -471,6 +471,7 @@ class QANCODE(ActionTuples):
 
     def _average_time_for_get(self, url, n):
         self._print_header(url)
+        row = {}
         time_headers = self._get_time_headers(url, n)
         parsed_headers = [self._parse_header(h) for h in time_headers]
         for key in sorted(parsed_headers[0].keys()):
@@ -478,11 +479,23 @@ class QANCODE(ActionTuples):
             group_mean, group_std, group_count = self._summary_for_category(
                 group_values)
             self._print_results(key, group_mean, group_std, group_count)
+            row[key] = {
+                'mean': group_mean,
+                'std': group_std,
+                'N': group_count
+            }
         total_mean, total_std, total_count = self._summary_for_category(
             self._calculate_total_times(parsed_headers))
+        row['total time'] = {
+                'mean': total_mean,
+                'std': total_std,
+                'N': total_count
+        }
         self._print_results('total time', total_mean, total_std, total_count)
-
+        return row
+        
     def check_response_time(self, urls=None, item_types=[None], n=10):
+        table = {}
         if urls is None:
             urls = [self.prod_url, self.rc_url]
         print('Checking response time')
@@ -491,5 +504,6 @@ class QANCODE(ActionTuples):
             for url in urls:
                 if item is not None:
                     url = url + item
-                self._average_time_for_get(url, n)
+                table[url].append(self._average_time_for_get(url, n))
             print()
+        return table
