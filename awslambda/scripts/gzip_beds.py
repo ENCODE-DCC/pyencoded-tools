@@ -20,18 +20,20 @@ rocket = {
     "Records":
         [{
             "s3": {
-                "bucket":
-                {
+                "bucket": {
                     "arn": "arn:aws:s3:::" + BUCKET,
                     "name": BUCKET
                 },
-                "object": {
-                    "key": "Histone_Modification/REMC_core_127/E001_15_coreMarks_mnemonics.bed"}
-                },
+            },
             "awsRegion": "us-west-2"
-        }
-        ]
+        }]
 }
+'''
+Template for object[key]: property of s3.
+    "object": {
+        "key": "Histone_Modification/REMC_core_127/E001_15_coreMarks_mnemonics.bed"
+    }
+'''
 
 out = open('reg_remc_bigbed.tsv', 'w')
 with open('reg_remc_hmm_beds.tsv.2', 'r') as bed_list:
