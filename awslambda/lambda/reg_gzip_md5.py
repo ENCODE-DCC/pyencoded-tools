@@ -1,20 +1,19 @@
 
-import json
 import urllib.parse
 import boto3
 import re
 from gzip import GzipFile
 from io import BytesIO
+import hashlib
+CHUNKSIZE = 4096
 
 print('Loading function')
 
 s3 = boto3.client('s3')
 
-# NOTE despite the name this does not currently calculate md5sums
-
 
 def lambda_handler(event, context):
-    #print("Received event: " + json.dumps(event, indent=2))
+    # print("Received event: " + json.dumps(event, indent=2))
 
     # Get the object from the event and show its content type
     bucket = event['Records'][0]['s3']['bucket']['name']
@@ -37,7 +36,18 @@ def lambda_handler(event, context):
     except Exception as e:
         print(e)
         print('Error putting gzipped object {} to bucket {}.'.format(key+'.gz', bucket))
+        print(put_res)
         raise e
 
-    return {'md5sum': tag, 'submitted_file_name': key+'.gz'}
+    try:
+        zip_response = s3.get_object(Bucket=bucket, Key=key+'.gz')
+    except Exception as e:
+        print(e)
+        print('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
+        raise e
 
+    hash_md5 = hashlib.md5()
+    for chunk in iter(lambda: zip_response['Body'].read(amt=CHUNKSIZE), b''):
+        hash_md5.update(chunk)
+
+    return {'md5sum': hash_md5.hexdigest(), 'submitted_file_name': 's3://'+bucket+'/'+key+'.gz'}
