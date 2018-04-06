@@ -2,6 +2,7 @@
 import urllib.parse
 import boto3
 import re
+import os
 from gzip import GzipFile
 from io import BytesIO
 import hashlib
@@ -10,6 +11,27 @@ CHUNKSIZE = 4096
 print('Loading function')
 
 s3 = boto3.client('s3')
+
+
+def split_on_column(fh, folder, col=3):
+
+    targets = {}
+    try:
+        os.mkdir(folder)
+    except FileExistsError:
+        pass
+
+    for peak in fh.readlines():
+        fields = peak.split('\t')
+        # chr start stop target something something something
+        for t in fields[col].split('+'):
+            t = re.sub('/', '::', t)
+            fn = t + '.bed'
+            outfh = open('/'.join([folder, fn]), 'a')
+            outfh.write("\t".join(fields[0:col-1]+[t]+fields[col+1:]))
+            targets[fn] = (folder, fn)
+
+    return targets
 
 
 def lambda_handler(event, context):
@@ -51,3 +73,23 @@ def lambda_handler(event, context):
         hash_md5.update(chunk)
 
     return {'md5sum': hash_md5.hexdigest(), 'submitted_file_name': 's3://'+bucket+'/'+key+'.gz'}
+
+
+def main():
+    # for local testing ONLY
+    import argparse
+    parser = argparse.ArgumentParser(description="Parse input file")
+    parser.add_argument('files', metavar='f', type=str, nargs='+',
+                        help='list of files')
+
+    args = parser.parse_args()
+    for f in args.files:
+        fh = open(f, 'r')
+        froot = os.path.basename(f).split('.')[0]
+        targs = split_on_column(fh, froot)
+        fh.close()
+        print(" ".join([froot] + [str(x) for x in targs.keys()]))
+
+
+if __name__ == '__main__':
+    main()
