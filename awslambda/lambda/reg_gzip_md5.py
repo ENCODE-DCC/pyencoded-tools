@@ -12,46 +12,45 @@ print('Loading function')
 
 s3 = boto3.client('s3')
 
+if __name__ == '__main__':
+    PREFIX = ''
+else:
+    PREFIX = '/tmp/'
+
+
 
 def split_on_column(fh, folder, col=3):
 
     targets = {}
     try:
-        os.mkdir(folder)
+        os.mkdir(PREFIX+folder)
     except FileExistsError:
         pass
+    
+    try:
+        flines = fh.readlines()
+    except AttributeError:
+        flines = fh.read().decode('utf8').split('\n')
 
-    for peak in fh.readlines():
+    for peak in flines:
         fields = peak.split('\t')
         # chr start stop target something something something
+        if len(fields) < col+1:
+            break
         for t in fields[col].split('+'):
             t = re.sub('/', '::', t)
             fn = t + '.bed'
-            outfh = open('/'.join([folder, fn]), 'a')
+            outfh = open("{}{}/{}".format(PREFIX, folder, fn), 'a')
             outfh.write("\t".join(fields[0:col-1]+[t]+fields[col+1:]))
-            targets[fn] = (folder, fn)
+            targets[fn] = (PREFIX, folder, fn)
 
     return targets
 
+def gzip_md5_fh(fh, bucket, key):
 
-def lambda_handler(event, context):
-    # print("Received event: " + json.dumps(event, indent=2))
-
-    # Get the object from the event and show its content type
-    bucket = event['Records'][0]['s3']['bucket']['name']
-    key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
-    print("Bucket %s Key %s" % (bucket, key))
-    try:
-        response = s3.get_object(Bucket=bucket, Key=key)
-    except Exception as e:
-        print(e)
-        print('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
-        raise e
-    tag = re.sub(r'\W', '', response['ETag'])
-    print("ETag: " + tag)
     gz_body = BytesIO()
     gz = GzipFile(None, 'wb', 9, gz_body)
-    gz.write(response['Body'].read())
+    gz.write(fh.read())
     gz.close()
     try:
         put_res = s3.put_object(Bucket=bucket, Key=key+'.gz', Body=gz_body.getvalue())
@@ -73,6 +72,37 @@ def lambda_handler(event, context):
         hash_md5.update(chunk)
 
     return {'md5sum': hash_md5.hexdigest(), 'submitted_file_name': 's3://'+bucket+'/'+key+'.gz'}
+
+
+def lambda_handler(event, context):
+    # print("Received event: " + json.dumps(event, indent=2))
+
+    # Get the object from the event and show its content type
+    bucket = event['Records'][0]['s3']['bucket']['name']
+    key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
+    print("Bucket %s Key %s" % (bucket, key))
+    try:
+        response = s3.get_object(Bucket=bucket, Key=key)
+    except Exception as e:
+        print(e)
+        print('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
+        raise e
+    split_column = event['Records'][0]['s3']['params'].get('split_column', None)
+    print("Going to split file on column {}".format(split_column))
+    outs = []
+    if split_column:
+        new_folder = os.path.basename(key).split('.')
+        old_folder = os.path.dirname(key)
+        new_folder = new_folder[0]
+        print("{} :: {}".format(old_folder, new_folder))
+        targets = split_on_column(response['Body'], new_folder, col=split_column)
+        for (prefix, folder, file) in targets.values():
+            outs.append(gzip_md5_fh(open('/'.join([prefix, folder, file]), 'rb'), bucket, '/'.join([old_folder, folder, file])))
+
+    else:
+        outs.append(gzip_md5_fh(response['Body'], bucket, key))
+
+    return outs
 
 
 def main():
