@@ -60,6 +60,9 @@ def gzip_md5_fh(fh, bucket, key):
         print(put_res)
         raise e
 
+    if re.search('/tmp', key):
+        os.remove(key)
+        # keep /tmp clean
     try:
         zip_response = s3.get_object(Bucket=bucket, Key=key+'.gz')
     except Exception as e:
@@ -68,10 +71,12 @@ def gzip_md5_fh(fh, bucket, key):
         raise e
 
     hash_md5 = hashlib.md5()
+    size = 0
     for chunk in iter(lambda: zip_response['Body'].read(amt=CHUNKSIZE), b''):
+        size += chunk.__sizeof__()
         hash_md5.update(chunk)
 
-    return {'md5sum': hash_md5.hexdigest(), 'submitted_file_name': 's3://'+bucket+'/'+key+'.gz'}
+    return {'md5sum': hash_md5.hexdigest(), 'submitted_file_name': 's3://'+bucket+'/'+key+'.gz', 'file_size': size}
 
 
 def lambda_handler(event, context):
@@ -81,6 +86,8 @@ def lambda_handler(event, context):
     bucket = event['Records'][0]['s3']['bucket']['name']
     key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
     print("Bucket %s Key %s" % (bucket, key))
+    if re.search('.gz', key):
+        return [{ "errorMessage": key+" already gzipped, probably"}]
     try:
         response = s3.get_object(Bucket=bucket, Key=key)
     except Exception as e:
