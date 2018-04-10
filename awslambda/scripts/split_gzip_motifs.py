@@ -96,7 +96,7 @@ for fname in keys:
     # print(json.dumps(payload, sort_keys=True, indent=4))
     for retry in (1, 2, 3, 4, 5):
         try:
-            res = client.invoke(FunctionName='reg_gzip_md5', InvocationType='RequestResponse', Payload=json.dumps(payload))
+            res = client.invoke(FunctionName='reg_gzip_md5_split', InvocationType='RequestResponse', Payload=json.dumps(payload))
         except Exception:
             print("Retry: %s" % retry)
         finally:
