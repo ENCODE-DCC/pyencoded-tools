@@ -6,6 +6,7 @@ import os
 from gzip import GzipFile
 from io import BytesIO
 import hashlib
+import glob
 CHUNKSIZE = 4096
 
 print('Loading function')
@@ -24,6 +25,11 @@ def split_on_column(fh, folder, col=3):
     targets = {}
     try:
         os.mkdir(PREFIX+folder)
+    except OSError:
+        try:
+            os.remove(glob.glob('/tmp/*'))
+        except:
+            pass
     except FileExistsError:
         pass
     
