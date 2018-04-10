@@ -12,10 +12,10 @@ specified.
 
 Version 1.3
 
-Releasenator will no longer release files that are associated with pielines
-that are not in "active" status, for such files warning will be printed.
+Releasenator will no longer release files that are associated with pipelines
+that are not in "released" status, for such files warning will be printed.
 Released earlier files will remain released, even if they are associated with
-non-active pipelines, the script will print out warning messages for these
+unreleased pipelines, the script will print out warning messages for these
 files as well.
 
 '''
@@ -361,7 +361,7 @@ class Data_Release():
                                     {}).get('analysis_step',
                                             {}).get('pipelines')
         if pipelines is not None:
-            if all([p['status'] != 'active' for p in pipelines]):
+            if all([p['status'] != 'released' for p in pipelines]):
                 return [p['@id'] for p in pipelines]
         return False
 
