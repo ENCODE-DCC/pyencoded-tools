@@ -5,6 +5,10 @@
 '''
 Releasenator changelog
 
+Version 1.5
+
+Store individual release logs instead of overwriting.
+
 Version 1.4
 
 Blocks release of objects associated with HeLa data unless --hela flag
@@ -160,7 +164,7 @@ def getArgs():
 class Data_Release():
     def __init__(self, args, connection):
         # renaming some things so I can be lazy and not pass them around
-        self.releasenator_version = 1.4
+        self.releasenator_version = 1.5
         self.infile = args.infile
         self.outfile = args.outfile
         self.QUERY = args.query
