@@ -1,4 +1,5 @@
 
+
 import urllib.parse
 import boto3
 import re
@@ -9,13 +10,6 @@ print('Loading function')
 
 s3 = boto3.client('s3')
 
-'''
-def calculatemd5FromFile(filepath, chunksize=4096):
-    hash_md5 = hashlib.md5()
-    with open(filepath, 'rb') as f:
-        for chunk in iter(lambda: f.read(chunksize), b''):
-            hash_md5.update(chunk)
-'''
 
 def lambda_handler(event, context):
     #print("Received event: " + json.dumps(event, indent=2))
@@ -33,7 +27,9 @@ def lambda_handler(event, context):
     tag = re.sub(r'\W', '', response['ETag'])
     print("ETag: " + tag)
     hash_md5 = hashlib.md5()
+    size = 0
     for chunk in iter(lambda: response['Body'].read(amt=CHUNKSIZE), b''):
+        size += chunk.__sizeof__()
         hash_md5.update(chunk)
 
-    return {'md5sum': hash_md5.hexdigest(), 'submitted_file_name': 's3://'+bucket+'/'+key}
+    return {'md5sum': hash_md5.hexdigest(), 'submitted_file_name': 's3://'+bucket+'/'+key, 'file_size': size }
