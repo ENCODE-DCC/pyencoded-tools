@@ -5,6 +5,10 @@
 '''
 Releasenator changelog
 
+Version 1.5
+
+Store individual release logs instead of overwriting.
+
 Version 1.4
 
 Blocks release of objects associated with HeLa data unless --hela flag
@@ -88,6 +92,11 @@ Misc. Useage:
 logger = logging.getLogger(__name__)
 
 
+def make_dir(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+
 def getArgs():
     parser = argparse.ArgumentParser(
         description=__doc__, epilog=EPILOG,
@@ -116,7 +125,10 @@ def getArgs():
                         "file. Default is off",
                         action='store_true', default=False)
     parser.add_argument('--outfile',
-                        help="Output file name", default='Release_report.txt')
+                        help="Output file name",
+                        default='{}_{}.txt'.format('release_report', time.strftime("%Y_%b_%d_%I_%M_%S")))
+    parser.add_argument('--out_dir',
+                         help='Directory to store release reports', default='release_reports')
     parser.add_argument('--key',
                         help="The keypair identifier from the keyfile.",
                         default='default')
@@ -133,6 +145,9 @@ def getArgs():
                         help='Force release of HeLa data.',
                         action='store_true')
     args = parser.parse_args()
+    make_dir(args.out_dir)
+    run_type = 'update' if args.update else 'dry_run'
+    args.outfile = '{}/{}_{}'.format(args.out_dir, run_type, args.outfile)
     if args.debug:
         logging.basicConfig(filename=args.outfile, filemode="w",
                             format='%(levelname)s:%(message)s',
@@ -149,7 +164,7 @@ def getArgs():
 class Data_Release():
     def __init__(self, args, connection):
         # renaming some things so I can be lazy and not pass them around
-        self.releasenator_version = 1.4
+        self.releasenator_version = 1.5
         self.infile = args.infile
         self.outfile = args.outfile
         self.QUERY = args.query
