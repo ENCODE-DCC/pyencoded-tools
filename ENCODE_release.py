@@ -309,7 +309,9 @@ class Data_Release():
             if (object_type == 'Dataset' and
                 prop not in ['files', 'contributing_files']) or \
                (object_type == 'File' and
-                prop != 'derived_from') or \
+                prop not in ['derived_from',
+                             'controlled_by',
+                             'supersedes']) or \
                (object_type not in ['Dataset', 'File']):
 
                 if d[prop].get("linkTo"):
