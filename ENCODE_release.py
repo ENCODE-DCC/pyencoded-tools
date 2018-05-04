@@ -3,6 +3,11 @@
 
 
 '''
+Releasenator will no longer release files that are associated with files in the 
+experiment being released via controlled_by and supersedes relationship
+
+Version 1.6
+
 Releasenator changelog
 
 Version 1.5
@@ -164,7 +169,7 @@ def getArgs():
 class Data_Release():
     def __init__(self, args, connection):
         # renaming some things so I can be lazy and not pass them around
-        self.releasenator_version = 1.5
+        self.releasenator_version = 1.6
         self.infile = args.infile
         self.outfile = args.outfile
         self.QUERY = args.query
@@ -309,7 +314,9 @@ class Data_Release():
             if (object_type == 'Dataset' and
                 prop not in ['files', 'contributing_files']) or \
                (object_type == 'File' and
-                prop != 'derived_from') or \
+                prop not in ['derived_from',
+                             'controlled_by',
+                             'supersedes']) or \
                (object_type not in ['Dataset', 'File']):
 
                 if d[prop].get("linkTo"):
