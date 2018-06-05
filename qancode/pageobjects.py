@@ -41,8 +41,8 @@ class SearchPageList:
     facet_box_class = 'facets'
     see_more_buttons_css = '#content > div > div > div > div > div.col-sm-5.col-md-4.col-lg-3 > div > div > div > ul > div.pull-right > small > button'
     facet_class = 'facet'
-    category_title_class = 'facet-item'
-    number_class = 'pull-right'
+    category_title_class = 'facet-term__text'
+    number_class = 'facet-term__count'
     download_metadata_button_xpath = '//*[contains(text(), "Download")]'
 
 
