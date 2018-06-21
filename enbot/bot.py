@@ -5,6 +5,7 @@ import requests
 import subprocess
 import time
 import urllib.parse
+import boto3
 
 
 from datetime import datetime
@@ -29,6 +30,7 @@ image_list = ['https://upload.wikimedia.org/wikipedia/'
               'commons/4/45/A_small_cup_of_coffee.JPG',
               'http://www.speedylife.fr/photo/art/default/'
               '6716610-10265899.jpg?v=1402495406']
+
 
 users_dict = {}
 api_call = slack_client.api_call("users.list")
@@ -72,9 +74,10 @@ def get_field(object_id, field):
             return r.get(field, 'Field not found.')
 
 
-async def poll_indexer(url, channel):
+async def poll_indexer(url, channel, instance_id=None):
     waiting_count = 0
     failed_get = 0
+    start = time.time()
     while True:
         await curio.sleep(6)
         try:
@@ -87,6 +90,7 @@ async def poll_indexer(url, channel):
                 continue
             elif status == 'indexing':
                 waiting_count = 0
+                start = time.time()
                 continue
         except Exception as e:
             failed_get += 1
@@ -96,9 +100,18 @@ async def poll_indexer(url, channel):
                 break
             else:
                 continue
-        send_response('DONE: Indexer {} status waiting for one minute at {}.'.format(
-            url, datetime.now().strftime('%Y-%m-%d %H:%M:%S')), channel)
+        end = time.time()
+        send_response(
+            'DONE: Indexer {} status waiting for {} minute at {}.'.format(
+                url,
+                end - start,
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
+            channel
+        )
         MONITORING_URLS.remove((url, channel))
+        if instance_id:
+            send_response('Stopping instance {} now'.format(instance_id.id))
+            stop_instance(instance_id)
         break
 
 
@@ -126,6 +139,28 @@ def send_response(response, channel, attachments=None):
                           text=response,
                           as_user=True,
                           attachments=attachments)
+
+
+def find_instance_from_url(url):
+    print(url)
+    tag_name = url.split('/')[2].split('.demo')[0]
+    ec2 = boto3.client('ec2', region_name='us-west-2')
+    instances = (
+        s
+        for s in ec2.instances.filter(
+                Filters=[{'Name': 'tag:Name', 'Values': [tag_name]}]
+        )
+    )
+    if instances:
+        return next(instances)
+    else:
+        return None
+
+
+def stop_instance(instance_id):
+    print('stopping instance', instance_id.id)
+    ec2 = boto3.client('ec2', region_name='us-west-2')
+    ec2.instances.filter(InstanceIds=[instance_id]).stop()
 
 
 async def handle_command(command, channel, timestamp):
@@ -191,7 +226,14 @@ async def handle_command(command, channel, timestamp):
                     MONITORING_URLS.append((url, channel))
                     send_response('START: Monitoring {} at {}.'.format(
                         url, datetime.now().strftime('%Y-%m-%d %H:%M:%S')), channel)
-                    await curio.spawn(poll_indexer, url, channel)
+                    instance_id = None
+                    if '.demo.encodedcc.org' in url:
+                        instance_id = find_instance_from_url(url)
+                        if instance_id:
+                            send_response(
+                                'Found instance {}. Will stop when indexing complete'.format(instance_id.id)
+                            )
+                    await curio.spawn(poll_indexer, url, channel, instance_id=instance_id)
                 else:
                     response = 'Already monitoring.'
         except Exception as e:
