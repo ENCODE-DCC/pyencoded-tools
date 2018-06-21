@@ -111,6 +111,7 @@ async def poll_indexer(url, channel, instance_id=None):
         MONITORING_URLS.remove((url, channel))
         if instance_id:
             stop_instance(instance_id.id, channel)
+            resize_instance(instance_id.id, channel)
         break
 
 
@@ -166,6 +167,21 @@ def stop_instance(instance_id, channel):
     except Exception as e:
         print(e)
         send_response('Failed to stop {}'.format(instance_id), channel)
+
+
+def resize_instance(instance_id, channel, resize_value='m5.xlarge'):
+    print('resizing instance', instance_id)
+    ec2 = boto3.client('ec2', region_name='us-west-2')
+    waiter = ec2.get_waiter('instance_stopped')
+    send_response('Waiting for demo to stop to resize.'.format(instance_id), channel)
+    waiter.wait(InstanceIds=[instance_id])
+    try:
+        res = ec2.modify_instance_attribute(InstanceId=instance_id, Attribute='instanceType', Value=resize_value)
+        assert res[0]['ResponseMetadata']['HTTPStatusCode'] == 200
+        send_response('Demo {} resized to {}.'.format(instance_id, resize_value), channel)
+    except Exception as e:
+        print(e)
+        send_response('Failed to resize {}'.format(instance_id), channel)
 
 
 async def handle_command(command, channel, timestamp):
@@ -236,7 +252,7 @@ async def handle_command(command, channel, timestamp):
                         instance_id = find_instance_from_url(url)
                         if instance_id:
                             send_response(
-                                'Found demo instance {}. Will stop when indexing complete.'.format(instance_id.id),
+                                'Found demo instance {}. Will stop and resize when indexing complete.'.format(instance_id.id),
                                 channel
                             )
                     await curio.spawn(poll_indexer, url, channel, instance_id)
