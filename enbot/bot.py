@@ -177,7 +177,7 @@ def resize_instance(instance_id, channel, resize_value='m5.xlarge'):
     waiter.wait(InstanceIds=[instance_id])
     try:
         res = ec2.modify_instance_attribute(InstanceId=instance_id, Attribute='instanceType', Value=resize_value)
-        assert res[0]['ResponseMetadata']['HTTPStatusCode'] == 200
+        assert res['ResponseMetadata']['HTTPStatusCode'] == 200
         send_response('Demo {} resized to {}.'.format(instance_id, resize_value), channel)
     except Exception as e:
         print(e)
