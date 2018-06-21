@@ -82,18 +82,18 @@ async def poll_indexer(url, channel):
             r = r.json()
             status = r['status']
             failed_get = 0
-            if status == 'waiting' and waiting_count < 9:
+            if status == 'waiting' and waiting_count < 15:
                 waiting_count += 1
                 continue
             elif status == 'indexing':
                 waiting_count = 0
                 continue
-        except:
+        except Exception as e:
             failed_get += 1
             if failed_get > 9:
                 send_response('GET failure for {}. Aborting at {}.'.format(
                     url, datetime.now().strftime('%Y-%m-%d %H:%M:%S')), channel)
-                MONITORING_URLS.remove((url, channel))
+                break
             else:
                 continue
         send_response('DONE: Indexer {} status waiting for one minute at {}.'.format(
@@ -174,11 +174,14 @@ async def handle_command(command, channel, timestamp):
             # This should probably be REGEX capture group.
             url = command.split(' ')[1].replace(
                 '>', '').replace('<', '').strip()
+            print(url)
             # Some Slack magic for URLs missing https://.
             if '|' in url:
                 url = url.split('|')[1]
                 url = 'https://{}'.format(url)
+            print(url)
             url = urllib.parse.urljoin(url, '/_indexer')
+            print(url)
             send_response('Checking URL.', channel)
             r = requests.get(url)
             if r.status_code != 200:
@@ -191,15 +194,13 @@ async def handle_command(command, channel, timestamp):
                     await curio.spawn(poll_indexer, url, channel)
                 else:
                     response = 'Already monitoring.'
-        except:
+        except Exception as e:
+            print(e)
             if command.strip().endswith('monitor'):
                 send_response(
                     'Currently monitoring: {}'.format('None' if len(MONITORING_URLS) == 0
                                                       else [m[0] for m in MONITORING_URLS
                                                             if m[1] == channel]), channel)
-            elif 'clear' in command:
-                MONITORING_URLS = []
-                response = 'List cleared.'
             else:
                 response = 'Bad input.'
     elif 'howdoi' in command:
