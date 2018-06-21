@@ -85,7 +85,7 @@ async def poll_indexer(url, channel, instance_id=None):
             r = r.json()
             status = r['status']
             failed_get = 0
-            if status == 'waiting' and waiting_count < 15:
+            if status == 'waiting' and waiting_count < 20:
                 waiting_count += 1
                 continue
             elif status == 'indexing':
@@ -102,16 +102,15 @@ async def poll_indexer(url, channel, instance_id=None):
                 continue
         end = time.time()
         send_response(
-            'DONE: Indexer {} status waiting for {} minute at {}.'.format(
+            'DONE: Indexer {} status waiting for {} seconds at {}.'.format(
                 url,
-                end - start,
+                int(end - start),
                 datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
             channel
         )
         MONITORING_URLS.remove((url, channel))
         if instance_id:
-            send_response('Stopping instance {} now'.format(instance_id.id))
-            stop_instance(instance_id)
+            stop_instance(instance_id.id, channel)
         break
 
 
@@ -142,9 +141,9 @@ def send_response(response, channel, attachments=None):
 
 
 def find_instance_from_url(url):
-    print(url)
     tag_name = url.split('/')[2].split('.demo')[0]
-    ec2 = boto3.client('ec2', region_name='us-west-2')
+    print(tag_name)
+    ec2 = boto3.resource('ec2', region_name='us-west-2')
     instances = (
         s
         for s in ec2.instances.filter(
@@ -157,10 +156,16 @@ def find_instance_from_url(url):
         return None
 
 
-def stop_instance(instance_id):
-    print('stopping instance', instance_id.id)
-    ec2 = boto3.client('ec2', region_name='us-west-2')
-    ec2.instances.filter(InstanceIds=[instance_id]).stop()
+def stop_instance(instance_id, channel):
+    print('stopping instance', instance_id)
+    ec2 = boto3.resource('ec2', region_name='us-west-2')
+    try:
+        res = ec2.instances.filter(InstanceIds=[instance_id]).stop()
+        assert res[0]['ResponseMetadata']['HTTPStatusCode'] == 200
+        send_response('Demo instance {} stopped.'.format(instance_id), channel)
+    except Exception as e:
+        print(e)
+        send_response('Failed to stop {}'.format(instance_id), channel)
 
 
 async def handle_command(command, channel, timestamp):
@@ -231,9 +236,10 @@ async def handle_command(command, channel, timestamp):
                         instance_id = find_instance_from_url(url)
                         if instance_id:
                             send_response(
-                                'Found instance {}. Will stop when indexing complete'.format(instance_id.id)
+                                'Found demo instance {}. Will stop when indexing complete.'.format(instance_id.id),
+                                channel
                             )
-                    await curio.spawn(poll_indexer, url, channel, instance_id=instance_id)
+                    await curio.spawn(poll_indexer, url, channel, instance_id)
                 else:
                     response = 'Already monitoring.'
         except Exception as e:
@@ -245,6 +251,7 @@ async def handle_command(command, channel, timestamp):
                                                             if m[1] == channel]), channel)
             else:
                 response = 'Bad input.'
+                print(e)
     elif 'howdoi' in command:
         query = parse_howdoi_request(command)
         if query:
