@@ -97,6 +97,7 @@ async def poll_indexer(url, channel, instance_id=None):
             if failed_get > 9:
                 send_response('GET failure for {}. Aborting at {}.'.format(
                     url, datetime.now().strftime('%Y-%m-%d %H:%M:%S')), channel)
+                MONITORING_URLS.remove((url, channel))
                 break
             else:
                 continue
