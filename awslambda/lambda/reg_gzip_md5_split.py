@@ -111,7 +111,7 @@ def lambda_handler(event, context):
     if split_column:
         new_folder = os.path.basename(key).split('.')
         old_folder = os.path.dirname(key)
-        new_folder = new_folder[0]
+        new_folder = new_folder[0] + '_PWM_split'
         print("{} :: {}".format(old_folder, new_folder))
         peaks = split_on_column(response['Body'], new_folder, col=split_column)
         for target in peaks.keys():
