@@ -35,14 +35,14 @@ Template for object[key]: property of s3.
     }
 '''
 
-out = open('reg_remc_md5.tsv', 'w')
-with open('reg_remc_bigbed.tsv', 'r') as bed_list:
+out = open('reg_dbsnp_md5.tsv', 'w')
+with open('reg_dbsnp_bed.txt', 'r') as bed_list:
     # https://medium.com/@adds68/parsing-tsv-file-with-csv-in-python-662d6347b0cd
     reader = csv.DictReader(bed_list, dialect='excel-tab')
 
     for bed in reader:
 
-        filename = bed['submitted_file_name'].lstrip('s3://regulomedb/')
+        filename = bed['submitted_file_name'] # .lstrip('s3://regulomedb\/')
         print("{}\t{}".format(bed['dataset'], filename))
         payload = rocket
         payload['Records'][0]['s3']['object'] = { "key": filename}
@@ -62,6 +62,7 @@ with open('reg_remc_bigbed.tsv', 'r') as bed_list:
         if (results.get('errorMessage', "")):
             exit()
 
-        #bed['submitted_file_name'] = results['submitted_file_name']
+        bed['submitted_file_name'] = results['submitted_file_name']
         bed['md5sum'] = results['md5sum']
-        out.write("\t".join(bed.values())+"\n")
+        bed['file_size'] = results['file_size']
+        out.write("\t".join([str(x) for x in bed.values()])+"\n")
