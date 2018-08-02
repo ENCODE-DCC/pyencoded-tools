@@ -1,3 +1,25 @@
+# Installation
+```
+brew cask install chromedriver
+mkdir ~/qancode && cd ~/qancode
+python3 -m venv venv-name
+venv-name/bin/activate
+git clone git@github.com:ENCODE-DCC/pyencoded-tools.git
+pip install -r ./pyencoded-tools/qancode/requirements.txt
+pip install -e ./pyencoded-tools/qancode
+```
+# Basic Test Scriopt
+```
+from qancode import QANCODE
+
+demo_url = 'https://your-demo-url-name.demo.encodedcc.org'
+test_against_url = 'https://test.encodedcc.org'
+qan = QANCODE(demo_url, prod_url=test_against_url)
+qan.list_methods()
+# qan.compare_facets() # Start a certain test
+```
+
+
 ## Purpose
 _qancode_ automates ENCODE release testing (QA) tasks that may require manual review.
 
