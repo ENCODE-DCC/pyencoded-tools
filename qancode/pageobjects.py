@@ -114,7 +114,7 @@ class InformationModal:
     """
     Page object model.
     """
-    download_icon_xpath = '/html/body/div[2]/div/div/div[1]/div/div/div[2]/div/dl/div[8]/dd/span/div/span/a/i'
+    download_icon_xpath = '//div[@class="modal-body"]//i[@class="icon icon-download"]'
 
 
 class NavBar:
