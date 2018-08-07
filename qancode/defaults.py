@@ -250,7 +250,7 @@ class ActionTuples:
              OpenUCSCGenomeBrowserDM6),
             ('/search/?type=Experiment&assembly=ce10&target.investigated_as=transcription+factor&replicates.library.biosample.life_stage=L4+larva',
              OpenUCSCGenomeBrowserCE10),
-            ('/search/?type=Experiment&assembly=ce11&target.investigated_as=recombinant+protein&replicates.library.biosample.life_stage=late+embryonic&replicates.library.biosample.life_stage=L4+larva',
+            ('/search/?type=Experiment&assembly=ce11&target.investigated_as=recombinant+protein&replicates.library.biosample.life_stage=early+embryonic&replicates.library.biosample.life_stage=L4+larva',
              OpenUCSCGenomeBrowserCE11),
             ('/search/?searchTerm=hippocampus&type=Experiment',
              OpenUCSCGenomeBrowserHG19)
