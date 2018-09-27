@@ -224,7 +224,7 @@ async def handle_command(command, channel, timestamp):
     #                 response = 'Match'
     #         except:
     #             response = 'Image diff error. Exiting.'
-    elif 'monitor' in command:
+    elif 'monitor' in command or 'konitor' in command:
         global MONITORING_URLS
         response = None
         try:
@@ -249,7 +249,7 @@ async def handle_command(command, channel, timestamp):
                     send_response('START: Monitoring {} at {}.'.format(
                         url, datetime.now().strftime('%Y-%m-%d %H:%M:%S')), channel)
                     instance_id = None
-                    if '.demo.encodedcc.org' in url:
+                    if 'konitor' in command and '.demo.encodedcc.org' in url:
                         instance_id = find_instance_from_url(url)
                         if instance_id:
                             send_response(
