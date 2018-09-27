@@ -74,7 +74,7 @@ def get_field(object_id, field):
             return r.get(field, 'Field not found.')
 
 
-async def poll_indexer(url, channel, instance_id=None):
+async def poll_indexer(url, channel, command, instance_id=None):
     waiting_count = 0
     failed_get = 0
     start = time.time()
@@ -112,7 +112,8 @@ async def poll_indexer(url, channel, instance_id=None):
         MONITORING_URLS.remove((url, channel))
         if instance_id:
             stop_instance(instance_id.id, channel)
-            resize_instance(instance_id.id, channel)
+            if 'kronitor' in command:
+                resize_instance(instance_id.id, channel)
         break
 
 
@@ -224,7 +225,15 @@ async def handle_command(command, channel, timestamp):
     #                 response = 'Match'
     #         except:
     #             response = 'Image diff error. Exiting.'
-    elif 'monitor' in command or 'konitor' in command:
+    elif 'help' in command:
+        send_response(
+            '@enbot monitor [URL] will let you know when indexing is complete.'
+            ' @enbot konitor [URL] will let you know when indexing is complete and kill the instance.'
+            ' @enbot kronitor [URL] will let you know when indexing is complete, kill the instance, and resize it to m5.xlarge.'
+            ' Note konitor and kronitor only work for demos.',
+            channel
+        )
+    elif any([x in command for x in ['monitor', 'konitor', 'kronitor']]):
         global MONITORING_URLS
         response = None
         try:
@@ -249,14 +258,21 @@ async def handle_command(command, channel, timestamp):
                     send_response('START: Monitoring {} at {}.'.format(
                         url, datetime.now().strftime('%Y-%m-%d %H:%M:%S')), channel)
                     instance_id = None
-                    if 'konitor' in command and '.demo.encodedcc.org' in url:
+                    if 'kronitor' in command and '.demo.encodedcc.org' in url:
                         instance_id = find_instance_from_url(url)
                         if instance_id:
                             send_response(
                                 'Found demo instance {}. Will stop and resize when indexing complete.'.format(instance_id.id),
                                 channel
                             )
-                    await curio.spawn(poll_indexer, url, channel, instance_id)
+                    if 'konitor' in command and '.demo.encodedcc.org' in url:
+                        instance_id = find_instance_from_url(url)
+                        if instance_id:
+                            send_response(
+                                'Found demo instance {}. Will stop when indexing complete.'.format(instance_id.id),
+                                channel
+                            )
+                    await curio.spawn(poll_indexer, url, channel, command, instance_id)
                 else:
                     response = 'Already monitoring.'
         except Exception as e:
