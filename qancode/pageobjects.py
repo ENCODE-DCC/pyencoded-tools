@@ -20,7 +20,7 @@ class SignInModal:
     Page object model.
     """
     login_modal_class = 'auth0-lock-header-logo'
-    google_button_css = '#auth0-lock-container-1 > div > div.auth0-lock-center > form > div > div > div:nth-child(3) > span > div > div > div > div > div > div > div > div > div > div.auth0-lock-social-buttons-container > button:nth-child(2) > div.auth0-lock-social-button-icon'
+    google_button_css = '#auth0-lock-container-1 > div > div.auth0-lock-center > form > div > div > div > div.auth0-lock-content-wrapper > div:nth-child(2) > span > div > div > div > div > div > div > div > div:nth-child(1) > div > div > div.auth0-lock-social-buttons-container > button:nth-child(2) > div.auth0-lock-social-button-text'
     button_tag = 'button'
     user_id_input_css = '#identifierId'
     user_next_button_css = '#identifierNext > content > span'
