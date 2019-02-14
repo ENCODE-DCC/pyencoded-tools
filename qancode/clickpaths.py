@@ -4,6 +4,7 @@ import urllib
 
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import select
 
 from .pageobjects import (AntibodyPage,
                           DocumentPreview,
@@ -34,10 +35,13 @@ class OpenUCSCGenomeBrowser:
     given assembly.
     """
 
-    def __init__(self, driver, assembly):
+    def __init__(self, driver, assembly, from_experiment):
         self.driver = driver
         self.assembly = assembly
-        self.perform_action()
+        if from_experiment == True:
+            self.viz_from_experiment()
+        else:
+            self.perform_action()
 
     def perform_action(self):
         current_window = self.driver.current_window_handle
@@ -67,6 +71,35 @@ class OpenUCSCGenomeBrowser:
             (By.ID, UCSCGenomeBrowser.zoom_one_id)))
         time.sleep(3)
 
+    def viz_from_experiment(self):
+        current_window = self.driver.current_window_handle
+        time.sleep(1)
+        try:
+            selector_elem = self.driver.find_element_by_xpath('/html/body/div[@id="slot-application"]/div[@id="application"]/div[@id="layout"]/div/div[@id="content"]/div/div[@class="done"]/div/div[@class="file-gallery-controls"]//div[@class="file-gallery-controls__assembly-selector"]/select[@class="form-control--select"]')
+            #print(selector_elem)
+            selector = select.Select(selector_elem)
+        except Exception as e:
+            print(e)
+            exit()
+        selected_assembly = self.driver.find_element_by_xpath('//*[starts-with(text(), "{0}")]'.format(self.assembly))
+        selector._setSelected(selected_assembly)
+        time.sleep(1)
+
+        for y in self.driver.find_elements_by_tag_name(ExperimentPage.all_buttons_tag_name):
+            try:
+                if y.text == 'Visualize':
+                    y.click()
+                    print('Opening genome browser')
+                    break
+            except:
+                pass
+        time.sleep(1)
+        self.driver.switch_to_window([h for h in self.driver.window_handles
+                                      if h != current_window][0])
+        self.driver.wait.until(EC.element_to_be_clickable(
+            (By.ID, UCSCGenomeBrowser.zoom_one_id)))
+        time.sleep(3)
+
 
 class OpenUCSCGenomeBrowserGRCh38:
     """
@@ -74,7 +107,7 @@ class OpenUCSCGenomeBrowserGRCh38:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'hg38')
+        OpenUCSCGenomeBrowser(driver, 'hg38', False)
 
 
 class OpenUCSCGenomeBrowserHG19:
@@ -83,7 +116,7 @@ class OpenUCSCGenomeBrowserHG19:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'hg19')
+        OpenUCSCGenomeBrowser(driver, 'hg19', False)
 
 
 class OpenUCSCGenomeBrowserMM9:
@@ -92,7 +125,7 @@ class OpenUCSCGenomeBrowserMM9:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'mm9')
+        OpenUCSCGenomeBrowser(driver, 'mm9', False)
 
 
 class OpenUCSCGenomeBrowserMM10:
@@ -101,7 +134,7 @@ class OpenUCSCGenomeBrowserMM10:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'mm10')
+        OpenUCSCGenomeBrowser(driver, 'mm10', False)
 
 
 class OpenUCSCGenomeBrowserMM10Minimal:
@@ -110,7 +143,7 @@ class OpenUCSCGenomeBrowserMM10Minimal:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'mm10')
+        OpenUCSCGenomeBrowser(driver, 'mm10', False)
 
 
 class OpenUCSCGenomeBrowserDM3:
@@ -119,7 +152,7 @@ class OpenUCSCGenomeBrowserDM3:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'dm3')
+        OpenUCSCGenomeBrowser(driver, 'dm3', False)
 
 
 class OpenUCSCGenomeBrowserDM6:
@@ -128,7 +161,7 @@ class OpenUCSCGenomeBrowserDM6:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'dm6')
+        OpenUCSCGenomeBrowser(driver, 'dm6', False)
 
 
 class OpenUCSCGenomeBrowserCE10:
@@ -137,7 +170,7 @@ class OpenUCSCGenomeBrowserCE10:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'ce10')
+        OpenUCSCGenomeBrowser(driver, 'ce10', False)
 
 
 class OpenUCSCGenomeBrowserCE11:
@@ -146,8 +179,89 @@ class OpenUCSCGenomeBrowserCE11:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'ce11')
+        OpenUCSCGenomeBrowser(driver, 'ce11', False)
 
+# --- Classes for opening from the experiment page ---
+
+class OpenUCSCGenomeBrowserGRCh38fromExperiment:
+    """
+    Opens UCSC browser with GRCh38 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowser(driver, 'GRCh38', True)
+
+
+class OpenUCSCGenomeBrowserHG19fromExperiment:
+    """
+    Opens UCSC browser with hg19 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowser(driver, 'hg19', True)
+
+
+class OpenUCSCGenomeBrowserMM9fromExperiment:
+    """
+    Opens UCSC browser with mm9 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowser(driver, 'mm9', True)
+
+
+class OpenUCSCGenomeBrowserMM10fromExperiment:
+    """
+    Opens UCSC browser with mm10 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowser(driver, 'mm10', True)
+
+
+class OpenUCSCGenomeBrowserMM10MinimalfromExperiment:
+    """
+    Opens UCSC browser with mm10-minimal assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowser(driver, 'mm10', True)
+
+
+class OpenUCSCGenomeBrowserDM3fromExperiment:
+    """
+    Opens UCSC browser with dm3 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowser(driver, 'dm3', True)
+
+
+class OpenUCSCGenomeBrowserDM6fromExperiment:
+    """
+    Opens UCSC browser with dm6 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowser(driver, 'dm6', True)
+
+
+class OpenUCSCGenomeBrowserCE10fromExperiment:
+    """
+    Opens UCSC browser with ce10 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowser(driver, 'ce10', True)
+
+
+class OpenUCSCGenomeBrowserCE11fromExperiment:
+    """
+    Opens UCSC browser with ce11 assembly.
+    """
+
+    def __init__(self, driver):
+        OpenUCSCGenomeBrowser(driver, 'ce11', True)
 
 # --- File downloads. ---
 
