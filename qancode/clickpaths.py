@@ -75,8 +75,7 @@ class OpenUCSCGenomeBrowser:
         current_window = self.driver.current_window_handle
         time.sleep(1)
         try:
-            selector_elem = self.driver.find_element_by_xpath('/html/body/div[@id="slot-application"]/div[@id="application"]/div[@id="layout"]/div/div[@id="content"]/div/div[@class="done"]/div/div[@class="file-gallery-controls"]//div[@class="file-gallery-controls__assembly-selector"]/select[@class="form-control--select"]')
-            #print(selector_elem)
+            selector_elem = self.driver.find_element_by_xpath(ExperimentPage.assembly_selector_xpath)
             selector = select.Select(selector_elem)
         except Exception as e:
             print(e)
@@ -96,6 +95,7 @@ class OpenUCSCGenomeBrowser:
         time.sleep(1)
         self.driver.switch_to_window([h for h in self.driver.window_handles
                                       if h != current_window][0])
+        time.sleep(3)
         self.driver.wait.until(EC.element_to_be_clickable(
             (By.ID, UCSCGenomeBrowser.zoom_one_id)))
         time.sleep(3)
