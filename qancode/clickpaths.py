@@ -31,17 +31,14 @@ from .pageobjects import (AntibodyPage,
 
 class OpenUCSCGenomeBrowser:
     """
-    Defines clicks required to open UCSC trackhub from Experiment page for
+    Defines clicks required to open UCSC trackhub from Search page for
     given assembly.
     """
 
-    def __init__(self, driver, assembly, from_experiment):
+    def __init__(self, driver, assembly):
         self.driver = driver
         self.assembly = assembly
-        if from_experiment == True:
-            self.viz_from_experiment()
-        else:
-            self.perform_action()
+        self.perform_action()
 
     def perform_action(self):
         current_window = self.driver.current_window_handle
@@ -71,7 +68,18 @@ class OpenUCSCGenomeBrowser:
             (By.ID, UCSCGenomeBrowser.zoom_one_id)))
         time.sleep(3)
 
-    def viz_from_experiment(self):
+class OpenUCSCGenomeBrowserFromExperiment:
+    """
+    Defines clicks required to open UCSC trackhub from Experiment page for
+    given assembly.
+    """
+
+    def __init__(self, driver, assembly):
+        self.driver = driver
+        self.assembly = assembly
+        self.perform_action()
+
+    def perform_action(self):
         current_window = self.driver.current_window_handle
         time.sleep(1)
         try:
@@ -100,14 +108,13 @@ class OpenUCSCGenomeBrowser:
             (By.ID, UCSCGenomeBrowser.zoom_one_id)))
         time.sleep(3)
 
-
 class OpenUCSCGenomeBrowserGRCh38:
     """
     Opens UCSC browser with GRCh38 assembly.
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'hg38', False)
+        OpenUCSCGenomeBrowser(driver, 'hg38')
 
 
 class OpenUCSCGenomeBrowserHG19:
@@ -116,7 +123,7 @@ class OpenUCSCGenomeBrowserHG19:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'hg19', False)
+        OpenUCSCGenomeBrowser(driver, 'hg19')
 
 
 class OpenUCSCGenomeBrowserMM9:
@@ -125,7 +132,7 @@ class OpenUCSCGenomeBrowserMM9:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'mm9', False)
+        OpenUCSCGenomeBrowser(driver, 'mm9')
 
 
 class OpenUCSCGenomeBrowserMM10:
@@ -134,7 +141,7 @@ class OpenUCSCGenomeBrowserMM10:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'mm10', False)
+        OpenUCSCGenomeBrowser(driver, 'mm10')
 
 
 class OpenUCSCGenomeBrowserMM10Minimal:
@@ -143,7 +150,7 @@ class OpenUCSCGenomeBrowserMM10Minimal:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'mm10', False)
+        OpenUCSCGenomeBrowser(driver, 'mm10')
 
 
 class OpenUCSCGenomeBrowserDM3:
@@ -152,7 +159,7 @@ class OpenUCSCGenomeBrowserDM3:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'dm3', False)
+        OpenUCSCGenomeBrowser(driver, 'dm3')
 
 
 class OpenUCSCGenomeBrowserDM6:
@@ -161,7 +168,7 @@ class OpenUCSCGenomeBrowserDM6:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'dm6', False)
+        OpenUCSCGenomeBrowser(driver, 'dm6')
 
 
 class OpenUCSCGenomeBrowserCE10:
@@ -170,7 +177,7 @@ class OpenUCSCGenomeBrowserCE10:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'ce10', False)
+        OpenUCSCGenomeBrowser(driver, 'ce10')
 
 
 class OpenUCSCGenomeBrowserCE11:
@@ -179,9 +186,9 @@ class OpenUCSCGenomeBrowserCE11:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'ce11', False)
+        OpenUCSCGenomeBrowser(driver, 'ce11')
 
-# --- Classes for opening from the experiment page ---
+# --- Classes for opening from the Experiment page ---
 
 class OpenUCSCGenomeBrowserGRCh38fromExperiment:
     """
@@ -189,7 +196,7 @@ class OpenUCSCGenomeBrowserGRCh38fromExperiment:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'GRCh38', True)
+        OpenUCSCGenomeBrowserFromExperiment(driver, 'GRCh38')
 
 
 class OpenUCSCGenomeBrowserHG19fromExperiment:
@@ -198,7 +205,7 @@ class OpenUCSCGenomeBrowserHG19fromExperiment:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'hg19', True)
+        OpenUCSCGenomeBrowserFromExperiment(driver, 'hg19')
 
 
 class OpenUCSCGenomeBrowserMM9fromExperiment:
@@ -207,7 +214,7 @@ class OpenUCSCGenomeBrowserMM9fromExperiment:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'mm9', True)
+        OpenUCSCGenomeBrowserFromExperiment(driver, 'mm9')
 
 
 class OpenUCSCGenomeBrowserMM10fromExperiment:
@@ -216,7 +223,7 @@ class OpenUCSCGenomeBrowserMM10fromExperiment:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'mm10', True)
+        OpenUCSCGenomeBrowserFromExperiment(driver, 'mm10')
 
 
 class OpenUCSCGenomeBrowserMM10MinimalfromExperiment:
@@ -225,7 +232,7 @@ class OpenUCSCGenomeBrowserMM10MinimalfromExperiment:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'mm10', True)
+        OpenUCSCGenomeBrowserFromExperiment(driver, 'mm10')
 
 
 class OpenUCSCGenomeBrowserDM3fromExperiment:
@@ -234,7 +241,7 @@ class OpenUCSCGenomeBrowserDM3fromExperiment:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'dm3', True)
+        OpenUCSCGenomeBrowserFromExperiment(driver, 'dm3')
 
 
 class OpenUCSCGenomeBrowserDM6fromExperiment:
@@ -243,7 +250,7 @@ class OpenUCSCGenomeBrowserDM6fromExperiment:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'dm6', True)
+        OpenUCSCGenomeBrowserFromExperiment(driver, 'dm6')
 
 
 class OpenUCSCGenomeBrowserCE10fromExperiment:
@@ -252,7 +259,7 @@ class OpenUCSCGenomeBrowserCE10fromExperiment:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'ce10', True)
+        OpenUCSCGenomeBrowserFromExperiment(driver, 'ce10')
 
 
 class OpenUCSCGenomeBrowserCE11fromExperiment:
@@ -261,7 +268,8 @@ class OpenUCSCGenomeBrowserCE11fromExperiment:
     """
 
     def __init__(self, driver):
-        OpenUCSCGenomeBrowser(driver, 'ce11', True)
+        OpenUCSCGenomeBrowserFromExperiment(driver, 'ce11')
+
 
 # --- File downloads. ---
 
