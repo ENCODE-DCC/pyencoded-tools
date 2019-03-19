@@ -64,6 +64,7 @@ from .pageobjects import (AntibodyPage,
                           ReportPage,
                           SearchPageList,
                           SearchPageMatrix,
+                          SearchPageSummary,
                           SignInModal,
                           UCSCGenomeBrowser,
                           VisualizeModal)
@@ -406,31 +407,24 @@ class GetFacetNumbers(SeleniumTask):
 
     def matrix_page(self):
         print('Matrix page detected')
-        box_top = self.driver.wait.until(EC.presence_of_element_located(
-            (By.CSS_SELECTOR, SearchPageMatrix.box_top_css)))
         box_left = self.driver.wait.until(EC.presence_of_element_located(
             (By.CSS_SELECTOR, SearchPageMatrix.box_left_css)))
-        see_more_top_buttons = self.driver.find_elements_by_css_selector(
-            SearchPageMatrix.see_more_top_buttons_css)
-        see_more_left_buttons = self.driver.find_elements_by_css_selector(
-            SearchPageMatrix.see_more_left_buttons_css)
-        for button in chain(see_more_top_buttons, see_more_left_buttons):
-            button.click()
-        facets_top = box_top.find_elements_by_class_name(
-            SearchPageMatrix.facets_top_class)
         facets_left = box_left.find_elements_by_class_name(
             SearchPageMatrix.facets_left_class)
-        facets = chain(facets_top, facets_left)
-        return facets
+        return facets_left
+
+    def summary_page(self):
+        print('Summary page detected')
+        box_left = self.driver.wait.until(EC.presence_of_element_located(
+            (By.CSS_SELECTOR, SearchPageSummary.box_left_css)))
+        facets_left = box_left.find_elements_by_class_name(
+            SearchPageSummary.facets_left_class)
+        return facets_left
 
     def search_page(self):
         print('Search page detected')
         facet_box = self.driver.wait.until(
             EC.presence_of_element_located((By.CLASS_NAME, SearchPageList.facet_box_class)))
-        see_more_buttons = facet_box.find_elements_by_css_selector(
-            SearchPageList.see_more_buttons_css)
-        for button in see_more_buttons:
-            button.click()
         facets = self.driver.find_elements_by_class_name(
             SearchPageList.facet_class)
         return facets
@@ -457,6 +451,8 @@ class GetFacetNumbers(SeleniumTask):
             pass
         if 'matrix' in self.driver.current_url:
             facets = self.matrix_page()
+        elif 'summary' in self.driver.current_url:
+            facets = self.summary_page()
         else:
             facets = self.search_page()
         data_dict = defaultdict(list)
@@ -465,7 +461,6 @@ class GetFacetNumbers(SeleniumTask):
                 'h5').text.replace(':', '').strip()
             categories = [
                 c.text for c in facet.find_elements_by_class_name(SearchPageList.category_title_class)]
-            # print('Collecting values in {}.'.format(title))
             numbers = [n.text for n in facet.find_elements_by_class_name(
                 SearchPageList.number_class) if n.text != '']
             assert len(categories) == len(numbers)
