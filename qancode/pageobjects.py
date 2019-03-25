@@ -39,7 +39,6 @@ class SearchPageList:
     Page object model.
     """
     facet_box_class = 'facets'
-    see_more_buttons_css = '#content > div > div > div > div > div.col-sm-5.col-md-4.col-lg-3 > div > div > div > ul > div.pull-right > small > button'
     facet_class = 'facet'
     category_title_class = 'facet-term__text'
     number_class = 'facet-term__count'
@@ -50,13 +49,15 @@ class SearchPageMatrix:
     """
     Page object model.
     """
-    see_more_top_buttons_css = '#content > div > div > div > div.col-sm-7.col-md-8.col-lg-9.sm-no-padding > div > div > div > ul > div.pull-right > small > button'
-    see_more_left_buttons_css = '#content > div > div > div > div.col-sm-5.col-md-4.col-lg-3.sm-no-padding > div > div > div > ul > div.pull-right > small > button'
-    box_top_css = '#content > div > div > div:nth-child(1) > div.col-sm-7.col-md-8.col-lg-9.sm-no-padding > div'
-    box_left_css = '#content > div > div > div:nth-child(2) > div.col-sm-5.col-md-4.col-lg-3.sm-no-padding > div'
-    facets_top_class = 'facet'
+    box_left_css = '#content > div > div > div:nth-child(2) > div.col-sm-5.col-md-4.col-lg-3.sm-no-padding > div:nth-child(2)'
     facets_left_class = 'facet'
 
+class SearchPageSummary:
+    """
+    Page object model.
+    """
+    box_left_css = '#content > div > div > div:nth-child(2) > div > div > div'
+    facets_left_class = 'facet'   
 
 class ExperimentPage:
     """
