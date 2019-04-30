@@ -105,6 +105,7 @@ class ActionTuples:
             '/search/?type=Library',
             '/search/?type=AntibodyLot',
             '/search/?type=Biosample',
+            '/search/?type=BiosampleType',
             '/search/?type=Donor',
             '/search/?type=GeneticModification',
             '/search/?type=FileSet',
