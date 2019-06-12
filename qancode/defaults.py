@@ -246,7 +246,7 @@ class ActionTuples:
              OpenUCSCGenomeBrowserHG19fromExperiment),
             ('/experiments/ENCSR000CJR/',
              OpenUCSCGenomeBrowserHG19fromExperiment),
-            ('/search/?type=Experiment&assembly=hg19&target.investigated_as=RNA+binding+protein&assay_title=ChIP-seq&replicates.library.biosample.biosample_ontology.classification=primary+cell',
+            ('/search/?type=Experiment&assembly=hg19&target.investigated_as=transcription+factor&assay_title=ChIP-seq&replicates.library.biosample.biosample_ontology.classification=primary+cell',
              OpenUCSCGenomeBrowserHG19),
             ('/search/?type=Experiment&assembly=GRCh38&assay_title=shRNA+RNA-seq&target.investigated_as=transcription+factor&month_released=October%2C+2014',
              OpenUCSCGenomeBrowserGRCh38),

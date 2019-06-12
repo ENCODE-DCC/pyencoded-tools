@@ -89,7 +89,13 @@ class OpenUCSCGenomeBrowserFromExperiment:
             print(e)
             exit()
         selected_assembly = self.driver.find_element_by_xpath('//*[starts-with(text(), "{0}")]'.format(self.assembly))
-        selector._setSelected(selected_assembly)
+
+        # Forces driver to scroll to the Assembly selector. Forced scrolling is necessary for the Edge webdriver, otherwise it's unable to interact with the selector.
+        try:
+            self.driver.execute_script("arguments[0].scrollIntoView(false);", selector_elem);
+            selector._setSelected(selected_assembly)
+        except Exception as e:
+            print(e)
         time.sleep(1)
 
         for y in self.driver.find_elements_by_tag_name(ExperimentPage.all_buttons_tag_name):

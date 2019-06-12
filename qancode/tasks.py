@@ -17,6 +17,7 @@ from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from tqdm import tqdm
 from urllib.parse import urlparse
@@ -573,6 +574,12 @@ class GetScreenShot(SeleniumTask):
         self.driver.execute_script('window.scrollTo(0, 0);')
         time.sleep(1)
         image_path = self.take_screenshot()
+
+        # Does a 'c'art 'r'eset of UCSC genome browser to prevent tracks being cached between test items.
+        if 'genome.ucsc' in self.driver.current_url:
+            ActionChains(self.driver).send_keys('c').send_keys('r').perform()
+            time.sleep(1)
+
         return image_path
 
 
