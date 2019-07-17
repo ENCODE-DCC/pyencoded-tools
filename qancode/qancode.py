@@ -36,7 +36,8 @@ from .clickpaths import (DownloadBEDFileFromModal,
                          OpenUCSCGenomeBrowserHG19fromExperiment,
                          OpenUCSCGenomeBrowserMM10fromExperiment,
                          OpenUCSCGenomeBrowserMM10MinimalfromExperiment,
-                         OpenUCSCGenomeBrowserMM9fromExperiment)
+                         OpenUCSCGenomeBrowserMM9fromExperiment,
+                         ClickSearchResultItem)
 from .comparisons import (BrowserComparison,
                           CompareFacetNumbersBetweenBrowsers,
                           CompareFacetNumbersBetweenURLS,
@@ -199,9 +200,8 @@ class QANCODE(ActionTuples):
         """
         # Tuple of (item_type, click_path)
         actions = self.find_differences_default_actions
-        admin_only_actions = [('/biosamples/ENCBS681LAC/', None),
-                              ('/search/?searchTerm=ENCBS681LAC&type=Biosample', None)]
-        public_only_actions = [('/experiments/?status=deleted', None)]
+        admin_only_actions = []
+        public_only_actions = []
         browsers, users, item_types, click_paths = self._parse_arguments(browsers=browsers,
                                                                          users=users,
                                                                          item_types=item_types,

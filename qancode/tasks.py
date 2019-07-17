@@ -51,7 +51,8 @@ from .clickpaths import (DownloadBEDFileFromModal,
                          OpenUCSCGenomeBrowserHG19fromExperiment,
                          OpenUCSCGenomeBrowserMM10fromExperiment,
                          OpenUCSCGenomeBrowserMM10MinimalfromExperiment,
-                         OpenUCSCGenomeBrowserMM9fromExperiment)
+                         OpenUCSCGenomeBrowserMM9fromExperiment,
+                         ClickSearchResultItem)
 from .defaults import BROWSERS, USERS, bcolors
 from .pageobjects import (AntibodyPage,
                           DocumentPreview,
@@ -555,7 +556,7 @@ class GetScreenShot(SeleniumTask):
     def get_data(self):
         self._try_load_item_type()
         self._try_perform_click_path()
-        if 'experiment' in self.driver.current_url:
+        if 'experiment' in self.driver.current_url.lower():
             try:
                 self.make_experiment_pages_look_the_same()
             except:

@@ -43,6 +43,7 @@ class SearchPageList:
     category_title_class = 'facet-term__text'
     number_class = 'facet-term__count'
     download_metadata_button_xpath = '//*[contains(text(), "Download")]'
+    search_result_item = '(//div[@class="accession"])[1]//a'
 
 
 class SearchPageMatrix:
@@ -66,7 +67,7 @@ class ExperimentPage:
     done_panel_class = 'done'
     title_tag_name = 'h4'
     graph_close_button_css = 'div > div:nth-child(2) > div.file-gallery-graph-header.collapsing-title > button'
-    sort_by_accession_xpath = '//div[@class="file-gallery-counts"]//..//table[@class="table table-sortable"]/thead/tr[2]/th[1]/span/i'
+    sort_by_accession_xpath = '//div[@class="file-gallery-counts"]//..//table[@class="table table-sortable"]/thead/tr[2]/th[2]/span/i'
     all_buttons_tag_name = 'button'
     download_graph_png_button_xpath = '//*[contains(text(), "Download Graph")]'
     file_type_column_xpath = '//div[@class="file-gallery-counts"]//..//table[@class="table table-sortable"]//tr//td[2]'

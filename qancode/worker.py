@@ -29,7 +29,8 @@ from .clickpaths import (DownloadBEDFileFromModal,
                          OpenUCSCGenomeBrowserHG19fromExperiment,
                          OpenUCSCGenomeBrowserMM10fromExperiment,
                          OpenUCSCGenomeBrowserMM10MinimalfromExperiment,
-                         OpenUCSCGenomeBrowserMM9fromExperiment)
+                         OpenUCSCGenomeBrowserMM9fromExperiment,
+                         ClickSearchResultItem)
 from .defaults import bcolors
 from .tasks import Driver, SignIn
 

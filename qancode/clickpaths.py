@@ -485,3 +485,21 @@ class DownloadDocumentsFromAntibodyPage:
                 self.filenames.append(filename)
                 self.download_start_times.append(download_start_time)
                 time.sleep(2)
+
+
+class ClickSearchResultItem:
+    """
+    Clicks the first item on a page of search results.
+    """
+
+    def __init__(self, driver):
+        self.driver = driver
+        self.perform_action()
+
+    def perform_action(self):
+        try:
+            item_link = self.driver.find_element_by_xpath(SearchPageList.search_result_item)
+            self.driver.execute_script('arguments[0].scrollIntoView(true)', item_link)
+            self.driver.execute_script('arguments[0].click()', item_link)
+        except:
+            pass
