@@ -28,7 +28,11 @@ from .clickpaths import (DownloadBEDFileFromModal,
                          OpenUCSCGenomeBrowserMM10fromExperiment,
                          OpenUCSCGenomeBrowserMM10MinimalfromExperiment,
                          OpenUCSCGenomeBrowserMM9fromExperiment,
-                         ClickSearchResultItem)
+                         ClickSearchResultItem,
+                         ClickSearchResultItemAndMakeExperimentPagesLookTheSame,
+                         MakeExperimentPagesLookTheSameByClickingFileTab,
+                         MakeExperimentPagesLookTheSameByHidingGraph
+                         )
 
 # Default browsers.
 BROWSERS = ['Chrome',
@@ -148,13 +152,19 @@ class ActionTuples:
             ('/biosamples/ENCBS682JHS/', None),
             ('/cart-manager/', None),
             ('/cart-view/', None),
-            ('/experiments/ENCSR000AEH/', None),
-            ('/experiments/ENCSR178NTX/', None),
-            ('/experiments/ENCSR255XZG/', None),
-            ('/experiments/ENCSR651NGR/', None),
-            ('/experiments/ENCSR714GXC/', None),
-            ('/search/?type=Experiment&status=in+progress&audit.INTERNAL_ACTION=%2A&sort=date_created', ClickSearchResultItem),
-            ('/search/?type=Experiment&status=submitted&sort=date_submitted', ClickSearchResultItem),
+            ('/experiments/ENCSR000AEH/', MakeExperimentPagesLookTheSameByClickingFileTab),
+            ('/experiments/ENCSR178NTX/', MakeExperimentPagesLookTheSameByClickingFileTab),
+            ('/experiments/ENCSR255XZG/', MakeExperimentPagesLookTheSameByClickingFileTab),
+            ('/experiments/ENCSR651NGR/', MakeExperimentPagesLookTheSameByHidingGraph),
+            ('/experiments/ENCSR714GXC/', MakeExperimentPagesLookTheSameByHidingGraph),
+            (
+                '/search/?type=Experiment&status=in+progress&audit.INTERNAL_ACTION=%2A&sort=date_created',
+                ClickSearchResultItemAndMakeExperimentPagesLookTheSame
+            ),
+            (
+                '/search/?type=Experiment&status=submitted&sort=date_submitted',
+                ClickSearchResultItemAndMakeExperimentPagesLookTheSame
+            ),
             ('/search/?type=File&status=in+progress&derived_from=%2A&quality_metrics=%2A&sort=date_created', ClickSearchResultItem),
             ('/files/ENCFF703RFN/', None),
             ('/files/ENCFF933XVP/', None),

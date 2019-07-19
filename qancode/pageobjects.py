@@ -75,6 +75,8 @@ class ExperimentPage:
     information_button_relative_xpath = '..//td[1]//span//button//i'
     file_graph_tab_xpath = '//div[@class="tab-nav"]//li[2]'
     assembly_selector_xpath = '/html/body/div[@id="slot-application"]/div[@id="application"]/div[@id="layout"]/div/div[@id="content"]/div/div[@class="done"]/div/div[@class="file-gallery-controls"]//div[@class="file-gallery-controls__assembly-selector"]/select[@class="form-control--select"]'
+    file_graph_id = 'pipeline-graph'
+    incl_deprecated_files_button_name = 'filterIncArchive'
 
 
 class FilePage:
