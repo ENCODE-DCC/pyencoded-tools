@@ -1,4 +1,6 @@
 import time
+import sys
+import traceback
 
 from .clickpaths import (DownloadBEDFileFromModal,
                          DownloadBEDFileFromTable,
@@ -76,6 +78,8 @@ class DataWorker:
         except Exception as e:
             print('{}Exception caught: {}{}'.format(
                 bcolors.FAIL, e, bcolors.ENDC))
+            # Print full traceback
+            traceback.print_tb(sys.exc_info()[2])
         finally:
             try:
                 self.driver.quit()

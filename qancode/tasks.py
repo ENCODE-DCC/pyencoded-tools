@@ -547,20 +547,18 @@ class GetScreenShot(SeleniumTask):
             self.stitch_image(image_path)
         return image_path
 
+<<<<<<< HEAD
     def make_experiment_pages_look_the_same(self):
         self.driver.wait.until(EC.element_to_be_clickable(
             (By.XPATH, ExperimentPage.file_graph_tab_xpath))).click()
         self.driver.wait.until(EC.element_to_be_clickable(
             (By.XPATH, ExperimentPage.sort_by_accession_xpath))).click()
 
+=======
+>>>>>>> 4bf9b30... update find_differences and clickpaths for checking file graphs
     def get_data(self):
         self._try_load_item_type()
         self._try_perform_click_path()
-        if 'experiment' in self.driver.current_url.lower():
-            try:
-                self.make_experiment_pages_look_the_same()
-            except:
-                pass
         try:
             self._expand_document_details()
         except:

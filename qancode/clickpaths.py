@@ -503,3 +503,74 @@ class ClickSearchResultItem:
             self.driver.execute_script('arguments[0].click()', item_link)
         except:
             pass
+
+
+class ClickSearchResultItemAndMakeExperimentPagesLookTheSame:
+    """
+    Clicks the first item on a page of search results.
+    """
+
+    def __init__(self, driver):
+        self.driver = driver
+        self.perform_action()
+
+    def perform_action(self):
+        try:
+            item_link = self.driver.find_element_by_xpath(SearchPageList.search_result_item)
+            self.driver.execute_script('arguments[0].scrollIntoView(true)', item_link)
+            self.driver.execute_script('arguments[0].click()', item_link)
+            self.driver.wait.until(
+                EC.element_to_be_clickable((By.XPATH, ExperimentPage.file_graph_tab_xpath))
+            ).click()
+            self.driver.wait.until(
+                EC.element_to_be_clickable((By.XPATH, ExperimentPage.sort_by_accession_xpath))
+            ).click()
+        except:
+            pass
+
+
+class MakeExperimentPagesLookTheSameByClickingFileTab:
+    """
+    Makes two experiment pages look the same by clicking on the file tab and sorting by accession.
+    """
+
+    def __init__(self, driver):
+        self.driver = driver
+        self.perform_action()
+
+    def perform_action(self):
+        try:
+            self.driver.wait.until(
+                EC.element_to_be_clickable((By.XPATH, ExperimentPage.file_graph_tab_xpath))
+            ).click()
+            self.driver.wait.until(
+                EC.element_to_be_clickable((By.XPATH, ExperimentPage.sort_by_accession_xpath))
+            ).click()
+        except:
+            pass
+
+
+class MakeExperimentPagesLookTheSameByHidingGraph:
+    """
+    Makes two experiment pages look the same by making hiding the file graph. The "include
+    deprecated files" button is also checked in order to get the file status bar to appear.
+    """
+    def __init__(self, driver):
+        self.driver = driver
+        self.perform_action()
+
+    def perform_action(self):
+        try:
+            file_graph = self.driver.wait_long.until(
+                EC.presence_of_element_located((By.ID, ExperimentPage.file_graph_id))
+            )
+            self.driver.execute_script("arguments[0].style.visibility='hidden'", file_graph)
+            checkbox = self.driver.wait.until(
+                EC.element_to_be_clickable(
+                    (By.NAME, ExperimentPage.incl_deprecated_files_button_name)
+                )
+            )
+            if not checkbox.is_selected():
+                checkbox.click()
+        except:
+            pass
