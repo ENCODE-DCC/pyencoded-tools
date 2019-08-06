@@ -82,18 +82,25 @@ class OpenUCSCGenomeBrowserFromExperiment:
     def perform_action(self):
         current_window = self.driver.current_window_handle
         time.sleep(1)
+
+        file_table_tab = self.driver.find_element_by_xpath(ExperimentPage.file_table_tab_xpath)
+        file_table_tab.click()
+
         try:
             selector_elem = self.driver.find_element_by_xpath(ExperimentPage.assembly_selector_xpath)
             selector = select.Select(selector_elem)
         except Exception as e:
             print(e)
             exit()
-        selected_assembly = self.driver.find_element_by_xpath('//*[starts-with(text(), "{0}")]'.format(self.assembly))
 
-        # Forces driver to scroll to the Assembly selector. Forced scrolling is necessary for the Edge webdriver, otherwise it's unable to interact with the selector.
+        selected_assembly = self.driver.find_element_by_xpath(
+            '//*[@id="tables"]/div/div[1]/div[1]/select/option[starts-with(text(), "{0}")]'.format(self.assembly))
+
+        # Forces driver to scroll to the Assembly selector.
+        # Forced scrolling is necessary for the Edge webdriver, otherwise it's unable to interact with the selector.
         try:
             self.driver.execute_script("arguments[0].scrollIntoView(false);", selector_elem);
-            selector._setSelected(selected_assembly)
+            selector.select_by_visible_text(selected_assembly.text)
         except Exception as e:
             print(e)
         time.sleep(1)
@@ -501,5 +508,76 @@ class ClickSearchResultItem:
             item_link = self.driver.find_element_by_xpath(SearchPageList.search_result_item)
             self.driver.execute_script('arguments[0].scrollIntoView(true)', item_link)
             self.driver.execute_script('arguments[0].click()', item_link)
+        except:
+            pass
+
+
+class ClickSearchResultItemAndMakeExperimentPagesLookTheSame:
+    """
+    Clicks the first item on a page of search results.
+    """
+
+    def __init__(self, driver):
+        self.driver = driver
+        self.perform_action()
+
+    def perform_action(self):
+        try:
+            item_link = self.driver.find_element_by_xpath(SearchPageList.search_result_item)
+            self.driver.execute_script('arguments[0].scrollIntoView(true)', item_link)
+            self.driver.execute_script('arguments[0].click()', item_link)
+            self.driver.wait.until(
+                EC.element_to_be_clickable((By.XPATH, ExperimentPage.file_table_tab_xpath))
+            ).click()
+            self.driver.wait.until(
+                EC.element_to_be_clickable((By.XPATH, ExperimentPage.sort_by_accession_xpath))
+            ).click()
+        except:
+            pass
+
+
+class MakeExperimentPagesLookTheSameByClickingFileTab:
+    """
+    Makes two experiment pages look the same by clicking on the file tab and sorting by accession.
+    """
+
+    def __init__(self, driver):
+        self.driver = driver
+        self.perform_action()
+
+    def perform_action(self):
+        try:
+            self.driver.wait.until(
+                EC.element_to_be_clickable((By.XPATH, ExperimentPage.file_table_tab_xpath))
+            ).click()
+            self.driver.wait.until(
+                EC.element_to_be_clickable((By.XPATH, ExperimentPage.sort_by_accession_xpath))
+            ).click()
+        except:
+            pass
+
+
+class MakeExperimentPagesLookTheSameByHidingGraph:
+    """
+    Makes two experiment pages look the same by making hiding the file graph. The "include
+    deprecated files" button is also checked in order to get the file status bar to appear.
+    """
+    def __init__(self, driver):
+        self.driver = driver
+        self.perform_action()
+
+    def perform_action(self):
+        try:
+            file_graph = self.driver.wait_long.until(
+                EC.presence_of_element_located((By.ID, ExperimentPage.file_graph_id))
+            )
+            self.driver.execute_script("arguments[0].style.visibility='hidden'", file_graph)
+            checkbox = self.driver.wait.until(
+                EC.element_to_be_clickable(
+                    (By.NAME, ExperimentPage.incl_deprecated_files_button_name)
+                )
+            )
+            if not checkbox.is_selected():
+                checkbox.click()
         except:
             pass
