@@ -47,7 +47,7 @@ DCC_MODES = {
     "dev": "https://test.encodedcc.org",
     "prod": "https://www.encodeproject.org"
 }
-TIMEOUT = 20
+TIMEOUT = 60
 REQUEST_HEADERS_JSON = {'content-type': 'application/json'}
 
 
