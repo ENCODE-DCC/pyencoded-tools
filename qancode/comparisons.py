@@ -256,7 +256,7 @@ class CompareScreenShots(URLComparison):
                 image_one,
                 image_two
             )
-        difference = cv2.subtract(image_one, image_two)
+        difference = cv2.absdiff(image_one, image_two)
         if not self.is_same(difference):
             self.diff_found = True
             print('{}Difference detected{}'.format(bcolors.FAIL, bcolors.ENDC))
