@@ -152,10 +152,10 @@ class ActionTuples:
             ('/biosamples/ENCBS682JHS/', None),
             ('/cart-manager/', None),
             ('/cart-view/', None),
-            ('/experiments/ENCSR000AEH/', MakeExperimentPagesLookTheSameByClickingFileTab),
             ('/experiments/ENCSR178NTX/', MakeExperimentPagesLookTheSameByClickingFileTab),
             ('/experiments/ENCSR255XZG/', MakeExperimentPagesLookTheSameByClickingFileTab),
-            ('/experiments/ENCSR651NGR/', MakeExperimentPagesLookTheSameByHidingGraph),
+            ('/experiments/ENCSR651NGR/', MakeExperimentPagesLookTheSameByClickingFileTab),
+            ('/experiments/ENCSR000AEH/', MakeExperimentPagesLookTheSameByHidingGraph),
             ('/experiments/ENCSR714GXC/', MakeExperimentPagesLookTheSameByHidingGraph),
             (
                 '/search/?type=Experiment&status=in+progress&audit.INTERNAL_ACTION=%2A&sort=date_created',

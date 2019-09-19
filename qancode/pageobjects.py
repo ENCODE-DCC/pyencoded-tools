@@ -43,7 +43,7 @@ class SearchPageList:
     category_title_class = 'facet-term__text'
     number_class = 'facet-term__count'
     download_metadata_button_xpath = '//*[contains(text(), "Download")]'
-    search_result_item = '(//div[@class="accession"])[1]//a'
+    search_result_item = '(//div[@class="result-item__data"])[1]//a'
 
 
 class SearchPageMatrix:
@@ -67,7 +67,7 @@ class ExperimentPage:
     done_panel_class = 'done'
     title_tag_name = 'h4'
     graph_close_button_css = 'div > div:nth-child(2) > div.file-gallery-graph-header.collapsing-title > button'
-    sort_by_accession_xpath = '//*[@id="tables"]/div/div[2]/div[2]/div/table[2]/thead/tr[2]/th[2]/span/i'
+    sort_by_accession_xpath = '//*[@id="tables"]/div/div[2]/div[2]/div/table[2]/thead/tr[2]/th[2]'
     all_buttons_tag_name = 'button'
     download_graph_png_button_xpath = '//*[contains(text(), "Download Graph")]'
     file_type_column_xpath = '//div[@class="file-gallery-counts"]//..//table[@class="table table-sortable"]//tr//td[2]'
@@ -127,7 +127,7 @@ class NavBar:
     """
     Page object model.
     """
-    testing_warning_banner_button_css = '#navbar > div.test-warning > div > p > button'
+    testing_warning_banner_button_css = '#navbar > div.test-warning > div > button'
 
 
 class LoadingSpinner:

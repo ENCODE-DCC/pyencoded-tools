@@ -555,10 +555,11 @@ class GetScreenShot(SeleniumTask):
             self._expand_document_details()
         except:
             pass
-        try:
-            self._get_rid_of_test_warning_banner()
-        except:
-            pass
+        if 'https://www.encodeproject.org' not in self.driver.current_url:
+            try:
+                self._get_rid_of_test_warning_banner()
+            except:
+                pass
         self.driver.execute_script(
             'window.scrollTo(0,document.body.scrollHeight);')
         time.sleep(1)
