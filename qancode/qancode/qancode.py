@@ -91,7 +91,9 @@ class QANCODE(ActionTuples):
                        item_types='all',
                        task=GetFacetNumbers,
                        url_comparison=True,
-                       browser_comparison=True):
+                       browser_comparison=True,
+                       retry=5,
+        ):
         """
         Gets RC URL facet numbers and compares them to production URL facet
         numbers for given item_type, browser, user.
@@ -111,7 +113,10 @@ class QANCODE(ActionTuples):
                          users=users,
                          item_types=item_types,
                          click_paths=click_paths,
-                         task=task)
+                         task=task,
+                         retry=retry,
+
+        )
         dm.run_tasks()
         if url_comparison:
             for browser in browsers:
@@ -289,11 +294,11 @@ class QANCODE(ActionTuples):
                         click_paths=[None],
                         task=DownloadFiles,
                         urls='all',
-                        delete=True):
+                        delete=True,
+        ):
         """
         Clicks download button and checks download folder for file.
         """
-        print('Running check downloads')
         actions = self.check_downloads_default_actions
         admin_only_actions = []
         public_only_actions = []
@@ -313,7 +318,8 @@ class QANCODE(ActionTuples):
                          item_types=item_types,
                          click_paths=click_paths,
                          task=task,
-                         delete=delete)
+                         delete=delete,
+        )
         dm.run_tasks()
 
     @staticmethod

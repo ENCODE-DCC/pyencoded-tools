@@ -60,7 +60,7 @@ class bcolors:
 class ActionTuples:
     """
     Stores default action lists as attributes.
-    Uses form .{method_name}_default_actions. 
+    Uses form .{method_name}_default_actions.
     """
 
     def __init__(self):

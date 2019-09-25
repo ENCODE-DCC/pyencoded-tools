@@ -88,7 +88,7 @@ class DataWorker:
 
 
 class DataManager:
-    def __init__(self, browsers, urls, users, task, item_types=[None], click_paths=[None], **kwargs):
+    def __init__(self, browsers, urls, users, task, retry=5, item_types=[None], click_paths=[None], **kwargs):
         self.browsers = browsers
         self.urls = urls
         self.users = users
@@ -97,13 +97,13 @@ class DataManager:
         self.click_paths = click_paths
         self.all_data = []
         self.kwargs = kwargs
+        self.retry = retry
 
     def run_tasks(self):
         for user in self.users:
             for browser in self.browsers:
                 for url in self.urls:
                     for item_type, click_path in zip(self.item_types, self.click_paths):
-                        retry = 5
                         while True:
                             if self.urls[0] == url:
                                 server_name = 'prod'
@@ -128,8 +128,8 @@ class DataManager:
                                                       'server_name': server_name})
                                 break
                             time.sleep(2)
-                            retry -= 1
-                            if retry < 1:
+                            self.retry -= 1
+                            if self.retry < 1:
                                 print('{}WARNING: Task incomplete.{}'.format(
                                     bcolors.FAIL, bcolors.ENDC))
                                 break
