@@ -8,8 +8,8 @@ class FrontPage:
     Page object models allow selectors to be defined in one place and then
     used by all of the test.
     """
-    login_button_text = 'Submitter sign-in'
-    logout_button_text = 'Submitter sign out'
+    login_button_css = '#user-actions-footer > a'
+    logout_button_text = 'Sign out'
     menu_button_data_css = '#main > ul > li:nth-child(1) > a'
     menu_button_data_alt_css = '#main > ul > li:nth-child(1) > button'
     drop_down_search_button_css = '#main > ul > li.dropdown.open > ul > li:nth-child(2) > a'

@@ -259,14 +259,14 @@ class SignIn:
         original_window_handle = self.driver.window_handles[0]
         self.driver.switch_to_window(original_window_handle)
         login_button = self.driver.wait.until(EC.element_to_be_clickable(
-            (By.PARTIAL_LINK_TEXT, FrontPage.login_button_text)))
+            (By.CSS_SELECTOR, FrontPage.login_button_css)))
         try:
             login_button.click()
             self.driver.wait.until(EC.presence_of_element_located(
                 (By.CLASS_NAME, SignInModal.login_modal_class)))
         except TimeoutException:
             login_button = self.driver.wait.until(EC.element_to_be_clickable(
-                (By.PARTIAL_LINK_TEXT, FrontPage.login_button_text)))
+                (By.CSS_SELECTOR, FrontPage.login_button_css)))
             login_button.click()
         try:
             time.sleep(1)
