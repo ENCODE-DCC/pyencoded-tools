@@ -410,7 +410,7 @@ class GetFacetNumbers(SeleniumTask):
     def matrix_page(self):
         print('Matrix page detected')
         box_left = self.driver.wait.until(EC.presence_of_element_located(
-            (By.CSS_SELECTOR, SearchPageMatrix.box_left_css)))
+            (By.CLASS_NAME, SearchPageMatrix.facet_box_class)))
         facets_left = box_left.find_elements_by_class_name(
             SearchPageMatrix.facets_left_class)
         return facets_left
@@ -418,7 +418,7 @@ class GetFacetNumbers(SeleniumTask):
     def summary_page(self):
         print('Summary page detected')
         box_left = self.driver.wait.until(EC.presence_of_element_located(
-            (By.CSS_SELECTOR, SearchPageSummary.box_left_css)))
+            (By.CLASS_NAME, SearchPageSummary.facet_box_class)))
         facets_left = box_left.find_elements_by_class_name(
             SearchPageSummary.facets_left_class)
         return facets_left
