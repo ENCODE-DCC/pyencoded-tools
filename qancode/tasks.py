@@ -268,11 +268,12 @@ class SignIn:
             login_button = self.driver.wait.until(EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, FrontPage.login_button_css)))
             login_button.click()
+
         try:
             time.sleep(1)
-            google_button = self.driver.wait.until(EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, SignInModal.google_button_css)))
-            google_button.click()
+            github_button = self.driver.wait.until(EC.element_to_be_clickable(
+                (By.CSS_SELECTOR, SignInModal.github_button_css)))
+            github_button.click()
         except TimeoutException:
             # Hack to find button in Safari.
             for button in self.driver.find_elements_by_tag_name(SignInModal.button_tag):
@@ -281,28 +282,27 @@ class SignIn:
                     break
             self.wait_for_modal_to_quit()
             return None
+
+        new_window_handle = [h for h in self.driver.window_handles
+                                 if h != original_window_handle][0]
+        self.driver.switch_to_window(new_window_handle)
         try:
-            user_id = self.driver.wait.until(EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, SignInModal.user_id_input_css)))
+            user_id = self.driver.wait.until(EC.presence_of_element_located(
+                (By.CSS_SELECTOR, SignInModal.github_user_id_input_css)))
         except TimeoutException:
             new_window_handle = [h for h in self.driver.window_handles
                                  if h != original_window_handle][0]
             self.driver.switch_to_window(new_window_handle)
-            user_id = self.driver.wait.until(EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, SignInModal.user_id_input_css)))
+            user_id = self.driver.wait.until(EC.presence_of_element_located(
+                (By.CSS_SELECTOR, SignInModal.github_user_id_input_css)))
         user_id.send_keys(self.creds['username'])
-        next_button = self.driver.wait.until(EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, SignInModal.user_next_button_css)))
-        next_button.click()
         try:
-            pw = self.driver.wait.until(EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, SignInModal.password_input_css)))
+            pw = self.driver.wait.until(EC.presence_of_element_located(
+                (By.CSS_SELECTOR, SignInModal.github_password_input_css)))
             pw.send_keys(self.creds['password'])
-            next_button = self.driver.wait.until(EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, SignInModal.password_next_button_css)))
-            time.sleep(0.5)
-            next_button.click()
-            time.sleep(0.5)
+            submit_button = self.driver.wait.until(EC.element_to_be_clickable(
+                (By.CSS_SELECTOR, SignInModal.github_submit_button_css)))
+            submit_button.click()
         except TimeoutException:
             if self.is_two_step():
                 self.login_two_step()
@@ -310,9 +310,9 @@ class SignIn:
                 new_window_handle = [h for h in self.driver.window_handles
                                      if h != original_window_handle][0]
                 self.driver.switch_to_window(new_window_handle)
-                next_button = self.driver.wait.until(EC.element_to_be_clickable(
-                    (By.CSS_SELECTOR, SignInModal.password_next_button_css)))
-                next_button.click()
+                submit_button = self.driver.wait.until(EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, SignInModal.github_submit_button_css)))
+                submit_button.click()
         self.driver.switch_to_window(original_window_handle)
         if self.signed_in():
             self.add_cookie_to_cred()
