@@ -20,12 +20,11 @@ class SignInModal:
     Page object model.
     """
     login_modal_class = 'auth0-lock-header-logo'
-    google_button_css = '#auth0-lock-container-1 > div > div.auth0-lock-center > form > div > div > div > div.auth0-lock-content-wrapper > div:nth-child(2) > span > div > div > div > div > div > div > div > div:nth-child(1) > div > div > div.auth0-lock-social-buttons-container > button:nth-child(2) > div.auth0-lock-social-button-text'
+    github_button_css = '#auth0-lock-container-1 > div > div.auth0-lock-center > form > div > div > div > div.auth0-lock-content-wrapper > div:nth-child(2) > span > div > div > div > div > div > div > div > div > div > div > div.auth0-lock-social-buttons-container > button:nth-child(1)'
     button_tag = 'button'
-    user_id_input_css = '#identifierId'
-    user_next_button_css = '#identifierNext > span > span'
-    password_input_css = '#password > div.aCsJod.oJeWuf > div > div.Xb9hP > input'
-    password_next_button_css = '#passwordNext > span > span'
+    github_user_id_input_css = '#login_field'
+    github_password_input_css = '#password'
+    github_submit_button_css = '#login > form > div.auth-form-body.mt-3 > input.btn.btn-primary.btn-block'
     two_step_user_id_input_css = '#username'
     two_step_password_input_css = '#password'
     two_step_submit_css = '#login > input'
