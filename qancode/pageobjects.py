@@ -49,15 +49,17 @@ class SearchPageMatrix:
     """
     Page object model.
     """
-    box_left_css = '#content > div > div > div:nth-child(2) > div.matrix__facets-vertical > div:nth-child(3)'
+    facet_box_class = 'facets.matrix-facets'
     facets_left_class = 'facet'
+
 
 class SearchPageSummary:
     """
     Page object model.
     """
-    box_left_css = '#content > div > div > div:nth-child(2) > div > div > div'
-    facets_left_class = 'facet'   
+    facet_box_class = 'facets.summary-facets'
+    facets_left_class = 'facet'
+
 
 class ExperimentPage:
     """
