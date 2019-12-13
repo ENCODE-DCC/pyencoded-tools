@@ -8,7 +8,15 @@ Both EpiRR and IHEC data hub submissions can be validated with ihec-ecosystems (
 
 ### EpiRR submission
 
-* Scripts: `epiRR.py`. This script needs to be run under version_metadata folder of ihec-ecosystems repository because it will use ihec-ecosystems to validate outputs. An "ENCODE" folder need to be created under version_metadata folder if it's not there before running this script.
+* Scripts:
+
+  - `epiRR.py`.
+
+    This script needs to be run under version_metadata folder of ihec-ecosystems repository because it will use ihec-ecosystems to validate outputs. An "ENCODE" folder need to be created under version_metadata folder if it's not there before running this script.
+
+  - `compare_epirr_submission.py`.
+
+    This script takes in two directories containing EpiRR submissions, compare validated XML and JSON one by one and output differences to stdout.
 
 * Basic commands:
 
@@ -20,9 +28,13 @@ Both EpiRR and IHEC data hub submissions can be validated with ihec-ecosystems (
 
     Create EpiRR submissions for all released ENCODE reference epigenomes.
 
+  - `./compare_epirr_submission.py ENCODE_12112019/ ENCODE_12132019/`
+
+    Compare two EpiRR submissions in "ENCODE_12112019" and "ENCODE_12132019"
+
 * Expected outputs:
 
-  This script will validate generated EpiRR submission using ihec-ecosystems. For every ENCODE reference epigenome, there will be five files:
+  The `epiRR.py` script will validate generated EpiRR submission using ihec-ecosystems. For every ENCODE reference epigenome, there will be five files:
 
   1. ENCSR191PVZ.refepi.json
   2. ENCSR191PVZ_experiment.xml
@@ -31,6 +43,15 @@ Both EpiRR and IHEC data hub submissions can be validated with ihec-ecosystems (
   5. ENCSR191PVZ_samples.validated.xml
 
   The last two are created by ihec-ecosystems validation code and will show up once an EpiRR reference epigenome submission passes validation.
+  
+  The `compare_epirr_submission.py` script will print the file name and the differences once it finds any differences like the following:
+  
+  ```
+  ENCSR743BGS_samples.validated.xml
+  [update-text, /SAMPLE_SET/SAMPLE[1]/SAMPLE_ATTRIBUTES/SAMPLE_ATTRIBUTE[9]/VALUE[1], "endoderm,ectoderm,mesoderm"]
+  [update-text, /SAMPLE_SET/SAMPLE[2]/SAMPLE_ATTRIBUTES/SAMPLE_ATTRIBUTE[9]/VALUE[1], "endoderm,ectoderm,mesoderm"]
+  [update-text, /SAMPLE_SET/SAMPLE[3]/SAMPLE_ATTRIBUTES/SAMPLE_ATTRIBUTE[9]/VALUE[1], "endoderm,ectoderm,mesoderm"]
+  ```
 
 * How to submit?
 
