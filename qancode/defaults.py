@@ -158,7 +158,7 @@ class ActionTuples:
             ('/experiments/ENCSR000AEH/', MakeExperimentPagesLookTheSameByHidingGraph),
             ('/experiments/ENCSR714GXC/', MakeExperimentPagesLookTheSameByHidingGraph),
             (
-                '/search/?type=Experiment&status=in+progress&audit.INTERNAL_ACTION=%2A&sort=date_created',
+                '/search/?type=Experiment&status=in+progress&audit.INTERNAL_ACTION.category=missing+RIN&sort=date_created',
                 ClickSearchResultItemAndMakeExperimentPagesLookTheSame
             ),
             (
