@@ -6,6 +6,7 @@ import requests
 import subprocess
 import sys
 import urllib
+import pandas as pd
 
 from .clickpaths import (DownloadBEDFileFromModal,
                          DownloadBEDFileFromTable,
@@ -482,23 +483,48 @@ class QANCODE(ActionTuples):
         self._print_header(url)
         time_headers = self._get_time_headers(url, n)
         parsed_headers = [self._parse_header(h) for h in time_headers]
+        values_out = {}
         for key in sorted(parsed_headers[0].keys()):
             group_values = [v[key] for v in parsed_headers]
             group_mean, group_std, group_count = self._summary_for_category(
                 group_values)
+            values_out[key] = (group_mean,group_std)
             self._print_results(key, group_mean, group_std, group_count)
         total_mean, total_std, total_count = self._summary_for_category(
             self._calculate_total_times(parsed_headers))
+        values_out['total_time'] = (total_mean,total_std)
         self._print_results('total time', total_mean, total_std, total_count)
+        return values_out
 
-    def check_response_time(self, urls=None, item_types=[None], n=10):
+    def check_response_time(
+        self,
+        urls=None,
+        item_types=[None],
+        n=10,
+        output_path=os.path.expanduser('~/Desktop/check_response_time.txt')
+    ):
         if urls is None:
             urls = [self.prod_url, self.rc_url]
         print('Checking response time')
-        for item in item_types:
-            print('\n*** item_type: {}'.format(item))
-            for url in urls:
-                if item is not None:
-                    url = url + item
-                self._average_time_for_get(url, n)
-            print()
+        output_results = {}
+        with open(output_path, 'w') as f:
+            for item in item_types:
+                output = {}
+                print('\n*** item_type: {}'.format(item))
+                for url in urls:
+                    if item is not None:
+                        url = url + item
+                    output[url.split('/')[2]] = self._average_time_for_get(url, n)
+                output_results[item] = output
+                # Store output as DataFrame, reformat it, and output as txt.
+                outdf = pd.DataFrame.from_dict(output, orient='columns')
+                for col in outdf.columns:
+                    outdf[[col,col+'_stdev']] = pd.DataFrame(outdf[col].tolist(), index=outdf.index)
+                outdf['percent_diff'] = outdf.iloc[:,0:2].pct_change(axis='columns').iloc[:,1].round(3)
+                reordered_rows = [i for i in list(outdf.index) if i != 'total_time'].append('total_time')
+                reordered_columns = [outdf.columns[0], outdf.columns[2], outdf.columns[1], outdf.columns[3], outdf.columns[4]]
+                outdf = outdf.reindex(reordered_rows)
+                outdf = outdf.reindex(columns=reordered_columns)
+                f.write('Query (n={}): {}\n'.format(n,item))
+                outdf.to_csv(path_or_buf=f, sep='\t', mode='a')
+        return output_results
