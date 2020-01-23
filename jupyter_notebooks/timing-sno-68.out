@@ -1,0 +1,293 @@
+Checking response time
+
+*** item_type: /
+------------------ https://sno68-on-dev.demo.encodedcc.org// -------------------
+[36mAverage es_time: 0.904 ± 0.062 ms (n=50)[0m
+[36mAverage queue_time: 0.42 ± 0.024 ms (n=50)[0m
+[36mAverage render_time: 5.832 ± 1.67 ms (n=50)[0m
+[36mAverage wsgi_time: 10.404 ± 1.662 ms (n=50)[0m
+[36mAverage total time: 17.56 ± 3.325 ms (n=50)[0m
+------------------------- https://test.encodedcc.org/ --------------------------
+[36mAverage es_time: 2.228 ± 0.112 ms (n=50)[0m
+[36mAverage queue_time: 0.43 ± 0.039 ms (n=50)[0m
+[36mAverage render_time: 5.331 ± 1.564 ms (n=50)[0m
+[36mAverage wsgi_time: 11.382 ± 1.69 ms (n=50)[0m
+[36mAverage total time: 19.371 ± 3.254 ms (n=50)[0m
+
+
+*** item_type: /search/?type=Experiment
+------- https://sno68-on-dev.demo.encodedcc.org//search/?type=Experiment -------
+[33mAverage es_time: 12.026 ± 1.553 ms (n=50)[0m
+[36mAverage queue_time: 0.504 ± 0.019 ms (n=50)[0m
+[36mAverage render_time: 127.209 ± 14.502 ms (n=50)[0m
+[33mAverage wsgi_time: 155.385 ± 14.525 ms (n=50)[0m
+[33mAverage total time: 295.124 ± 29.088 ms (n=50)[0m
+-------------- https://test.encodedcc.org/search/?type=Experiment --------------
+[31mAverage es_time: 23.551 ± 7.212 ms (n=50)[0m
+[36mAverage queue_time: 0.552 ± 0.023 ms (n=50)[0m
+[36mAverage render_time: 129.839 ± 16.719 ms (n=50)[0m
+[33mAverage wsgi_time: 169.861 ± 18.119 ms (n=50)[0m
+[33mAverage total time: 323.803 ± 36.241 ms (n=50)[0m
+
+Checking response time
+
+*** item_type: /search/?searchTerm=K562
+------- https://sno68-on-dev.demo.encodedcc.org//search/?searchTerm=K562 -------
+[31mAverage es_time: 139.641 ± 4.067 ms (n=50)[0m
+[36mAverage queue_time: 0.514 ± 0.008 ms (n=50)[0m
+[36mAverage render_time: 22.482 ± 6.472 ms (n=50)[0m
+[33mAverage wsgi_time: 169.778 ± 7.331 ms (n=50)[0m
+[33mAverage total time: 332.415 ± 14.695 ms (n=50)[0m
+-------------- https://test.encodedcc.org/search/?searchTerm=K562 --------------
+[31mAverage es_time: 239.467 ± 12.713 ms (n=50)[0m
+[36mAverage queue_time: 0.504 ± 0.029 ms (n=50)[0m
+[36mAverage render_time: 25.398 ± 8.644 ms (n=50)[0m
+[33mAverage wsgi_time: 272.613 ± 15.447 ms (n=50)[0m
+[31mAverage total time: 537.981 ± 30.879 ms (n=50)[0m
+
+
+*** item_type: /search/?searchTerm=DNA+binding
+--------- https://sno68-on-dev.demo.encodedcc.org//search/?searchTerm=DNA+binding ---------
+[31mAverage es_time: 242.676 ± 3.894 ms (n=50)[0m
+[36mAverage queue_time: 0.516 ± 0.01 ms (n=50)[0m
+[36mAverage render_time: 28.23 ± 7.579 ms (n=50)[0m
+[33mAverage wsgi_time: 282.403 ± 8.566 ms (n=50)[0m
+[31mAverage total time: 553.824 ± 17.182 ms (n=50)[0m
+---------- https://test.encodedcc.org/search/?searchTerm=DNA+binding -----------
+[31mAverage es_time: 345.619 ± 18.185 ms (n=50)[0m
+[36mAverage queue_time: 0.513 ± 0.026 ms (n=50)[0m
+[36mAverage render_time: 30.801 ± 8.559 ms (n=50)[0m
+[33mAverage wsgi_time: 388.438 ± 21.227 ms (n=50)[0m
+[31mAverage total time: 765.371 ± 42.354 ms (n=50)[0m
+
+
+*** item_type: /search/?searchTerm=human
+------ https://sno68-on-dev.demo.encodedcc.org//search/?searchTerm=human -------
+[31mAverage es_time: 140.946 ± 4.21 ms (n=50)[0m
+[36mAverage queue_time: 0.514 ± 0.008 ms (n=50)[0m
+[36mAverage render_time: 26.948 ± 6.52 ms (n=50)[0m
+[33mAverage wsgi_time: 174.974 ± 7.611 ms (n=50)[0m
+[33mAverage total time: 343.382 ± 15.274 ms (n=50)[0m
+------------- https://test.encodedcc.org/search/?searchTerm=human --------------
+[31mAverage es_time: 243.843 ± 14.821 ms (n=50)[0m
+[36mAverage queue_time: 0.509 ± 0.021 ms (n=50)[0m
+[36mAverage render_time: 29.117 ± 7.063 ms (n=50)[0m
+[33mAverage wsgi_time: 280.128 ± 17.559 ms (n=50)[0m
+[31mAverage total time: 553.597 ± 35.117 ms (n=50)[0m
+
+
+*** item_type: /search/?searchTerm=H3K36me3
+----- https://sno68-on-dev.demo.encodedcc.org//search/?searchTerm=H3K36me3 -----
+[31mAverage es_time: 144.049 ± 4.066 ms (n=50)[0m
+[36mAverage queue_time: 0.518 ± 0.016 ms (n=50)[0m
+[36mAverage render_time: 27.452 ± 6.818 ms (n=50)[0m
+[33mAverage wsgi_time: 179.299 ± 8.457 ms (n=50)[0m
+[33mAverage total time: 351.318 ± 16.868 ms (n=50)[0m
+------------ https://test.encodedcc.org/search/?searchTerm=H3K36me3 ------------
+[31mAverage es_time: 243.838 ± 11.287 ms (n=50)[0m
+[36mAverage queue_time: 0.503 ± 0.029 ms (n=50)[0m
+[36mAverage render_time: 28.542 ± 7.461 ms (n=50)[0m
+[33mAverage wsgi_time: 280.154 ± 12.995 ms (n=50)[0m
+[31mAverage total time: 553.037 ± 26.007 ms (n=50)[0m
+
+
+*** item_type: /search/?searchTerm=CTCF
+------- https://sno68-on-dev.demo.encodedcc.org//search/?searchTerm=CTCF -------
+[31mAverage es_time: 143.719 ± 4.063 ms (n=50)[0m
+[36mAverage queue_time: 0.532 ± 0.03 ms (n=50)[0m
+[36mAverage render_time: 23.346 ± 6.267 ms (n=50)[0m
+[33mAverage wsgi_time: 174.285 ± 7.26 ms (n=50)[0m
+[33mAverage total time: 341.881 ± 14.452 ms (n=50)[0m
+-------------- https://test.encodedcc.org/search/?searchTerm=CTCF --------------
+[31mAverage es_time: 246.013 ± 12.583 ms (n=50)[0m
+[36mAverage queue_time: 0.499 ± 0.026 ms (n=50)[0m
+[36mAverage render_time: 24.148 ± 6.935 ms (n=50)[0m
+[33mAverage wsgi_time: 277.263 ± 14.321 ms (n=50)[0m
+[31mAverage total time: 547.922 ± 28.702 ms (n=50)[0m
+
+Checking response time
+
+*** item_type: /ENCSR255XZG/
+------------ https://sno68-on-dev.demo.encodedcc.org//ENCSR255XZG/ -------------
+[36mAverage es_time: 3.799 ± 0.254 ms (n=50)[0m
+[36mAverage queue_time: 0.488 ± 0.01 ms (n=50)[0m
+[36mAverage render_time: 112.351 ± 7.734 ms (n=50)[0m
+[33mAverage wsgi_time: 246.676 ± 207.185 ms (n=50)[0m
+[33mAverage total time: 363.313 ± 208.138 ms (n=50)[0m
+------------------- https://test.encodedcc.org/ENCSR255XZG/ --------------------
+[31mAverage es_time: 13.252 ± 2.638 ms (n=50)[0m
+[36mAverage queue_time: 0.498 ± 0.036 ms (n=50)[0m
+[36mAverage render_time: 112.044 ± 7.584 ms (n=50)[0m
+[33mAverage wsgi_time: 235.799 ± 162.338 ms (n=50)[0m
+[33mAverage total time: 361.593 ± 162.898 ms (n=50)[0m
+
+
+*** item_type: /ENCSR749ILN/
+------------ https://sno68-on-dev.demo.encodedcc.org//ENCSR749ILN/ -------------
+[36mAverage es_time: 2.351 ± 0.077 ms (n=50)[0m
+[36mAverage queue_time: 0.478 ± 0.014 ms (n=50)[0m
+[36mAverage render_time: 31.197 ± 5.469 ms (n=50)[0m
+[36mAverage wsgi_time: 52.188 ± 5.664 ms (n=50)[0m
+[36mAverage total time: 86.214 ± 11.078 ms (n=50)[0m
+------------------- https://test.encodedcc.org/ENCSR749ILN/ --------------------
+[36mAverage es_time: 5.575 ± 0.215 ms (n=50)[0m
+[36mAverage queue_time: 0.494 ± 0.044 ms (n=50)[0m
+[36mAverage render_time: 32.82 ± 6.232 ms (n=50)[0m
+[36mAverage wsgi_time: 57.264 ± 6.275 ms (n=50)[0m
+[36mAverage total time: 96.153 ± 12.458 ms (n=50)[0m
+
+
+*** item_type: /ENCSR688GVV/
+------------ https://sno68-on-dev.demo.encodedcc.org//ENCSR688GVV/ -------------
+[36mAverage es_time: 4.091 ± 0.081 ms (n=50)[0m
+[36mAverage queue_time: 0.488 ± 0.013 ms (n=50)[0m
+[36mAverage render_time: 68.775 ± 5.016 ms (n=50)[0m
+[36mAverage wsgi_time: 117.058 ± 5.078 ms (n=50)[0m
+[33mAverage total time: 190.412 ± 10.069 ms (n=50)[0m
+------------------- https://test.encodedcc.org/ENCSR688GVV/ --------------------
+[33mAverage es_time: 11.218 ± 0.198 ms (n=50)[0m
+[36mAverage queue_time: 0.482 ± 0.032 ms (n=50)[0m
+[36mAverage render_time: 64.812 ± 6.355 ms (n=50)[0m
+[36mAverage wsgi_time: 135.553 ± 111.026 ms (n=50)[0m
+[33mAverage total time: 212.064 ± 112.132 ms (n=50)[0m
+
+
+*** item_type: /ENCSR301HAG/
+------------ https://sno68-on-dev.demo.encodedcc.org//ENCSR301HAG/ -------------
+[36mAverage es_time: 1.355 ± 0.033 ms (n=50)[0m
+[36mAverage queue_time: 0.485 ± 0.009 ms (n=50)[0m
+[36mAverage render_time: 10.617 ± 4.923 ms (n=50)[0m
+[36mAverage wsgi_time: 17.619 ± 4.952 ms (n=50)[0m
+[36mAverage total time: 30.076 ± 9.863 ms (n=50)[0m
+------------------- https://test.encodedcc.org/ENCSR301HAG/ --------------------
+[36mAverage es_time: 3.087 ± 0.104 ms (n=50)[0m
+[36mAverage queue_time: 0.501 ± 0.034 ms (n=50)[0m
+[36mAverage render_time: 9.926 ± 3.303 ms (n=50)[0m
+[36mAverage wsgi_time: 18.785 ± 3.37 ms (n=50)[0m
+[36mAverage total time: 32.299 ± 6.668 ms (n=50)[0m
+
+
+*** item_type: /ENCSR315NAC/
+------------ https://sno68-on-dev.demo.encodedcc.org//ENCSR315NAC/ -------------
+[36mAverage es_time: 3.333 ± 0.088 ms (n=50)[0m
+[36mAverage queue_time: 0.482 ± 0.019 ms (n=50)[0m
+[36mAverage render_time: 50.793 ± 6.362 ms (n=50)[0m
+[36mAverage wsgi_time: 86.81 ± 6.439 ms (n=50)[0m
+[36mAverage total time: 141.418 ± 12.768 ms (n=50)[0m
+------------------- https://test.encodedcc.org/ENCSR315NAC/ --------------------
+[33mAverage es_time: 8.545 ± 0.254 ms (n=50)[0m
+[36mAverage queue_time: 0.494 ± 0.038 ms (n=50)[0m
+[36mAverage render_time: 50.312 ± 6.859 ms (n=50)[0m
+[36mAverage wsgi_time: 91.513 ± 6.743 ms (n=50)[0m
+[33mAverage total time: 150.865 ± 13.516 ms (n=50)[0m
+
+
+*** item_type: /ENCSR856JJB/
+------------ https://sno68-on-dev.demo.encodedcc.org//ENCSR856JJB/ -------------
+[36mAverage es_time: 3.121 ± 0.052 ms (n=50)[0m
+[36mAverage queue_time: 0.477 ± 0.011 ms (n=50)[0m
+[36mAverage render_time: 43.674 ± 6.862 ms (n=50)[0m
+[36mAverage wsgi_time: 74.549 ± 6.941 ms (n=50)[0m
+[36mAverage total time: 121.822 ± 13.772 ms (n=50)[0m
+------------------- https://test.encodedcc.org/ENCSR856JJB/ --------------------
+[36mAverage es_time: 7.413 ± 0.808 ms (n=50)[0m
+[36mAverage queue_time: 0.494 ± 0.044 ms (n=50)[0m
+[36mAverage render_time: 44.122 ± 6.376 ms (n=50)[0m
+[36mAverage wsgi_time: 96.09 ± 117.531 ms (n=50)[0m
+[36mAverage total time: 148.119 ± 118.9 ms (n=50)[0m
+
+Checking response time
+
+*** item_type: /experiments/ENCSR255XZG/
+------ https://sno68-on-dev.demo.encodedcc.org//experiments/ENCSR255XZG/ -------
+[36mAverage es_time: 3.745 ± 0.155 ms (n=50)[0m
+[36mAverage queue_time: 0.505 ± 0.014 ms (n=50)[0m
+[36mAverage render_time: 109.989 ± 6.113 ms (n=50)[0m
+[33mAverage wsgi_time: 209.414 ± 117.854 ms (n=50)[0m
+[33mAverage total time: 323.653 ± 118.988 ms (n=50)[0m
+------------- https://test.encodedcc.org/experiments/ENCSR255XZG/ --------------
+[33mAverage es_time: 12.903 ± 0.23 ms (n=50)[0m
+[36mAverage queue_time: 0.559 ± 0.021 ms (n=50)[0m
+[36mAverage render_time: 110.745 ± 6.195 ms (n=50)[0m
+[33mAverage wsgi_time: 251.461 ± 194.249 ms (n=50)[0m
+[33mAverage total time: 375.668 ± 195.028 ms (n=50)[0m
+
+
+*** item_type: /experiments/ENCSR749ILN/
+------ https://sno68-on-dev.demo.encodedcc.org//experiments/ENCSR749ILN/ -------
+[36mAverage es_time: 2.327 ± 0.078 ms (n=50)[0m
+[36mAverage queue_time: 0.473 ± 0.018 ms (n=50)[0m
+[36mAverage render_time: 28.021 ± 6.366 ms (n=50)[0m
+[36mAverage wsgi_time: 49.477 ± 6.782 ms (n=50)[0m
+[36mAverage total time: 80.299 ± 13.129 ms (n=50)[0m
+------------- https://test.encodedcc.org/experiments/ENCSR749ILN/ --------------
+[36mAverage es_time: 5.883 ± 0.292 ms (n=50)[0m
+[36mAverage queue_time: 0.506 ± 0.031 ms (n=50)[0m
+[36mAverage render_time: 27.193 ± 5.428 ms (n=50)[0m
+[36mAverage wsgi_time: 52.906 ± 5.752 ms (n=50)[0m
+[36mAverage total time: 86.489 ± 11.069 ms (n=50)[0m
+
+
+*** item_type: /experiments/ENCSR688GVV/
+------ https://sno68-on-dev.demo.encodedcc.org//experiments/ENCSR688GVV/ -------
+[36mAverage es_time: 4.203 ± 0.065 ms (n=50)[0m
+[36mAverage queue_time: 0.501 ± 0.022 ms (n=50)[0m
+[36mAverage render_time: 62.345 ± 5.317 ms (n=50)[0m
+[36mAverage wsgi_time: 128.347 ± 122.292 ms (n=50)[0m
+[33mAverage total time: 195.396 ± 123.19 ms (n=50)[0m
+------------- https://test.encodedcc.org/experiments/ENCSR688GVV/ --------------
+[33mAverage es_time: 11.763 ± 2.481 ms (n=50)[0m
+[36mAverage queue_time: 0.551 ± 0.022 ms (n=50)[0m
+[36mAverage render_time: 61.71 ± 5.825 ms (n=50)[0m
+[36mAverage wsgi_time: 118.505 ± 6.515 ms (n=50)[0m
+[33mAverage total time: 192.528 ± 12.896 ms (n=50)[0m
+
+
+*** item_type: /experiments/ENCSR301HAG/
+------ https://sno68-on-dev.demo.encodedcc.org//experiments/ENCSR301HAG/ -------
+[36mAverage es_time: 1.336 ± 0.036 ms (n=50)[0m
+[36mAverage queue_time: 0.469 ± 0.013 ms (n=50)[0m
+[36mAverage render_time: 11.495 ± 6.519 ms (n=50)[0m
+[36mAverage wsgi_time: 18.394 ± 6.545 ms (n=50)[0m
+[36mAverage total time: 31.694 ± 13.045 ms (n=50)[0m
+------------- https://test.encodedcc.org/experiments/ENCSR301HAG/ --------------
+[36mAverage es_time: 3.352 ± 1.978 ms (n=50)[0m
+[36mAverage queue_time: 0.469 ± 0.03 ms (n=50)[0m
+[36mAverage render_time: 9.944 ± 3.184 ms (n=50)[0m
+[36mAverage wsgi_time: 18.855 ± 3.597 ms (n=50)[0m
+[36mAverage total time: 32.62 ± 7.089 ms (n=50)[0m
+
+
+*** item_type: /experiments/ENCSR315NAC/
+------ https://sno68-on-dev.demo.encodedcc.org//experiments/ENCSR315NAC/ -------
+[36mAverage es_time: 3.5 ± 0.108 ms (n=50)[0m
+[36mAverage queue_time: 0.507 ± 0.023 ms (n=50)[0m
+[36mAverage render_time: 46.575 ± 6.176 ms (n=50)[0m
+[36mAverage wsgi_time: 82.866 ± 6.396 ms (n=50)[0m
+[36mAverage total time: 133.448 ± 12.537 ms (n=50)[0m
+------------- https://test.encodedcc.org/experiments/ENCSR315NAC/ --------------
+[33mAverage es_time: 8.704 ± 0.232 ms (n=50)[0m
+[36mAverage queue_time: 0.526 ± 0.027 ms (n=50)[0m
+[36mAverage render_time: 46.528 ± 5.172 ms (n=50)[0m
+[36mAverage wsgi_time: 107.49 ± 131.16 ms (n=50)[0m
+[33mAverage total time: 163.248 ± 130.983 ms (n=50)[0m
+
+
+*** item_type: /experiments/ENCSR856JJB/
+------ https://sno68-on-dev.demo.encodedcc.org//experiments/ENCSR856JJB/ -------
+[36mAverage es_time: 3.266 ± 0.122 ms (n=50)[0m
+[36mAverage queue_time: 0.496 ± 0.024 ms (n=50)[0m
+[36mAverage render_time: 39.276 ± 4.814 ms (n=50)[0m
+[36mAverage wsgi_time: 70.381 ± 5.079 ms (n=50)[0m
+[36mAverage total time: 113.418 ± 9.86 ms (n=50)[0m
+------------- https://test.encodedcc.org/experiments/ENCSR856JJB/ --------------
+[36mAverage es_time: 7.484 ± 0.763 ms (n=50)[0m
+[36mAverage queue_time: 0.52 ± 0.027 ms (n=50)[0m
+[36mAverage render_time: 39.766 ± 5.852 ms (n=50)[0m
+[36mAverage wsgi_time: 75.475 ± 5.975 ms (n=50)[0m
+[36mAverage total time: 123.245 ± 11.839 ms (n=50)[0m
+
+Traceback (most recent call last):
+  File "timing-tests-sno-33.py", line 50, in <module>
+    qa.check_response_time(json=True, item_types=['/ENCSR255XZG/', '/ENCSR749ILN/', '/ENCSR688GVV/', '/ENCSR301HAG/','/ENCSR315NAC/', '/ENCSR856JJB/'], n=50)
+TypeError: check_response_time() got an unexpected keyword argument 'json'
