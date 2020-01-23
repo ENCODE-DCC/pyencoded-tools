@@ -41,6 +41,8 @@ class SearchPageList:
     facet_class = 'facet'
     category_title_class = 'facet-term__text'
     number_class = 'facet-term__count'
+    category_title_class_radio = 'facet__radio-label'
+    number_class_radio = 'facet__radio-count'
     download_metadata_button_xpath = '//*[contains(text(), "Download")]'
     search_result_item = '(//div[@class="result-item__data"])[1]//a'
 

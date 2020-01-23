@@ -459,12 +459,20 @@ class GetFacetNumbers(SeleniumTask):
             facets = self.search_page()
         data_dict = defaultdict(list)
         for facet in facets:
+            if facet.tag_name.lower() == 'fieldset':
+                title_selector = 'legend'
+                category_class = SearchPageList.category_title_class_radio
+                number_class = SearchPageList.number_class_radio
+            else:
+                title_selector = 'h5'
+                category_class = SearchPageList.category_title_class
+                number_class = SearchPageList.number_class
             title = facet.find_element_by_css_selector(
-                'h5').text.replace(':', '').strip()
+                title_selector).text.replace(':', '').strip()
             categories = [
-                c.text for c in facet.find_elements_by_class_name(SearchPageList.category_title_class)]
+                c.text for c in facet.find_elements_by_class_name(category_class)]
             numbers = [n.text for n in facet.find_elements_by_class_name(
-                SearchPageList.number_class) if n.text != '']
+                number_class) if n.text != '']
             assert len(categories) == len(numbers)
             if title in data_dict.keys():
                 title_number = len([t for t in data_dict.keys()
