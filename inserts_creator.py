@@ -72,6 +72,8 @@ def convert_links(link_to, reg_ex):
 
 
 def make_profile(dictionary, object_type):
+    print (dictionary)
+    print (object_type)
     '''builds the PROFILES reference dictionary
     keysLink is the list of keys that point to links,
     used in the PROFILES'''
@@ -99,14 +101,29 @@ def create_inserts(args, connection):
         'IDR_parameters_rep1_pr',
         'IDR_parameters_rep2_pr',
         'IDR_parameters_pool_pr',
-        'cross_correlation_plot'
+        'cross_correlation_plot',
+        'jsd_plot',
+        'gc_bias_plot',
+        'IDR_dispersion_plot',
+        'idr_dispersion_plot',
+        'idr_parameters',
+        'tss_enrichment_plot',
+        'fragment_length_distribution_plot',
+        'peak_width_distribution_plot',
     ]
 
     PROFILES = {}
     temp = encodedcc.get_ENCODE("/profiles/", connection)
     profilesJSON = []
     for profile in temp.keys():
-        profilesJSON.append(profile)
+        #print (profile)
+        if profile not in [
+            '_profiles',
+            '@type',
+            '_subtypes',
+            'JSONSchemas',
+            ]:
+            profilesJSON.append(profile)
 
     for item in profilesJSON:
         profile = temp[item]
@@ -142,9 +159,9 @@ def create_inserts(args, connection):
         new_object_dict['uuid'] = uuid
         for key in object_dict.keys():
             if key not in PROFILES[obj_type]:
-                new_object_dict[key] = convert_links(object_dict[key],
+                new_object_dict[key] = convert_links(object_dict[key],link_to_regex)
             
-            keys_to_pop = []                                         link_to_regex)
+            keys_to_pop = []                                         
             if key in IS_ATTACHMENT:
                 if (object_dict[key].get('href') and
                         (not object_dict[key].get(

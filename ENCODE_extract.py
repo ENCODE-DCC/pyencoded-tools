@@ -82,7 +82,9 @@ class Data_Extract():
             'Award',
             'Source',
             'Lab',
-            'User'
+            'User',
+            '_subtypes',
+            '@type',
             ]
         self.connection = connection
         temp = encodedcc.get_ENCODE("/profiles/", self.connection)
@@ -124,6 +126,7 @@ class Data_Extract():
         '''builds the PROFILES reference dictionary
         keysLink is the list of keys that point to links,
         used in the PROFILES'''
+        print (object_type)
         d = dictionary["properties"]
 
         for prop in d.keys():
@@ -160,16 +163,22 @@ class Data_Extract():
                 # loop through object properties
                 if key in self.PROFILES[name]:
                     # if the key is in profiles it's a link
-                    if type(obj[key]) is list:
-                        for link in obj[key]:
+                    print (key)
+                    print (obj[key])
+                    if key != 'libraries':
+                        if type(obj[key]) is list:
+                            for link in obj[key]:
+                                self.process_link(
+                                    link)
+                        else:
                             self.process_link(
-                                link)
-                    else:
-                        self.process_link(
-                            obj[key])
+                                obj[key])
 
     def process_link(self, identifier_link):
+        # if identifier_link.find("/") != -1:
         item = identifier_link.split("/")[1].replace("-", "")
+        #else:
+        #    item = identifier_link
         try:
             subobj = encodedcc.get_ENCODE(identifier_link, self.connection)
         except ValueError:
@@ -185,6 +194,7 @@ class Data_Extract():
         # also makes the list of accessions to run from
         uuids = set()
         self.set_up()
+        
         for accession in self.ACCESSIONS:
             self.searched = []
             print ("Processing accession: " + accession)
@@ -199,13 +209,15 @@ class Data_Extract():
                 t, uuid)
             logger.info(log)
 
-        # adding groups of widelu used objects:
+        # adding groups of widely used objects:
         for prof in self.EXCLUDED:
-            objects = encodedcc.get_ENCODE('/search/?type=' + prof, self.connection)['@graph']
-            for o in objects:
-                log = '%s' % "{}\t{}".format(
-                    o['@type'][0], o['uuid'])
-                logger.info(log)
+            if prof not in ['_subtypes',
+                            '@type',]:
+                objects = encodedcc.get_ENCODE('/search/?type=' + prof, self.connection)['@graph']
+                for o in objects:
+                    log = '%s' % "{}\t{}".format(
+                        o['@type'][0], o['uuid'])
+                    logger.info(log)
 
         print("Data written to file", self.outfile)
 
