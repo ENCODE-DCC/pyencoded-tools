@@ -501,30 +501,89 @@ class QANCODE(ActionTuples):
         urls=None,
         item_types=[None],
         n=10,
-        output_path=os.path.expanduser('~/Desktop/check_response_time.txt')
+        output_path=os.path.expanduser('~/Desktop/check_response_time.txt'),
+        alt_format=False
     ):
         if urls is None:
             urls = [self.prod_url, self.rc_url]
         print('Checking response time')
-        output_results = {}
+
+        data = {
+            'item': [],
+            'server': [],
+            'n_vals': [n] * 2 * len(item_types),
+            'es_time': [],
+            'queue_time': [],
+            'render_time': [],
+            'wsgi_time': [],
+            'total_time': [],
+            'es_time_stdev': [],
+            'queue_time_stdev': [],
+            'render_time_stdev': [],
+            'wsgi_time_stdev': [],
+            'total_time_stdev': []
+        }
+        response_types = ['es_time', 'queue_time','render_time','wsgi_time','total_time']
         with open(output_path, 'w') as f:
+            output_results = {}
             for item in item_types:
                 output = {}
                 print('\n*** item_type: {}'.format(item))
                 for url in urls:
+                    data['item'].append(item)
+                    data['server'].append(url)
                     if item is not None:
                         url = url + item
-                    output[url.split('/')[2]] = self._average_time_for_get(url, n)
+                    response = self._average_time_for_get(url, n)
+                    for response_type in response_types:
+                        try:
+                            data[response_type].append(response[response_type][0])
+                            data[response_type + '_stdev'].append(response[response_type][1])
+                        except KeyError:
+                            data[response_type].append(None)
+                            data[response_type + '_stdev'].append(None)
+                    output[url.split('/')[2]] = response
                 output_results[item] = output
-                # Store output as DataFrame, reformat it, and output as txt.
-                outdf = pd.DataFrame.from_dict(output, orient='columns')
-                for col in outdf.columns:
-                    outdf[[col,col+'_stdev']] = pd.DataFrame(outdf[col].tolist(), index=outdf.index)
-                outdf['percent_diff'] = outdf.iloc[:,0:2].pct_change(axis='columns').iloc[:,1].round(3)
-                reordered_rows = [i for i in list(outdf.index) if i != 'total_time'].append('total_time')
-                reordered_columns = [outdf.columns[0], outdf.columns[2], outdf.columns[1], outdf.columns[3], outdf.columns[4]]
-                outdf = outdf.reindex(reordered_rows)
-                outdf = outdf.reindex(columns=reordered_columns)
-                f.write('Query (n={}): {}\n'.format(n,item))
-                outdf.to_csv(path_or_buf=f, sep='\t', mode='a')
+
+            outdf = pd.DataFrame(data)
+            outdf.to_csv(path_or_buf=f, sep='\t', mode='a', index=False)
+
+        if alt_format:
+            stdev_to_avg_map = {
+                'es_time_stdev': 'es_time',
+                'queue_time_stdev': 'queue_time',
+                'render_time_stdev': 'render_time',
+                'wsgi_time_stdev': 'wsgi_time',
+                'total_time_stdev': 'total_time'
+            }
+            server_abbreviated = [s.split('/')[2].split('.encodedcc.org')[0] for s in data['server'][0:2]]
+            with open(output_path.split('.txt')[0]+'_alt.txt','w') as f2:
+                for item in item_types:
+                    f2.write('Query (n={}): {}\n'.format(n,item))
+                    col_1 = outdf.loc[(outdf['item'] == item) & (outdf['server'] == data['server'][0]), response_types].T
+                    col_1.rename(
+                        inplace=True,
+                        columns={col_1.columns[0]: server_abbreviated[0]}
+                    )
+                    col_2 = outdf.loc[(outdf['item'] == item) & (outdf['server'] == data['server'][0]), [s + '_stdev' for s in response_types]].T
+                    col_2.rename(
+                        inplace=True,
+                        columns={col_2.columns[0]: server_abbreviated[0] + '_stdev'},
+                        index=stdev_to_avg_map
+                    )
+                    col_3 = outdf.loc[(outdf['item'] == item) & (outdf['server'] == data['server'][1]), response_types].T
+                    col_3.rename(
+                        inplace=True,
+                        columns={col_3.columns[0]: server_abbreviated[1]}
+                    )
+                    col_4 = outdf.loc[(outdf['item'] == item) & (outdf['server'] == data['server'][1]), [s + '_stdev' for s in response_types]].T
+                    col_4.rename(
+                        inplace=True,
+                        columns={col_4.columns[0]: server_abbreviated[1] + '_stdev'},
+                        index=stdev_to_avg_map
+                    )
+                    reformat_df = pd.concat([col_1,col_2,col_3,col_4],axis=1)
+                    reformat_df['percent_diff'] = reformat_df.iloc[:,[0,2]].pct_change(axis='columns').iloc[:,1].round(3)
+                    reformat_df.to_csv(path_or_buf=f2, sep='\t', mode='a')
+
         return output_results
