@@ -502,7 +502,7 @@ class QANCODE(ActionTuples):
         item_types=[None],
         n=10,
         output_path=os.path.expanduser('~/Desktop/check_response_time.txt'),
-        alt_format=False
+        alt_format=True
     ):
         if urls is None:
             urls = [self.prod_url, self.rc_url]
