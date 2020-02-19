@@ -176,6 +176,7 @@ class ActionTuples:
             ('/genetic-modifications/ENCGM485KFI/', None),
             ('/matrix/?type=Experiment', None),
             ('/matrix/?type=Experiment&internal_tags=ENCORE&internal_tags=invalid_tag', None),
+            ('/entex-matrix/?type=Experiment&status=released&internal_tags=ENTEx', None),
             ('/pipelines/', None),
             ('/pipelines/ENCPL001DNS/', None),
             ('/pipelines/e02448b1-9706-4e7c-b31b-78c921d58f0b/', None),
