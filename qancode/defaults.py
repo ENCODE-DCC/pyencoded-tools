@@ -106,6 +106,7 @@ class ActionTuples:
     def _init_default_actions(self):
         self.compare_facets_default_actions = [
             '/search/?type=Experiment',
+            '/search/?type=FunctionalCharacterizationExperiment',
             '/search/?type=File',
             '/search/?type=Library',
             '/search/?type=AntibodyLot',
@@ -177,6 +178,7 @@ class ActionTuples:
             ('/matrix/?type=Experiment', None),
             ('/matrix/?type=Experiment&internal_tags=ENCORE&internal_tags=invalid_tag', None),
             ('/entex-matrix/?type=Experiment&status=released&internal_tags=ENTEx', None),
+            ('/chip-seq-matrix/?type=Experiment&replicates.library.biosample.donor.organism.scientific_name=Homo%20sapiens&assay_title=Histone%20ChIP-seq&status=released', None),
             ('/pipelines/', None),
             ('/pipelines/ENCPL001DNS/', None),
             ('/pipelines/e02448b1-9706-4e7c-b31b-78c921d58f0b/', None),
