@@ -84,7 +84,7 @@ class Driver:
 
     def __init__(self, browser, url):
         print('Opening {} in {}'.format(url, browser))
-        if browser == 'Firefox':
+        if browser.startswith('Firefox'):
             # Allow automatic downloading of specified MIME types.
             mime_types = 'binary/octet-stream,application/x-gzip,application/gzip,application/pdf,text/plain,text/tsv,image/png,image/jpeg'
             fp = webdriver.FirefoxProfile()
@@ -95,7 +95,14 @@ class Driver:
             fp.set_preference(
                 'plugin.disable_full_page_plugin_for_types', mime_types)
             fp.set_preference('pdfjs.disabled', True)
-            self.driver = webdriver.Firefox(firefox_profile=fp)
+            firefox_options = webdriver.FirefoxOptions()
+            if 'headless' in browser:
+                firefox_options.headless = True
+            self.driver = webdriver.Firefox(firefox_profile=fp, firefox_options=firefox_options)
+        elif browser == 'Chrome-headless':
+            chrome_options = webdriver.ChromeOptions()
+            chrome_options.headless = True
+            self.driver = webdriver.Chrome(chrome_options=chrome_options)
         else:
             self.driver = getattr(webdriver, browser)()
         self.driver.wait = WebDriverWait(self.driver, 5)
