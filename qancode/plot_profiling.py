@@ -44,9 +44,11 @@ def main():
     prod_url = "https://test.encodedcc.org"
 
     if os.path.exists(os.path.expanduser('~/profiling_output')):
-        shutil.copytree(os.path.expanduser('~/profiling_output'), os.path.expanduser('~/profiling_archive'), dirs_exist_ok=True)
+        if os.path.exists(os.path.expanduser('~/profiling_output_archive')):
+            shutil.rmtree(os.path.expanduser('~/profiling_output_archive'))
+        shutil.copytree(os.path.expanduser('~/profiling_output'), os.path.expanduser('~/profiling_output_archive'))
         shutil.rmtree(os.path.expanduser('~/profiling_output'))
-    os.mkdir(os.path.expanduser('~/profiling_'))
+    os.mkdir(os.path.expanduser('~/profiling_output'))
 
     print(datetime.datetime.now())
     qa = QANCODE(rc_url=rc_url, prod_url=prod_url)
