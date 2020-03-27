@@ -61,7 +61,7 @@ def main():
     compare_facets_settings = generate_user_browser_tuples(browsers, users)
     orig_stdout = sys.stdout
     for setting in compare_facets_settings:
-        f = open(os.path.expanduser('~/output/compare_facets_{}_{}.txt'.format(setting[0], setting[1]), 'w'))
+        f = open(os.path.expanduser('~/output/compare_facets_{}_{}.txt'.format(setting[0], setting[1])), 'w')
         sys.stdout = f
         qa.compare_facets(users=[setting[0]], browsers=[setting[1]])
         f.close()
