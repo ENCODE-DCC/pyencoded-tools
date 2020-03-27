@@ -44,7 +44,8 @@ def main():
     prod_url = "https://test.encodedcc.org"
 
     if os.path.exists(os.path.expanduser('~/profiling_output')):
-        shutil.move(os.path.expanduser('~/profiling_output'), os.path.expanduser('~/profiling_archive'))
+        shutil.copytree(os.path.expanduser('~/profiling_output'), os.path.expanduser('~/profiling_archive'), dirs_exist_ok=True)
+        shutil.rmtree(os.path.expanduser('~/profiling_output'))
     os.mkdir(os.path.expanduser('~/profiling_'))
 
     print(datetime.datetime.now())

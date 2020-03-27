@@ -45,7 +45,8 @@ def main():
 
     clean_old_cookies()
     if os.path.exists(os.path.expanduser('~/output')):
-        shutil.move(os.path.expanduser('~/output'), os.path.expanduser('~/output_archive'))
+        shutil.copytree(os.path.expanduser('~/output'), os.path.expanduser('~/output_archive'), dirs_exist_ok=True)
+        shutil.rmtree(os.path.expanduser('~/output'))
     os.mkdir(os.path.expanduser('~/output'))
 
     qa = QANCODE(rc_url=rc_url)
