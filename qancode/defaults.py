@@ -178,6 +178,7 @@ class ActionTuples:
             ('/matrix/?type=Experiment', None),
             ('/matrix/?type=Experiment&internal_tags=ENCORE&internal_tags=invalid_tag', None),
             ('/entex-matrix/?type=Experiment&status=released&internal_tags=ENTEx', None),
+            ('/mouse-development-matrix/?type=Experiment&status=released&related_series.@type=OrganismDevelopmentSeries&replicates.library.biosample.organism.scientific_name=Mus+musculus', None),
             ('/chip-seq-matrix/?type=Experiment&replicates.library.biosample.donor.organism.scientific_name=Homo%20sapiens&assay_title=Histone%20ChIP-seq&status=released', None),
             ('/pipelines/', None),
             ('/pipelines/ENCPL001DNS/', None),
