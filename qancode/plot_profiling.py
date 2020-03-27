@@ -49,7 +49,7 @@ def main():
 
     print(datetime.datetime.now())
     qa = QANCODE(rc_url=rc_url, prod_url=prod_url)
-    num_trials = 1
+    num_trials = 50
     info = qa.check_response_time(
         item_types=item_types, n=num_trials, output_path=os.path.expanduser('~/profiling_output/check_response_time.txt')
     )
