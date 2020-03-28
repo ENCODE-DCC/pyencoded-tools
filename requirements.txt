@@ -1,0 +1,8 @@
+matplotlib
+numpy
+opencv-python-headless
+pandas
+Pillow
+requests
+selenium
+tqdm
