@@ -32,8 +32,10 @@ def clean_old_cookies():
 
 def generate_user_browser_tuples(browsers, users):
     user_browser = []
-    for user in users:
-        user_browser.append((user, browsers[random.randint(0, 1)]))
+    shuffled_browsers = [0, 1, random.randint(0, 1)]
+    random.shuffle(shuffled_browsers)
+    for user, browser_index in zip(users, shuffled_browsers):
+        user_browser.append((user, browsers[browser_index]))
     return user_browser
 
 
@@ -96,10 +98,13 @@ def main():
 if __name__ == '__main__':
     qa, browsers, users = main()
     print('Start: {}'.format(datetime.datetime.now()))
-    cf_process = multiprocessing.Process(target=run_compare_facets(qa, browsers, users))
-    ct_process = multiprocessing.Process(target=run_check_trackhubs(qa, browsers, users))
-    fd_process = multiprocessing.Process(target=run_find_differences(qa, browsers, users))
+    cf_process = multiprocessing.Process(target=run_compare_facets, args=(qa, browsers, users))
+    ct_process = multiprocessing.Process(target=run_check_trackhubs, args=(qa, browsers, users))
+    fd_process = multiprocessing.Process(target=run_find_differences, args=(qa, browsers, users))
     cf_process.start()
     ct_process.start()
     fd_process.start()
+    cf_process.join()
+    ct_process.join()
+    fd_process.join()
     print('End: {}'.format(datetime.datetime.now()))
