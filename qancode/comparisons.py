@@ -37,7 +37,7 @@ class URLComparison(metaclass=ABCMeta):
     ABC for comparing data between prod and RC given browser and user.
     """
 
-    def __init__(self, browser, user, prod_url, rc_url, item_type, all_data, click_path=None):
+    def __init__(self, browser, user, prod_url, rc_url, item_type, all_data, output_directory, click_path=None):
         self.browser = browser
         self.user = user
         self.all_data = all_data
@@ -45,6 +45,7 @@ class URLComparison(metaclass=ABCMeta):
         self.rc_url = rc_url
         self.item_type = item_type
         self.click_path = click_path
+        self.output_directory = output_directory
         self.prod_data = [d['data'] for d in all_data
                           if ((d['url'] == prod_url)
                               and (d['user'] == user)
@@ -228,8 +229,11 @@ class CompareScreenShots(URLComparison):
         return image_one, image_two
 
     def compute_image_difference(self):
-        directory = os.path.join(
-            os.path.expanduser('~'), 'Desktop', 'image_diff')
+        if self.output_directory is not None:
+            directory = os.path.expanduser(self.output_directory)
+        else:
+            directory = os.path.join(
+                os.path.expanduser('~'), 'Desktop', 'image_diff')
         if not self.item_type.endswith('/'):
             self.item_type = self.item_type + '/'
         if len(self.item_type) <= 1:
