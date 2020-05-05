@@ -282,7 +282,7 @@ def main():
             ERROR_no_fastqs.append(experiment_id) 
 
         # Fix ordering of reps to prevent non-consecutive numbering.
-        for k in list(range(k+1, 11)):
+        for k in list(range(1, 11)):
             if fastqs_by_rep_R1[k] == []:
                 for i in list(range(k+1, 11)):
                     if fastqs_by_rep_R1[i] != []:
