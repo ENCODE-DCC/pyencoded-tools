@@ -45,6 +45,7 @@ def build_experiment_report_query(experiment_list, server):
         '&field=possible_controls' + \
         '&field=files.s3_uri' + \
         '&field=files.href' + \
+        '&field=replicates.library.biosample.organism.scientific_name' + \
         '&limit=all' + \
         '&format=json'
 
@@ -201,13 +202,43 @@ def main():
         output_df['custom_message'] = ''
     output_df.set_index('chip.title', inplace=True, drop=False)
 
+
+    # Assign blacklist(s) and genome reference file.
+    blacklist = []
+    blacklist2 = []
+    genome_tsv = []
+    for assay, replicates in zip(experiment_input_df.get('assay_title'), experiment_input_df.get('replicates')):
+        organism = set()
+        for rep in replicates:
+            organism.add(rep['library']['biosample']['organism']['scientific_name'])
+
+        if ''.join(organism) == 'Homo sapiens':
+            genome_tsv.append('gs://encode-pipeline-genome-data/genome_tsv/v2/hg38_gcp.tsv')
+            if assay == 'Mint-ChIP-seq':
+                blacklist.append('https://www.encodeproject.org/files/ENCFF356LFX/@@download/ENCFF356LFX.bed.gz')
+                blacklist2.append('https://www.encodeproject.org/files/ENCFF023CZC/@@download/ENCFF023CZC.bed.gz')
+            elif assay in ['Histone ChIP-seq', 'TF ChIP-seq', 'Control ChIP-seq']:
+                blacklist.append('https://www.encodeproject.org/files/ENCFF356LFX/@@download/ENCFF356LFX.bed.gz')
+                blacklist2.append(None)
+        elif ''.join(organism) == 'Mus musculus':
+            genome_tsv.append('gs://encode-pipeline-genome-data/genome_tsv/v1/mm10_gcp.tsv')
+            if assay == 'Mint-ChIP-seq':
+                blacklist.append(None)
+                blacklist2.append(None)
+            elif assay in ['Histone ChIP-seq', 'TF ChIP-seq', 'Control ChIP-seq']:
+                blacklist.append('https://www.encodeproject.org/files/ENCFF547MET/@@download/ENCFF547MET.bed.gz')
+                blacklist2.append(None)
+    output_df['chip.blacklist'] = blacklist
+    output_df['chip.blacklist2'] = blacklist2
+    output_df['genome_tsv'] = genome_tsv
+
     '''
     Experiment sorting section
     '''
 
     # Determine pipeline types.
     pipeline_type = []
-    for assay, ctl_type in zip(experiment_input_df.get('assay_title'),experiment_input_df.get('control_type')):
+    for assay, ctl_type in zip(experiment_input_df.get('assay_title'), experiment_input_df.get('control_type')):
         if pd.notna(ctl_type) or assay == 'Control ChIP-seq': 
             pipeline_type.append('control')
         elif assay == 'TF ChIP-seq':
@@ -426,7 +457,6 @@ def main():
     output_df['chip.pipeline_type'].replace(to_replace='control', value='tf', inplace=True)
 
     # Variables same for all
-    output_df['chip.genome_tsv'] = 'gs://encode-pipeline-genome-data/genome_tsv/v2/hg38_gcp.tsv'
     output_df['chip.ref_fa'] = 'https://www.encodeproject.org/files/GRCh38_no_alt_analysis_set_GCA_000001405.15/@@download/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta.gz'
     output_df['chip.bowtie2_idx_tar'] = 'https://www.encodeproject.org/files/ENCFF110MCL/@@download/ENCFF110MCL.tar.gz'
     output_df['chip.bwa_idx_tar'] = 'https://www.encodeproject.org/files/ENCFF643CGH/@@download/ENCFF643CGH.tar.gz'
