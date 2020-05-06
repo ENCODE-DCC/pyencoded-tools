@@ -16,7 +16,7 @@ def get_parser():
                         help="""Optional path where the input.json will be uploaded to the Google Cloud instance. Only affects the list of caper commands that is generated.""")
     parser.add_argument('--wdl', action='store', default=False,
                         help="""Path to .wdl file.""")
-    parser.add_argument('-s', '--server', action='store', default='https://www.encodeproject.org/',
+    parser.add_argument('-s', '--server', action='store', default='https://www.encodeproject.org',
                         help="""Optional specification of server using the full URL. Defaults to production server.""")
     parser.add_argument('--use-s3-uris', action='store_true', default=False,
                         help="""Optional flag to use s3_uri links. Otherwise, defaults to using @@download links from the ENCODE portal.""")
@@ -28,21 +28,22 @@ def get_parser():
 
 
 def check_path_trailing_slash(path):
-    if path.endswith('/') or len(path) == 0:
-        return path
+    if path.endswith('/'):
+        return path.strip('/')
     else:
-        return path + '/'
+        return path
 
 
 def build_experiment_report_query(experiment_list, server):
     joined_list = '&accession='.join(experiment_list)
     return server + '/report/?type=Experiment' + \
-        '&accession={}'.format(joined_list) + \
+        f'&accession={joined_list}' + \
         '&field=@id' + \
         '&field=accession' + \
         '&field=assay_title' + \
         '&field=control_type' + \
         '&field=possible_controls' + \
+        '&field=replicates.antibody.accession' + \
         '&field=files.s3_uri' + \
         '&field=files.href' + \
         '&field=replicates.library.biosample.organism.scientific_name' + \
@@ -53,7 +54,7 @@ def build_experiment_report_query(experiment_list, server):
 def build_file_report_query(experiment_list, server):
     joined_list = '&dataset='.join(experiment_list)
     return server + '/report/?type=File' + \
-        '&dataset={}'.format(joined_list) + \
+        f'&dataset={joined_list}' + \
         '&status=released' + \
         '&status=in+progress' + \
         '&award.rfa=ENCODE4' + \
@@ -101,51 +102,11 @@ def strs2bool(strings):
     return out
 
 
-def main():
-    keypair = (os.environ.get('DCC_API_KEY'), os.environ.get('DCC_SECRET_KEY'))
-    parser = get_parser()
-    args = parser.parse_args()
-    allowed_statuses = ['released', 'in progress']
-
-    output_path = check_path_trailing_slash(args.outputpath)
-    wdl_path = args.wdl
-    gc_path = args.gcpath
-
-    server= args.server
-    use_s3 = args.use_s3_uris
-    if use_s3:
-        link_prefix = ''
-        link_src = 's3_uri'
-    else:
-        link_prefix = server
-        link_src = 'href'
-
-    if args.infile.endswith('.txt') or args.infile.endswith('.tsv'):
-        infile_df = parse_infile(args.infile)
-        infile_df.sort_values(by=['accession'], inplace=True)
-    else:
-        accession_list = args.infile.split(',')
-        align_only = strs2bool(args.align_only.split(','))
-        message = args.custom_message.split(',')
-        infile_df = pd.DataFrame({
-            'accession':accession_list,
-            'align_only': align_only,
-            'custom_message': message
-        })
-        infile_df.sort_values(by=['accession'], inplace=True)
-
-    # Arrays to store lists of potential errors.
-    ERROR_no_fastqs = []
-    ERROR_control_error_detected = []
-    ERROR_not_matching_endedness = []
-
-    '''
-    Fetch data from the ENCODE portal
-    '''
-
+def get_data_from_portal(infile_df, server, keypair, link_prefix, link_src):
     # Retrieve experiment report view json with necessary fields and store as DataFrame.
     experiment_input_df = pd.DataFrame()
     experiment_accessions = infile_df['accession'].tolist()
+    # Chunk the list to avoid sending queries longer than the character limit
     chunked_experiment_accessions = [experiment_accessions[x:x+100] for x in range(0, len(experiment_accessions), 100)]
     for chunk in chunked_experiment_accessions:
         experiment_report = requests.get(
@@ -163,7 +124,7 @@ def main():
 
     # Retrieve list of wildtype controls
     wildtype_ctl_query_res = requests.get(
-        link_prefix+'/search/?type=Experiment&assay_title=Control+ChIP-seq&assay_title=Control+Mint-ChIP-seq&assay_title=Mint-ChIP-seq&control_type=*&replicates.library.biosample.applied_modifications%21=%2A&limit=all',
+        link_prefix+'/search/?type=Experiment&assay_title=Control+ChIP-seq&replicates.library.biosample.applied_modifications%21=%2A&limit=all',
         auth=keypair,
         headers={'content-type': 'application/json'})
     wildtype_ctl_ids = [ctl['@id'] for ctl in json.loads(wildtype_ctl_query_res.text)['@graph']]
@@ -191,6 +152,50 @@ def main():
         file_input_df['paired_with'] = None
     file_input_df['biorep_scalar'] = [x[0] for x in file_input_df['biological_replicates']]
 
+    return experiment_input_df, wildtype_ctl_ids, file_input_df
+
+
+def main():
+    keypair = (os.environ.get('DCC_API_KEY'), os.environ.get('DCC_SECRET_KEY'))
+    parser = get_parser()
+    args = parser.parse_args()
+    allowed_statuses = ['released', 'in progress']
+
+    output_path = check_path_trailing_slash(args.outputpath)
+    wdl_path = args.wdl
+    gc_path = args.gcpath
+
+    server = check_path_trailing_slash(args.server)
+    use_s3 = args.use_s3_uris
+    if use_s3:
+        link_prefix = ''
+        link_src = 's3_uri'
+    else:
+        link_prefix = server
+        link_src = 'href'
+
+    if args.infile.endswith('.txt') or args.infile.endswith('.tsv'):
+        infile_df = parse_infile(args.infile)
+        infile_df.sort_values(by=['accession'], inplace=True)
+    else:
+        accession_list = args.infile.split(',')
+        align_only = strs2bool(args.align_only.split(','))
+        message = args.custom_message.split(',')
+        infile_df = pd.DataFrame({
+            'accession': accession_list,
+            'align_only': align_only,
+            'custom_message': message
+        })
+        infile_df.sort_values(by=['accession'], inplace=True)
+
+    # Arrays to store lists of potential errors.
+    ERROR_no_fastqs = []
+    ERROR_control_error_detected = []
+    ERROR_not_matching_endedness = []
+
+    # Fetch data from the ENCODE portal
+    experiment_input_df, wildtype_ctl_ids, file_input_df = get_data_from_portal(infile_df, server, keypair, link_prefix, link_src)
+
     # Create output_df to store all data for the final input.json files.
     output_df = pd.DataFrame()
     output_df['chip.title'] = infile_df['accession']
@@ -201,6 +206,10 @@ def main():
     else:
         output_df['custom_message'] = ''
     output_df.set_index('chip.title', inplace=True, drop=False)
+
+    '''
+    Experiment sorting section
+    '''
 
     # Assign blacklist(s) and genome reference file.
     blacklist = []
@@ -234,10 +243,6 @@ def main():
     output_df['chip.blacklist2'] = blacklist2
     output_df['chip.genome_tsv'] = genome_tsv
     output_df['chip.chrsz'] = chrom_sizes
-
-    '''
-    Experiment sorting section
-    '''
 
     # Determine pipeline types.
     pipeline_type = []
@@ -312,7 +317,7 @@ def main():
 
         # Record error if no fastqs for found for any replicate.
         if all(val == [] for val in fastqs_by_rep_R1.values()):
-            print('ERROR: no fastqs were found for {}.'.format(experiment_id))
+            print(f'ERROR: no fastqs were found for {experiment_id}.')
             ERROR_no_fastqs.append(experiment_id)
 
         # Fix ordering of reps to prevent non-consecutive numbering.
@@ -342,37 +347,49 @@ def main():
 
     ctl_nodup_bams = []
     control_run_types = []
-    for control, experiment, is_control, experiment_read_length in zip(
+    for control, experiment, pipeline_type, replicates, experiment_read_length in zip(
             experiment_input_df['possible_controls'],
             experiment_input_df['accession'],
             pipeline_type,
+            experiment_input_df['replicates'],
             experiment_min_read_lengths
     ):
-        if is_control == 'control':
+        if pipeline_type == 'control':
             ctl_nodup_bams.append(None)
             control_run_types.append(None)
             crop_length.append(experiment_read_length)
         elif control == []:
-            print('ERROR: No controls in possible_controls for experiment {}.'.format(experiment))
+            print(f'ERROR: No controls in possible_controls for experiment {experiment}.')
             ERROR_control_error_detected.append(experiment)
             ctl_nodup_bams.append(None)
             control_run_types.append(None)
             crop_length.append(None)
         else:
-            # Go through the list of controls and identify the wildtype control.
-            control_id = None
-            for ctl in control:
-                if ctl['@id'] in wildtype_ctl_ids:
-                    control_id = ctl['@id']
-                    break
-            if control_id is not None:
-                pass
+            if len(control) > 1:
+                # Only check TF ChIP if the antibody is one of the tags; otherwise throw an error if there are more than one controls specified.
+                antibody = set()
+                for rep in replicates:
+                    antibody.add(rep['antibody']['accession'])
+                if ''.join(antibody) in ['ENCAB728YTO', 'ENCAB697XQW'] and pipeline_type == 'tf':
+                    control_id = None
+                    for ctl in control:
+                        if ctl['@id'] in wildtype_ctl_ids:
+                            control_id = ctl['@id']
+                            break
+                    if control_id is not None:
+                        pass
+                    else:
+                        print(f'ERROR: Could not locate wildtype control for {experiment}.')
+                        ERROR_control_error_detected.append(experiment)
+                        ctl_nodup_bams.append(None)
+                        control_run_types.append(None)
+                else:
+                    print(f'ERROR: Too many controls for experiment {experiment}.')
+                    ERROR_control_error_detected.append(experiment)
+                    ctl_nodup_bams.append(None)
+                    control_run_types.append(None)
             else:
-                print('ERROR: Could not locate wildtype control for {}.'.format(experiment))
-                ERROR_control_error_detected.append(experiment)
-                ctl_nodup_bams.append(None)
-                control_run_types.append(None)
-                continue
+                control_id = control[0]['@id']
 
             # Identify run_types in the control
             run_types = set(file_input_df[
@@ -392,21 +409,21 @@ def main():
             crop_length.append(combined_minimum_read_length)
 
             # Gather control bams based on matching read_length
-            try:
-                ctl_nodup_temp_collector = []
-                for rep_num in list(range(1, 11)):
-                    ctl_search = file_input_df[
-                        (file_input_df['dataset'] == control_id) &
-                        (file_input_df['biorep_scalar'] == rep_num) &
-                        (file_input_df['file_format'] == 'bam') &
-                        (file_input_df['cropped_read_length'] < combined_minimum_read_length + 2) &
-                        (file_input_df['cropped_read_length'] > combined_minimum_read_length - 2)
-                        ]
-                    if not ctl_search.empty:
-                        ctl_nodup_temp_collector.append(link_prefix + ctl_search.index.values[0])
+            ctl_nodup_temp_collector = []
+            for rep_num in list(range(1, 11)):
+                ctl_search = file_input_df[
+                    (file_input_df['dataset'] == control_id) &
+                    (file_input_df['biorep_scalar'] == rep_num) &
+                    (file_input_df['file_format'] == 'bam') &
+                    (file_input_df['cropped_read_length'] < combined_minimum_read_length + 2) &
+                    (file_input_df['cropped_read_length'] > combined_minimum_read_length - 2)
+                    ]
+                if not ctl_search.empty:
+                    ctl_nodup_temp_collector.append(link_prefix + ctl_search.index.values[0])
+            if ctl_nodup_temp_collector:
                 ctl_nodup_bams.append(ctl_nodup_temp_collector)
-            except:
-                print('ERROR: no bams found for {}.'.format(experiment))
+            else:
+                print(f'ERROR: no bams found for {experiment}.')
                 ctl_nodup_bams.append(None)
                 ERROR_control_error_detected.append(experiment)
 
@@ -419,7 +436,7 @@ def main():
     for expt_rt, ctl_rt, experiment_accession in zip(experiment_run_types, control_run_types, experiment_input_df.get('accession')):
         if len(expt_rt) > 1 or (ctl_rt is not None and (expt_rt != ctl_rt or len(ctl_rt) > 1)):
             ERROR_not_matching_endedness.append(experiment_accession)
-            print('ERROR: Experiment {} and/or its control have mismatched endedness.'.format(experiment_accession))
+            print(f'ERROR: Experiment {experiment_accession} and/or its control have mismatched endedness.')
             paired_end_final.append(None)
         elif next(iter(expt_rt)) == 'paired-ended':
             paired_end_final.append(True)
@@ -434,8 +451,8 @@ def main():
 
     # Populate the lists of fastqs.
     for val in list(range(1, 11)):
-        output_df['chip.fastqs_rep{}_R1'.format(val)] = fastqs_by_rep_R1_master[val]
-        output_df['chip.fastqs_rep{}_R2'.format(val)] = fastqs_by_rep_R2_master[val]
+        output_df[f'chip.fastqs_rep{val}_R1'] = fastqs_by_rep_R1_master[val]
+        output_df[f'chip.fastqs_rep{val}_R2'] = fastqs_by_rep_R2_master[val]
 
     # Build descriptions using the other parameters.
     description_strings = []
@@ -448,10 +465,10 @@ def main():
     ):
         description_strings.append('{}_{}_{}_{}_{}'.format(
             accession,
-            ('PE' if is_paired_end == True else 'SE'),
+            ('PE' if is_paired_end else 'SE'),
             str(crop_length) + '_crop',
             pipeline_type,
-            ('alignonly' if align_only == True else 'peakcall')
+            ('alignonly' if align_only else 'peakcall')
             ))
     output_df['chip.description'] = description_strings
 
@@ -486,13 +503,13 @@ def main():
                 output_dict[experiment].pop(prop)
         output_dict[experiment].pop('custom_message')
 
-        file_name = '{}.json'.format(output_dict[experiment]['chip.description'])
+        file_name = f'{output_path}{"/" if output_path else ""}{output_dict[experiment]["chip.description"]}.json'
         with open(file_name, 'w') as output_file:
             output_file.write(json.dumps(output_dict[experiment], indent=4))
 
     # Output .txt with caper commands.
     if command_output != '':
-        with open('{}caper_submit_commands.txt'.format(output_path), 'w') as command_output_file:
+        with open(f'{output_path}{"/" if output_path else ""}caper_submit_commands.txt', 'w') as command_output_file:
             command_output_file.write(command_output)
 
 
