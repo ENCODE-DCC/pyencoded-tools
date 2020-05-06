@@ -122,7 +122,7 @@ def main():
 
     if args.infile.endswith('.txt') or args.infile.endswith('.tsv'):
         infile_df = parse_infile(args.infile)
-        infile_df.sort_values(by=['accession'],inplace=True)
+        infile_df.sort_values(by=['accession'], inplace=True)
     else:
         accession_list = args.infile.split(',')
         align_only = strs2bool(args.align_only.split(','))
@@ -132,8 +132,8 @@ def main():
             'align_only': align_only,
             'custom_message': message
         })
-        infile_df.sort_values(by=['accession'],inplace=True)
-    
+        infile_df.sort_values(by=['accession'], inplace=True)
+
     # Arrays to store lists of potential errors.
     ERROR_no_fastqs = []
     ERROR_control_error_detected = []
@@ -163,7 +163,7 @@ def main():
 
     # Retrieve list of wildtype controls
     wildtype_ctl_query_res = requests.get(
-        link_prefix+'/search/?type=Experiment&assay_title=Control+ChIP-seq&replicates.library.biosample.applied_modifications%21=%2A&limit=all',
+        link_prefix+'/search/?type=Experiment&assay_title=Control+ChIP-seq&assay_title=Control+Mint-ChIP-seq&assay_title=Mint-ChIP-seq&control_type=*&replicates.library.biosample.applied_modifications%21=%2A&limit=all',
         auth=keypair,
         headers={'content-type': 'application/json'})
     wildtype_ctl_ids = [ctl['@id'] for ctl in json.loads(wildtype_ctl_query_res.text)['@graph']]
@@ -177,7 +177,7 @@ def main():
     # Retrieve file report view json with necessary fields and store as DataFrame.
     file_input_df = pd.DataFrame()
     chunked_dataset_accessions = [datasets_to_retrieve[x:x+100] for x in range(0, len(datasets_to_retrieve), 100)]
-    for chunk in chunked_dataset_accessions: 
+    for chunk in chunked_dataset_accessions:
         file_report = requests.get(
             build_file_report_query(chunk, server),
             auth=keypair,
@@ -202,11 +202,11 @@ def main():
         output_df['custom_message'] = ''
     output_df.set_index('chip.title', inplace=True, drop=False)
 
-
     # Assign blacklist(s) and genome reference file.
     blacklist = []
     blacklist2 = []
     genome_tsv = []
+    chrom_sizes = []
     for assay, replicates in zip(experiment_input_df.get('assay_title'), experiment_input_df.get('replicates')):
         organism = set()
         for rep in replicates:
@@ -214,6 +214,7 @@ def main():
 
         if ''.join(organism) == 'Homo sapiens':
             genome_tsv.append('gs://encode-pipeline-genome-data/genome_tsv/v2/hg38_gcp.tsv')
+            chrom_sizes.append('https://www.encodeproject.org/files/GRCh38_EBV.chrom.sizes/@@download/GRCh38_EBV.chrom.sizes.tsv')
             if assay == 'Mint-ChIP-seq':
                 blacklist.append('https://www.encodeproject.org/files/ENCFF356LFX/@@download/ENCFF356LFX.bed.gz')
                 blacklist2.append('https://www.encodeproject.org/files/ENCFF023CZC/@@download/ENCFF023CZC.bed.gz')
@@ -222,6 +223,7 @@ def main():
                 blacklist2.append(None)
         elif ''.join(organism) == 'Mus musculus':
             genome_tsv.append('gs://encode-pipeline-genome-data/genome_tsv/v1/mm10_gcp.tsv')
+            chrom_sizes.append('https://www.encodeproject.org/files/mm10_no_alt.chrom.sizes/@@download/mm10_no_alt.chrom.sizes.tsv')
             if assay == 'Mint-ChIP-seq':
                 blacklist.append(None)
                 blacklist2.append(None)
@@ -230,7 +232,8 @@ def main():
                 blacklist2.append(None)
     output_df['chip.blacklist'] = blacklist
     output_df['chip.blacklist2'] = blacklist2
-    output_df['genome_tsv'] = genome_tsv
+    output_df['chip.genome_tsv'] = genome_tsv
+    output_df['chip.chrsz'] = chrom_sizes
 
     '''
     Experiment sorting section
@@ -239,7 +242,7 @@ def main():
     # Determine pipeline types.
     pipeline_type = []
     for assay, ctl_type in zip(experiment_input_df.get('assay_title'), experiment_input_df.get('control_type')):
-        if pd.notna(ctl_type) or assay == 'Control ChIP-seq': 
+        if pd.notna(ctl_type) or assay in ['Control ChIP-seq', 'Control Mint-ChIP-seq']:
             pipeline_type.append('control')
         elif assay == 'TF ChIP-seq':
             pipeline_type.append('tf')
@@ -310,7 +313,7 @@ def main():
         # Record error if no fastqs for found for any replicate.
         if all(val == [] for val in fastqs_by_rep_R1.values()):
             print('ERROR: no fastqs were found for {}.'.format(experiment_id))
-            ERROR_no_fastqs.append(experiment_id) 
+            ERROR_no_fastqs.append(experiment_id)
 
         # Fix ordering of reps to prevent non-consecutive numbering.
         for k in list(range(1, 11)):
@@ -338,14 +341,13 @@ def main():
     '''
 
     ctl_nodup_bams = []
-    control_min_read_length = []
     control_run_types = []
     for control, experiment, is_control, experiment_read_length in zip(
             experiment_input_df['possible_controls'],
             experiment_input_df['accession'],
             pipeline_type,
             experiment_min_read_lengths
-        ):
+    ):
         if is_control == 'control':
             ctl_nodup_bams.append(None)
             control_run_types.append(None)
@@ -383,23 +385,23 @@ def main():
             control_read_lengths = file_input_df[
                     (file_input_df['dataset'] == control_id) &
                     (file_input_df['file_format'] == 'fastq')
-                    ].get('cropped_read_length').tolist()
+                    ].get('read_length').tolist()
 
             # Select the minimum read length out of the files in the experiment and its control, and store the value.
-            combined_minimum_read_length = min([experiment_read_length]+ control_read_lengths)
+            combined_minimum_read_length = min([experiment_read_length] + control_read_lengths)
             crop_length.append(combined_minimum_read_length)
 
             # Gather control bams based on matching read_length
-            try:             
-                ctl_nodup_temp_collector = []    
-                for rep_num in list(range(1,11)):
+            try:
+                ctl_nodup_temp_collector = []
+                for rep_num in list(range(1, 11)):
                     ctl_search = file_input_df[
                         (file_input_df['dataset'] == control_id) &
                         (file_input_df['biorep_scalar'] == rep_num) &
                         (file_input_df['file_format'] == 'bam') &
                         (file_input_df['cropped_read_length'] < combined_minimum_read_length + 2) &
                         (file_input_df['cropped_read_length'] > combined_minimum_read_length - 2)
-                        ]                  
+                        ]
                     if not ctl_search.empty:
                         ctl_nodup_temp_collector.append(link_prefix + ctl_search.index.values[0])
                 ctl_nodup_bams.append(ctl_nodup_temp_collector)
@@ -429,7 +431,7 @@ def main():
     output_df['chip.ctl_nodup_bams'] = ctl_nodup_bams
     output_df['chip.pipeline_type'] = pipeline_type
     output_df['chip.always_use_pooled_ctl'] = [True if x != 'control' else None for x in output_df['chip.pipeline_type']]
-    
+
     # Populate the lists of fastqs.
     for val in list(range(1, 11)):
         output_df['chip.fastqs_rep{}_R1'.format(val)] = fastqs_by_rep_R1_master[val]
@@ -443,7 +445,7 @@ def main():
             output_df['chip.paired_end'],
             output_df['chip.pipeline_type'],
             output_df['chip.align_only']
-        ):
+    ):
         description_strings.append('{}_{}_{}_{}_{}'.format(
             accession,
             ('PE' if is_paired_end == True else 'SE'),
@@ -484,7 +486,7 @@ def main():
                 output_dict[experiment].pop(prop)
         output_dict[experiment].pop('custom_message')
 
-        file_name = '{}.json'.format(output_dict[experiment]['chip.description'])   
+        file_name = '{}.json'.format(output_dict[experiment]['chip.description'])
         with open(file_name, 'w') as output_file:
             output_file.write(json.dumps(output_dict[experiment], indent=4))
 
@@ -492,6 +494,7 @@ def main():
     if command_output != '':
         with open('{}caper_submit_commands.txt'.format(output_path), 'w') as command_output_file:
             command_output_file.write(command_output)
+
 
 if __name__ == '__main__':
     main()
