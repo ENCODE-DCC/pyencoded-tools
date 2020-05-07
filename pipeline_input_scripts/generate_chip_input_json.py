@@ -24,6 +24,8 @@ def get_parser():
                         help="""Pipeline will end after alignments step if True.""")
     parser.add_argument('--custom-message', action='store',
                         help="""An additional custom string to be appended to the messages in the caper submit commands.""")
+    parser.add_argument('--caper-commands-file-message', action='store', default='',
+                        help="""An additional custom string to be appended to the file name of the caper submit commands.""")
     return parser
 
 
@@ -167,6 +169,7 @@ def main():
     output_path = check_path_trailing_slash(args.outputpath)
     wdl_path = args.wdl
     gc_path = args.gcpath
+    caper_commands_file_message = args.caper_commands_file_message
 
     server = check_path_trailing_slash(args.server)
     use_s3 = args.use_s3_uris
@@ -538,7 +541,7 @@ def main():
 
     # Output .txt with caper commands.
     if command_output != '':
-        with open(f'{output_path}{"/" if output_path else ""}caper_submit_commands.txt', 'w') as command_output_file:
+        with open(f'{output_path}{"/" if output_path else ""}caper_submit{"_" if caper_commands_file_message else ""}{caper_commands_file_message}.sh', 'w') as command_output_file:
             command_output_file.write(command_output)
 
 
