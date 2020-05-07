@@ -495,9 +495,31 @@ def main():
     # Output rows of dataframes as input json files.
     output_dict = output_df.to_dict('index')
     command_output = ''
+    # Order for parameters in the input.jsons
+    desired_key_order = [
+        'custom_message',
+        'chip.title',
+        'chip.description',
+        'chip.pipeline_type',
+        'chip.align_only',
+        'chip.paired_end',
+        'chip.crop_length',
+        'chip.genome_tsv',
+        'chip.ref_fa',
+        'chip.bowtie2_idx_tar',
+        'chip.chrsz',
+        'chip.blacklist',
+        'chip.blacklist2',
+        'chip.ctl_nodup_bams',
+        'chip.always_use_pooled_ctl'
+    ]
+    for val in list(range(1, 11)):
+        desired_key_order.extend([f'chip.fastqs_rep{val}_R1', f'chip.fastqs_rep{val}_R2'])
+
     for experiment in output_dict:
+        output_dict[experiment] = {key: output_dict[experiment][key] for key in desired_key_order}
         # Build strings of caper commands.
-        command_output = command_output + 'caper submit {} -i {}{} -s {}{} \n'.format(
+        command_output = command_output + 'caper submit {} -i {}{} -s {}{}\n'.format(
             wdl_path,
             (gc_path + '/' if not gc_path.endswith('/') else gc_path),
             output_dict[experiment]['chip.description'] + '.json',
