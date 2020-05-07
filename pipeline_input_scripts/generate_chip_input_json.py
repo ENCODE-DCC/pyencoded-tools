@@ -203,7 +203,7 @@ def main():
     output_df = pd.DataFrame()
     output_df['chip.title'] = infile_df['accession']
     output_df['chip.align_only'] = infile_df['align_only']
-    if 'message' in infile_df:
+    if 'custom_message' in infile_df:
         output_df['custom_message'] = infile_df['custom_message']
         output_df['custom_message'].fillna('', inplace=True)
     else:
@@ -499,7 +499,7 @@ def main():
         # Build strings of caper commands.
         command_output = command_output + 'caper submit {} -i {}{} -s {}{} \n'.format(
             wdl_path,
-            gc_path,
+            (gc_path + '/' if not gc_path.endswith('/') else gc_path),
             output_dict[experiment]['chip.description'] + '.json',
             output_dict[experiment]['chip.description'],
             ('_' + output_dict[experiment]['custom_message'] if output_dict[experiment]['custom_message'] != '' else ''))
