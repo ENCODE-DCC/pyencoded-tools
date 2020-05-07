@@ -9,7 +9,7 @@ import requests
 def get_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-i', "--infile", required=True, action='store',
-                        help="""Path to .txt file containing accessions of experiments to process or list of accessions separated by commas.""")
+                        help="""Path to .txt file containing accessions of experiments to process or list of accessions separated by commas. The txt file must contain two columns with 1 header row, one labeled 'accession' and another labeled 'align_only'. It can optionally include a 3rd column for 'custom_message'.""")
     parser.add_argument('-o', '--outputpath', action='store', default='',
                         help="""Optional path to output folder. Defaults to current path.""")
     parser.add_argument('-g', '--gcpath', action='store', default='',
@@ -43,7 +43,7 @@ def build_experiment_report_query(experiment_list, server):
         '&field=assay_title' + \
         '&field=control_type' + \
         '&field=possible_controls' + \
-        '&field=replicates.antibody.accession' + \
+        '&field=replicates.antibody.target' + \
         '&field=files.s3_uri' + \
         '&field=files.href' + \
         '&field=replicates.library.biosample.organism.scientific_name' + \
@@ -89,6 +89,9 @@ def parse_infile(infile):
         return infile_df
     except FileNotFoundError as e:
         print(e)
+        exit()
+    except KeyError:
+        print('Missing required align_only column in input file.')
         exit()
 
 
@@ -201,7 +204,7 @@ def main():
     output_df['chip.title'] = infile_df['accession']
     output_df['chip.align_only'] = infile_df['align_only']
     if 'message' in infile_df:
-        output_df['custom_message'] = infile_df['message']
+        output_df['custom_message'] = infile_df['custom_message']
         output_df['custom_message'].fillna('', inplace=True)
     else:
         output_df['custom_message'] = ''
@@ -216,6 +219,7 @@ def main():
     blacklist2 = []
     genome_tsv = []
     chrom_sizes = []
+    ref_fa = []
     for assay, replicates in zip(experiment_input_df.get('assay_title'), experiment_input_df.get('replicates')):
         organism = set()
         for rep in replicates:
@@ -224,6 +228,7 @@ def main():
         if ''.join(organism) == 'Homo sapiens':
             genome_tsv.append('gs://encode-pipeline-genome-data/genome_tsv/v2/hg38_gcp.tsv')
             chrom_sizes.append('https://www.encodeproject.org/files/GRCh38_EBV.chrom.sizes/@@download/GRCh38_EBV.chrom.sizes.tsv')
+            ref_fa.append('https://www.encodeproject.org/files/GRCh38_no_alt_analysis_set_GCA_000001405.15/@@download/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta.gz')
             if assay == 'Mint-ChIP-seq':
                 blacklist.append('https://www.encodeproject.org/files/ENCFF356LFX/@@download/ENCFF356LFX.bed.gz')
                 blacklist2.append('https://www.encodeproject.org/files/ENCFF023CZC/@@download/ENCFF023CZC.bed.gz')
@@ -233,6 +238,7 @@ def main():
         elif ''.join(organism) == 'Mus musculus':
             genome_tsv.append('gs://encode-pipeline-genome-data/genome_tsv/v1/mm10_gcp.tsv')
             chrom_sizes.append('https://www.encodeproject.org/files/mm10_no_alt.chrom.sizes/@@download/mm10_no_alt.chrom.sizes.tsv')
+            ref_fa.append('https://www.encodeproject.org/files/mm10_no_alt_analysis_set_ENCODE/@@download/mm10_no_alt_analysis_set_ENCODE.fasta.gz')
             if assay == 'Mint-ChIP-seq':
                 blacklist.append(None)
                 blacklist2.append(None)
@@ -243,6 +249,7 @@ def main():
     output_df['chip.blacklist2'] = blacklist2
     output_df['chip.genome_tsv'] = genome_tsv
     output_df['chip.chrsz'] = chrom_sizes
+    output_df['chip.ref_fa'] = ref_fa
 
     # Determine pipeline types.
     pipeline_type = []
@@ -366,11 +373,12 @@ def main():
             crop_length.append(None)
         else:
             if len(control) > 1:
-                # Only check TF ChIP if the antibody is one of the tags; otherwise throw an error if there are more than one controls specified.
+                # Only check TF ChIP if the antibody is eGFP; otherwise throw
+                # an error if there are more than one controls specified.
                 antibody = set()
                 for rep in replicates:
-                    antibody.add(rep['antibody']['accession'])
-                if ''.join(antibody) in ['ENCAB728YTO', 'ENCAB697XQW'] and pipeline_type == 'tf':
+                    antibody.add(rep['antibody']['target'])
+                if ''.join(antibody) == '/targets/eGFP-avictoria/' and pipeline_type == 'tf':
                     control_id = None
                     for ctl in control:
                         if ctl['@id'] in wildtype_ctl_ids:
@@ -404,7 +412,8 @@ def main():
                     (file_input_df['file_format'] == 'fastq')
                     ].get('read_length').tolist()
 
-            # Select the minimum read length out of the files in the experiment and its control, and store the value.
+            # Select the minimum read length out of the files in the experiment
+            # and its control, and store the value.
             combined_minimum_read_length = min([experiment_read_length] + control_read_lengths)
             crop_length.append(combined_minimum_read_length)
 
@@ -475,10 +484,8 @@ def main():
     # Clean up the pipeline_type data - submit all 'controls' as 'tf'
     output_df['chip.pipeline_type'].replace(to_replace='control', value='tf', inplace=True)
 
-    # Variables same for all
-    output_df['chip.ref_fa'] = 'https://www.encodeproject.org/files/GRCh38_no_alt_analysis_set_GCA_000001405.15/@@download/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta.gz'
+    # Same bowtie2 index for all.
     output_df['chip.bowtie2_idx_tar'] = 'https://www.encodeproject.org/files/ENCFF110MCL/@@download/ENCFF110MCL.tar.gz'
-    output_df['chip.bwa_idx_tar'] = 'https://www.encodeproject.org/files/ENCFF643CGH/@@download/ENCFF643CGH.tar.gz'
 
     # Remove any experiments with errors from the table.
     output_df.drop(
