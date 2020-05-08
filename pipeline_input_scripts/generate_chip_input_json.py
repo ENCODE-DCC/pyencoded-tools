@@ -255,14 +255,14 @@ def main():
     output_df['chip.ref_fa'] = ref_fa
 
     # Determine pipeline types.
-    pipeline_type = []
+    pipeline_types = []
     for assay, ctl_type in zip(experiment_input_df.get('assay_title'), experiment_input_df.get('control_type')):
         if pd.notna(ctl_type) or assay in ['Control ChIP-seq', 'Control Mint-ChIP-seq']:
-            pipeline_type.append('control')
+            pipeline_types.append('control')
         elif assay == 'TF ChIP-seq':
-            pipeline_type.append('tf')
+            pipeline_types.append('tf')
         elif assay in ['Histone ChIP-seq', 'Mint-ChIP-seq']:
-            pipeline_type.append('histone')
+            pipeline_types.append('histone')
 
     # Arrays which will be added to the master Dataframe for all experiments
     crop_length = []
@@ -360,7 +360,7 @@ def main():
     for control, experiment, pipeline_type, replicates, experiment_read_length in zip(
             experiment_input_df['possible_controls'],
             experiment_input_df['accession'],
-            pipeline_type,
+            pipeline_types,
             experiment_input_df['replicates'],
             experiment_min_read_lengths
     ):
@@ -458,9 +458,9 @@ def main():
             paired_end_final.append(False)
     output_df['chip.paired_end'] = paired_end_final
 
-    output_df['chip.crop_length'] = [int(x) if x is not None else None for x in crop_length]
+    output_df['chip.crop_length'] = [int(x) if x is not None else '' for x in crop_length]
     output_df['chip.ctl_nodup_bams'] = ctl_nodup_bams
-    output_df['chip.pipeline_type'] = pipeline_type
+    output_df['chip.pipeline_type'] = pipeline_types
     output_df['chip.always_use_pooled_ctl'] = [True if x != 'control' else None for x in output_df['chip.pipeline_type']]
 
     # Populate the lists of fastqs.
@@ -486,7 +486,12 @@ def main():
             ))
     output_df['chip.description'] = description_strings
 
-    # Clean up the pipeline_type data - submit all 'controls' as 'tf'
+    # Clean up the pipeline_type data - flag cases where controls are not 'align_only', then submit all 'controls' as 'tf'
+    ERROR_controls_not_align_only = output_df[
+        (output_df['chip.pipeline_type'] == 'control') &
+        (output_df['chip.align_only'] == False)].get('chip.title').tolist()
+    for expt in ERROR_controls_not_align_only:
+        print(f'ERROR: {expt} is a control but was not align_only.')
     output_df['chip.pipeline_type'].replace(to_replace='control', value='tf', inplace=True)
 
     # Same bowtie2 index for all.
@@ -494,7 +499,10 @@ def main():
 
     # Remove any experiments with errors from the table.
     output_df.drop(
-        ERROR_control_error_detected + ERROR_no_fastqs + ERROR_not_matching_endedness,
+        ERROR_control_error_detected +
+        ERROR_no_fastqs +
+        ERROR_not_matching_endedness +
+        ERROR_controls_not_align_only,
         inplace=True)
 
     # Output rows of dataframes as input json files.
@@ -533,7 +541,7 @@ def main():
 
         # Remove empty properties and the custom message property.
         for prop in list(output_dict[experiment]):
-            if output_dict[experiment][prop] in (None, [], [None]):
+            if output_dict[experiment][prop] in (None, [], [None], ''):
                 output_dict[experiment].pop(prop)
         output_dict[experiment].pop('custom_message')
 
