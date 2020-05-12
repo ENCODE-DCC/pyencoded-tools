@@ -532,7 +532,7 @@ def main():
     for experiment in output_dict:
         output_dict[experiment] = {key: output_dict[experiment][key] for key in desired_key_order}
         # Build strings of caper commands.
-        command_output = command_output + 'caper submit {} -i {}{} -s {}{}\n'.format(
+        command_output = command_output + 'caper submit {} -i {}{} -s {}{}\nsleep 1\n'.format(
             wdl_path,
             (gc_path + '/' if not gc_path.endswith('/') else gc_path),
             output_dict[experiment]['chip.description'] + '.json',
