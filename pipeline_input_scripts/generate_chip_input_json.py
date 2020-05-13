@@ -284,7 +284,7 @@ def main():
     experiment_min_read_lengths = []
     experiment_run_types = []
 
-    for experiment_files, experiment_id in zip(experiment_input_df['files'], experiment_input_df['@id']):
+    for experiment_files, experiment_id in zip(experiment_input_df['files'], experiment_input_df['accession']):
         # Arrays for files within each experiment
         fastqs_by_rep_R1 = {
             1: [], 2: [],
