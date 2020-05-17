@@ -32,7 +32,7 @@ def split_on_column(fh, folder, col=3):
             pass
     except FileExistsError:
         pass
-    
+
     try:
         flines = fh.readlines()
     except AttributeError:
@@ -46,10 +46,10 @@ def split_on_column(fh, folder, col=3):
         for t in fields[col].split('+'):
             t = re.sub('/', '::', t)
             peaks[t] = peaks.get(t,[])
-            peaks[t].append("\t".join(fields[0:col-1]+[t]+fields[col+1:])+"\n")
+            peaks[t].append("\t".join(fields[0:col]+[t]+fields[col+1:])+"\n")
 
     return peaks
-    
+
 def gzip_md5_fh(fh, bucket, key):
 
     gz_body = BytesIO()
@@ -61,7 +61,7 @@ def gzip_md5_fh(fh, bucket, key):
         # it's a list of strings
         for l in fh:
             gz.write(l.encode('utf8'))
-            
+
     gz.close()
     try:
         put_res = s3.put_object(Bucket=bucket, Key=key+'.gz', Body=gz_body.getvalue())
@@ -111,7 +111,7 @@ def lambda_handler(event, context):
     if split_column:
         new_folder = os.path.basename(key).split('.')
         old_folder = os.path.dirname(key)
-        new_folder = new_folder[0]
+        new_folder = new_folder[0] + '_PWM_split'
         print("{} :: {}".format(old_folder, new_folder))
         peaks = split_on_column(response['Body'], new_folder, col=split_column)
         for target in peaks.keys():
