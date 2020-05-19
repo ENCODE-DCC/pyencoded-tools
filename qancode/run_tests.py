@@ -11,12 +11,47 @@ import shutil
 import sys
 
 sys.path.insert(0, os.path.expanduser('~/pyencoded-tools'))
-from qancode.qancode import QANCODE
+from qancode import QANCODE
 
 
 def get_parser():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("testurl", action='store', help="""URL of the RC or demo.""")
+    parser.add_argument(
+        "compare_url",
+        action='store',
+        default='https://www.encodeproject.org',
+        help="""URL of standard to compare test url."""
+    )
+    parser.add_argument("--dry-run", action='store_true', help="""Just print some stuff.""")
+    parser.add_argument(
+        '-t',
+        '--test-users',
+        nargs='*',
+        default=['2', '4'],
+        help="""Which test users to run with."""
+    )
+    parser.add_argument(
+        '-s',
+        "--skip-public-user",
+        action='store_true',
+        default=False,
+        help="""Do not run public user tests."""
+    )
+    parser.add_argument(
+        '-b',
+        "--browsers",
+        nargs='*',
+        default=['Chrome-headless', 'Firefox-headless'],
+        help="""Which browsers to run with."""
+    )
+    parser.add_argument(
+        '-p',
+        "--processes",
+        nargs='*',
+        default=['compare_facets', 'check_trackhubs', 'find_differences'],
+        help="""Which browsers to run with."""
+    )
     return parser
 
 
@@ -32,10 +67,14 @@ def clean_old_cookies():
 
 def generate_user_browser_tuples(browsers, users):
     user_browser = []
-    shuffled_browsers = [0, 1, random.randint(0, 1)]
-    random.shuffle(shuffled_browsers)
-    for user, browser_index in zip(users, shuffled_browsers):
-        user_browser.append((user, browsers[browser_index]))
+    if len(browsers) > 1:
+        shuffled_browsers = [0, 1, random.randint(0, 1)]
+        random.shuffle(shuffled_browsers)
+        for user, browser_index in zip(users, shuffled_browsers):
+            user_browser.append((user, browsers[browser_index]))
+    else:
+        for user in users:
+            user_browser.append((user, browsers[0]))
     return user_browser
 
 
@@ -74,6 +113,7 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
     rc_url = args.testurl
+    prod_url = args.compare_url
 
     clean_old_cookies()
     if os.path.exists(os.path.expanduser('~/output')):
@@ -83,28 +123,36 @@ def main():
         shutil.rmtree(os.path.expanduser('~/output'))
     os.mkdir(os.path.expanduser('~/output'))
 
-    qa = QANCODE(rc_url=rc_url)
-    browsers = ['Chrome-headless', 'Firefox-headless']
+    qa = QANCODE(rc_url=rc_url, prod_url=prod_url)
+    browsers = args.browsers
+    processes = args.processes
     users = [
-        'Public',
-        # 'encoded.test1@gmail.com',
-        'encoded.test2@gmail.com',
-        # 'encoded.test3@gmail.com',
-        'encoded.test4@gmail.com'
+        "encoded.test@gmail.com" if test_users_number == '1' else "encoded.test" + test_users_number + "@gmail.com"
+        for test_users_number in args.test_users
     ]
-    return qa, browsers, users
+    if not args.skip_public_user:
+        users.insert(0, 'Public')
+    print(f"Comparing {rc_url} to {prod_url}")
+    print(f"for processes: {processes}")
+    print(f"with browsers: {browsers}")
+    print(f"and users: {users}\n")
+    if not args.dry_run and qa and browsers and users:
+        _run(qa, browsers, users, processes)
 
 
-if __name__ == '__main__':
-    qa, browsers, users = main()
+def _run(qa, browsers, users, processes):
     print('Start: {}'.format(datetime.datetime.now()))
-    cf_process = multiprocessing.Process(target=run_compare_facets, args=(qa, browsers, users))
-    ct_process = multiprocessing.Process(target=run_check_trackhubs, args=(qa, browsers, users))
-    fd_process = multiprocessing.Process(target=run_find_differences, args=(qa, browsers, users))
-    cf_process.start()
-    ct_process.start()
-    fd_process.start()
-    cf_process.join()
-    ct_process.join()
-    fd_process.join()
+    run_procs = []
+    for proc in processes:
+        func_name = f"run_{proc}"
+        func = globals()[func_name]
+        run_procs.append(
+            multiprocessing.Process(target=func, args=(qa, browsers, users))
+        )
+    for run_proc in run_procs:
+        run_proc.start()
+    for run_proc in run_procs:
+        run_proc.join()
     print('End: {}'.format(datetime.datetime.now()))
+if __name__ == '__main__':
+    main()

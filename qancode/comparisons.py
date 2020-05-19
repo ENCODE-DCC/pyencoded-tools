@@ -5,7 +5,7 @@ import re
 
 from abc import ABCMeta, abstractmethod
 
-from .defaults import bcolors
+from defaults import bcolors
 
 ##############################################
 # Abstract method for data comparison tasks. #
