@@ -8,7 +8,7 @@ import sys
 import urllib
 import pandas as pd
 
-from clickpaths import (DownloadBEDFileFromModal,
+from qancode.clickpaths import (DownloadBEDFileFromModal,
                          DownloadBEDFileFromTable,
                          DownloadDocuments,
                          DownloadDocumentsFromAntibodyPage,
@@ -39,22 +39,22 @@ from clickpaths import (DownloadBEDFileFromModal,
                          OpenUCSCGenomeBrowserMM10MinimalfromExperiment,
                          OpenUCSCGenomeBrowserMM9fromExperiment,
                          ClickSearchResultItem)
-from comparisons import (BrowserComparison,
+from qancode.comparisons import (BrowserComparison,
                           CompareFacetNumbersBetweenBrowsers,
                           CompareFacetNumbersBetweenURLS,
                           CompareScreenShots,
                           URLComparison)
-from defaults import (USERS,
+from qancode.defaults import (USERS,
                        BROWSERS,
                        bcolors,
                        ActionTuples)
-from tasks import (DownloadFiles,
+from qancode.tasks import (DownloadFiles,
                     Driver,
                     GetFacetNumbers,
                     GetScreenShot,
                     SeleniumTask,
                     SignIn)
-from worker import DataWorker, DataManager
+from qancode.worker import DataWorker, DataManager
 
 ################################################################
 # QANCODE object gets data, compares data using defined tasks. #
