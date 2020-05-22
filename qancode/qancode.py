@@ -124,6 +124,7 @@ class QANCODE(ActionTuples):
                                                                  rc_url=self.rc_url,
                                                                  item_type=item_type,
                                                                  click_path=None,
+                                                                 output_directory=None,
                                                                  all_data=dm.all_data)
                         cfn_url.compare_data()
         if browser_comparison:
@@ -194,6 +195,7 @@ class QANCODE(ActionTuples):
                          action_tuples=None,
                          item_types='all',
                          click_paths=[None],
+                         output_directory=None,
                          task=GetScreenShot):
         """
         Does image diff for given item_types. If click_path defined will
@@ -231,6 +233,7 @@ class QANCODE(ActionTuples):
                                                  rc_url=self.rc_url,
                                                  item_type=item_type,
                                                  click_path=click_path,
+                                                 output_directory=output_directory,
                                                  all_data=dm.all_data)
                         result = css.compare_data()
                         results.append(result)
@@ -261,7 +264,7 @@ class QANCODE(ActionTuples):
         except AttributeError:
             print('No image diffs found')
 
-    def check_trackhubs(self, browsers=['Safari'], users=['Public'], action_tuples=None):
+    def check_trackhubs(self, browsers=['Safari'], users=['Public'], action_tuples=None, output_directory=None):
         """
         Runs find_differences() image diff for selected list of trackhub
         actions.
@@ -271,16 +274,16 @@ class QANCODE(ActionTuples):
         if action_tuples is None:
             action_tuples = trackhub_actions
         self.find_differences(users=users, browsers=browsers,
-                              action_tuples=action_tuples)
+                              action_tuples=action_tuples, output_directory=output_directory)
 
-    def check_permissions(self, browsers=['Safari'], users=['Public']):
+    def check_permissions(self, browsers=['Safari'], users=['Public'], output_directory=None):
         """
         Runs find_differences() image diff on permission check pages.
         """
         print('Running check permissions')
         permission_actions = self.check_permissions_default_actions
         self.find_differences(users=users, browsers=browsers,
-                              action_tuples=permission_actions)
+                              action_tuples=permission_actions, output_directory=None)
 
     def check_downloads(self,
                         browsers='all',
