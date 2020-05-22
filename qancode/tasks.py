@@ -22,7 +22,7 @@ from selenium.webdriver.common.by import By
 from tqdm import tqdm
 from urllib.parse import urlparse
 
-from .clickpaths import (DownloadBEDFileFromModal,
+from clickpaths import (DownloadBEDFileFromModal,
                          DownloadBEDFileFromTable,
                          DownloadDocuments,
                          DownloadDocumentsFromAntibodyPage,
@@ -53,8 +53,8 @@ from .clickpaths import (DownloadBEDFileFromModal,
                          OpenUCSCGenomeBrowserMM10MinimalfromExperiment,
                          OpenUCSCGenomeBrowserMM9fromExperiment,
                          ClickSearchResultItem)
-from .defaults import BROWSERS, USERS, bcolors
-from .pageobjects import (AntibodyPage,
+from defaults import BROWSERS, USERS, bcolors
+from pageobjects import (AntibodyPage,
                           DocumentPreview,
                           DownloadModal,
                           ExperimentPage,

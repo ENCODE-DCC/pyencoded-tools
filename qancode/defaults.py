@@ -1,4 +1,4 @@
-from .clickpaths import (DownloadBEDFileFromModal,
+from clickpaths import (DownloadBEDFileFromModal,
                          DownloadBEDFileFromTable,
                          DownloadDocuments,
                          DownloadDocumentsFromAntibodyPage,

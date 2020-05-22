@@ -2,7 +2,7 @@ import time
 import sys
 import traceback
 
-from .clickpaths import (DownloadBEDFileFromModal,
+from clickpaths import (DownloadBEDFileFromModal,
                          DownloadBEDFileFromTable,
                          DownloadDocuments,
                          DownloadDocumentsFromAntibodyPage,
@@ -33,8 +33,8 @@ from .clickpaths import (DownloadBEDFileFromModal,
                          OpenUCSCGenomeBrowserMM10MinimalfromExperiment,
                          OpenUCSCGenomeBrowserMM9fromExperiment,
                          ClickSearchResultItem)
-from .defaults import bcolors
-from .tasks import Driver, SignIn
+from defaults import bcolors
+from tasks import Driver, SignIn
 
 ################################################
 # Classes for running Selenium tasks robustly. #

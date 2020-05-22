@@ -6,7 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import select
 
-from .pageobjects import (AntibodyPage,
+from pageobjects import (AntibodyPage,
                           DocumentPreview,
                           DownloadModal,
                           ExperimentPage,
