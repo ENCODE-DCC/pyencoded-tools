@@ -1,4 +1,4 @@
-from clickpaths import (DownloadBEDFileFromModal,
+from qancode.clickpaths import (DownloadBEDFileFromModal,
                          DownloadBEDFileFromTable,
                          DownloadDocuments,
                          DownloadDocumentsFromAntibodyPage,
