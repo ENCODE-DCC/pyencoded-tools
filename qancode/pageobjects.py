@@ -13,6 +13,7 @@ class FrontPage:
     menu_button_data_css = '#main > ul > li:nth-child(1) > a'
     menu_button_data_alt_css = '#main > ul > li:nth-child(1) > button'
     drop_down_search_button_css = '#main > ul > li.dropdown.open > ul > li:nth-child(2) > a'
+    covid_survey_banner_button_css = '#walkme-survey-balloon-69379 > div > div.walkme-custom-balloon-inner-div > div.walkme-custom-balloon-top-div > div > div.walkme-click-and-hover.walkme-custom-balloon-close-button.walkme-action-close.walkme-inspect-ignore'
 
 
 class SignInModal:
