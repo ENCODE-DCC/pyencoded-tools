@@ -1,2 +1,0 @@
-curl -L -H "Accept: application/json" --user UISQC32B:ikc2wbs27minvwo4 "REPLACEME/files/ENCFF002BYE/@@download/ENCFF002BYE.tsv" > curl.ENCFF002BYE.test2
-wget --header="X-Auth-Challenge: true" --user=UISQC32B --password=ikc2wbs27minvwo4 "REPLACEME/files/ENCFF002BYE/@@download/ENCFF002BYE.tsv" -O wget.ENCFF002BYE.test2
