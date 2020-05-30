@@ -5,6 +5,7 @@ import os
 import requests
 import subprocess
 import sys
+import time
 import urllib
 import pandas as pd
 
@@ -524,7 +525,9 @@ class QANCODE(ActionTuples):
             'queue_time_stdev': [],
             'render_time_stdev': [],
             'wsgi_time_stdev': [],
-            'total_time_stdev': []
+            'total_time_stdev': [],
+            'ts_start': [],
+            'ts_end': [],
         }
         response_types = ['es_time', 'queue_time','render_time','wsgi_time','total_time']
         with open(output_path, 'w') as f:
@@ -537,7 +540,9 @@ class QANCODE(ActionTuples):
                     data['server'].append(url)
                     if item is not None:
                         url = url + item
+                    data['ts_start'].append(time.time())
                     response = self._average_time_for_get(url, n)
+                    data['ts_end'].append(time.time())
                     for response_type in response_types:
                         try:
                             data[response_type].append(response[response_type][0])
