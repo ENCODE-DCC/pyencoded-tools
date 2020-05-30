@@ -3,6 +3,7 @@
 import argparse
 import datetime
 import glob
+import logging
 import os
 import sys
 
@@ -42,13 +43,14 @@ def _parse_args():
     # Flags
     parser.add_argument('-a', '--alt-format', action='store_true', help='Create alt output txt')
     parser.add_argument('-d', '--dry-run', action='store_true', help='Print info, setup output dir.')
+    parser.add_argument('-o', '--output-append', action='store_true', help='Single output file')
     parser.add_argument('-p', '--plot-data', action='store_true', help='Create plot png')
     parser.add_argument('-v', '--verbose', action='store_true', help='Print more!')
     args = parser.parse_args()
     return args
 
 
-def _setup_data_dir(dut_tag, all_data_dir='./profiling_output'):
+def _setup_data_dir(dut_tag, all_data_dir='./profiling_output', output_append=False):
     all_data_dir = os.path.expanduser(all_data_dir)
     if not os.path.exists(all_data_dir):
         os.mkdir(all_data_dir)
@@ -61,7 +63,8 @@ def _setup_data_dir(dut_tag, all_data_dir='./profiling_output'):
         run_number = int(os.path.basename(file_path).split('_', 1)[0])
         if run_number > next_run_number:
             next_run_number = run_number
-    next_run_number += 1
+    if not output_append:
+        next_run_number += 1
     tag_data_dir = f"{tag_data_dir}/{next_run_number}"
     return tag_data_dir
    
@@ -143,7 +146,7 @@ def _save_pyplt(output_path, std_url, dut_url, item_types, info):
 def main():
     args = _parse_args()
     # Set data output directory
-    tag_data_dir = _setup_data_dir(args.dut_tag)
+    tag_data_dir = _setup_data_dir(args.dut_tag, output_append=args.output_append)
     check_response_output_path = f"{tag_data_dir}_check-response-time.txt"
     check_response_output_plot_path = f"{tag_data_dir}_check-response-time-plot"
     # Create qancode
@@ -164,7 +167,8 @@ def main():
         item_types=args.item_types, 
         n=args.number_of_trials, 
         output_path=check_response_output_path,
-        alt_format=args.alt_format, 
+        alt_format=args.alt_format,
+        append_output=args.output_append,
     )
     end_time = datetime.datetime.now()
     end_time_str=end_time.strftime('%Y-%m-%d_%H-%M-%S_%f')

@@ -9,6 +9,8 @@ import time
 import urllib
 import pandas as pd
 
+from pathlib import Path
+
 from qancode.clickpaths import (DownloadBEDFileFromModal,
                          DownloadBEDFileFromTable,
                          DownloadDocuments,
@@ -506,7 +508,8 @@ class QANCODE(ActionTuples):
         item_types=[None],
         n=10,
         output_path=os.path.expanduser('~/Desktop/check_response_time.txt'),
-        alt_format=True
+        alt_format=True,
+        append_output=False,
     ):
         if urls is None:
             urls = [self.prod_url, self.rc_url]
@@ -530,7 +533,12 @@ class QANCODE(ActionTuples):
             'ts_end': [],
         }
         response_types = ['es_time', 'queue_time','render_time','wsgi_time','total_time']
-        with open(output_path, 'w') as f:
+        output_mode = 'w'
+        header=True
+        if append_output and Path(output_path).is_file():
+            output_mode = 'a'
+            header=False
+        with open(output_path, output_mode) as f:
             output_results = {}
             for item in item_types:
                 output = {}
@@ -554,7 +562,7 @@ class QANCODE(ActionTuples):
                 output_results[item] = output
 
             outdf = pd.DataFrame(data)
-            outdf.to_csv(path_or_buf=f, sep='\t', mode='a', index=False)
+            outdf.to_csv(path_or_buf=f, sep='\t', mode='a', index=False, header=header)
 
         if alt_format:
             stdev_to_avg_map = {
