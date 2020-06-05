@@ -74,8 +74,10 @@ def build_file_report_query(experiment_list, server):
         '&field=paired_end' + \
         '&field=paired_with' + \
         '&field=run_type' + \
+        '&field=mapped_run_type' + \
         '&field=read_length' + \
         '&field=cropped_read_length' + \
+        '&field=cropped_read_length_tolerance' + \
         '&field=status' + \
         '&field=s3_uri' + \
         '&field=href' + \
@@ -356,11 +358,12 @@ def main():
     '''
 
     ctl_nodup_bams = []
-    control_run_types = []
-    for control, experiment, pipeline_type, replicates, experiment_read_length in zip(
+    final_run_types = []
+    for control, experiment, pipeline_type, experiment_run_type, replicates, experiment_read_length in zip(
             experiment_input_df['possible_controls'],
             experiment_input_df['accession'],
             pipeline_types,
+            experiment_run_types,
             experiment_input_df['replicates'],
             experiment_min_read_lengths
     ):
@@ -404,7 +407,16 @@ def main():
                         (file_input_df['dataset'] == control_id) &
                         (file_input_df['file_format'] == 'fastq')
                         ].get('run_type'))
-                control_run_types.append(run_types)
+                if 'single-ended' in run_types or 'single-ended' in experiment_run_type:
+                    final_run_type = 'single-ended'
+                    final_run_types.append(False)
+                elif next(iter(run_types)) == 'paired-ended' and next(iter(experiment_run_type)) == 'paired-ended':
+                    final_run_type = 'paired_ended'
+                    final_run_types.append(True)
+                else:
+                    ERROR_not_matching_endedness.append(experiment)
+                    print(f'ERROR: Could not determine correct endedness for experiment {experiment} and its control.')
+                    raise Warning
 
                 # Collect read_lengths in the control
                 control_read_lengths = file_input_df[
@@ -424,40 +436,35 @@ def main():
                         (file_input_df['dataset'] == control_id) &
                         (file_input_df['biorep_scalar'] == rep_num) &
                         (file_input_df['file_format'] == 'bam') &
+                        (file_input_df['mapped_run_type'] == final_run_type) &
                         (file_input_df['cropped_read_length'] < combined_minimum_read_length + 2) &
                         (file_input_df['cropped_read_length'] > combined_minimum_read_length - 2)
-                        ]
+                    ]
                     if not ctl_search.empty:
-                        ctl_nodup_temp_collector.append(link_prefix + ctl_search.index.values[0])
-                if ctl_nodup_temp_collector:
-                    ctl_nodup_bams.append(ctl_nodup_temp_collector)
-                else:
+                        if ctl_search['cropped_read_length_tolerance'].values[0] == 2:
+                            ctl_nodup_temp_collector.append(link_prefix + ctl_search.index.values[0])
+                        else:
+                            print(f'ERROR: Tolerance of control bam {ctl_search["@id"].values[0]} is not 2 bp.')
+                            ctl_nodup_temp_collector.append(None)
+                if not ctl_nodup_temp_collector:
                     print(f'ERROR: no bams found for {experiment}.')
                     ctl_nodup_bams.append(None)
                     ERROR_control_error_detected.append(experiment)
+                elif None in ctl_nodup_temp_collector:
+                    ctl_nodup_bams.append(None)
+                    ERROR_control_error_detected.append(experiment)
+                else:
+                    ctl_nodup_bams.append(ctl_nodup_temp_collector)
         except Warning:
             ERROR_control_error_detected.append(experiment)
             ctl_nodup_bams.append(None)
-            control_run_types.append(None)
+            final_run_types.append(None)
             crop_length.append(None)
 
     '''
     Assign all remaining missing properties in the master dataframe.
     '''
-
-    # Check that all fastqs in experiment and its control have the same endedness.
-    paired_end_final = []
-    for expt_rt, ctl_rt, experiment_accession in zip(experiment_run_types, control_run_types, experiment_input_df.get('accession')):
-        if len(expt_rt) > 1 or (ctl_rt is not None and (expt_rt != ctl_rt or len(ctl_rt) > 1)):
-            ERROR_not_matching_endedness.append(experiment_accession)
-            print(f'ERROR: Experiment {experiment_accession} and/or its control have mismatched endedness.')
-            paired_end_final.append(None)
-        elif next(iter(expt_rt)) == 'paired-ended':
-            paired_end_final.append(True)
-        elif next(iter(expt_rt)) == 'single-ended':
-            paired_end_final.append(False)
-    output_df['chip.paired_end'] = paired_end_final
-
+    output_df['chip.paired_end'] = final_run_types
     output_df['chip.crop_length'] = [int(x) if x is not None else '' for x in crop_length]
     output_df['chip.ctl_nodup_bams'] = ctl_nodup_bams
     output_df['chip.pipeline_type'] = pipeline_types
@@ -494,8 +501,9 @@ def main():
         print(f'ERROR: {expt} is a control but was not align_only.')
     output_df['chip.pipeline_type'].replace(to_replace='control', value='tf', inplace=True)
 
-    # Same bowtie2 index for all.
+    # Assign parameters that are identical for all runs.
     output_df['chip.bowtie2_idx_tar'] = 'https://www.encodeproject.org/files/ENCFF110MCL/@@download/ENCFF110MCL.tar.gz'
+    output_df['chip.crop_length_tol'] = 2
 
     # Remove any experiments with errors from the table.
     output_df.drop(
