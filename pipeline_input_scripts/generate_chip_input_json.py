@@ -541,7 +541,7 @@ def main():
 
         # Remove empty properties and the custom message property.
         for prop in list(output_dict[experiment]):
-            if output_dict[experiment][prop] in (None, [], [None], ''):
+            if output_dict[experiment][prop] in (None, [], '') or (type(output_dict[experiment][prop]) == list and None in output_dict[experiment][prop]):
                 output_dict[experiment].pop(prop)
         output_dict[experiment].pop('custom_message')
 
