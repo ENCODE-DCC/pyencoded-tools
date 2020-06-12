@@ -370,7 +370,7 @@ def main():
         try:
             if pipeline_type == 'control':
                 ctl_nodup_bams.append(None)
-                control_run_types.append(None)
+                final_run_types.append(None)
                 crop_length.append(experiment_read_length)
             elif control == []:
                 print(f'ERROR: No controls in possible_controls for experiment {experiment}.')
