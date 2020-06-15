@@ -351,7 +351,10 @@ def main():
             fastqs_by_rep_R2_master[rep_num].append(fastqs_by_rep_R2[rep_num])
 
         experiment_min_read_lengths.append(min(experiment_read_lengths))
-        experiment_run_types.append(run_types)
+        if 'single-ended' in run_types:
+            experiment_run_types.append('single-ended')
+        elif next(iter(run_types)) == 'paired-ended':
+            experiment_run_types.append('paired-ended')
 
     '''
     Control sorting section
@@ -370,7 +373,7 @@ def main():
         try:
             if pipeline_type == 'control':
                 ctl_nodup_bams.append(None)
-                final_run_types.append(None)
+                final_run_types.append(False if experiment_run_type == 'single-ended' else True)
                 crop_length.append(experiment_read_length)
             elif control == []:
                 print(f'ERROR: No controls in possible_controls for experiment {experiment}.')
@@ -407,10 +410,10 @@ def main():
                         (file_input_df['dataset'] == control_id) &
                         (file_input_df['file_format'] == 'fastq')
                         ].get('run_type'))
-                if 'single-ended' in run_types or 'single-ended' in experiment_run_type:
+                if 'single-ended' in run_types or experiment_run_type == 'single-ended':
                     final_run_type = 'single-ended'
                     final_run_types.append(False)
-                elif next(iter(run_types)) == 'paired-ended' and next(iter(experiment_run_type)) == 'paired-ended':
+                elif next(iter(run_types)) == 'paired-ended' and experiment_run_type == 'paired-ended':
                     final_run_type = 'paired_ended'
                     final_run_types.append(True)
                 else:
@@ -548,6 +551,9 @@ def main():
             ('_' + output_dict[experiment]['custom_message'] if output_dict[experiment]['custom_message'] != '' else ''))
 
         # Remove empty properties and the custom message property.
+        if output_dict[experiment]['chip.paired_end'] == False:
+            for prop in [x for x in list(output_dict[experiment]) if x.endswith('_R2')]:
+                output_dict[experiment].pop(prop)
         for prop in list(output_dict[experiment]):
             if output_dict[experiment][prop] in (None, [], '') or (type(output_dict[experiment][prop]) == list and None in output_dict[experiment][prop]):
                 output_dict[experiment].pop(prop)
