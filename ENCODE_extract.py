@@ -131,18 +131,28 @@ class Data_Extract():
         '''builds the PROFILES reference dictionary
         keysLink is the list of keys that point to links,
         used in the PROFILES'''
-        print (object_type)
+        #print ("=====================")
+        #print (object_type)
         d = dictionary["properties"]
 
         for prop in d.keys():
-                if d[prop].get("linkTo") or d[prop].get("linkFrom"):
+                if d[prop].get("linkTo") and d[prop].get("linkTo") not in self.EXCLUDED and not d[prop].get('notSubmittable'): # or d[prop].get("linkFrom"):
+                    #print (d[prop])
                     self.keysLink.append(prop)
+                    #print (prop)
                 else:
-                    if d[prop].get("items"):
+                    if d[prop].get("items") and (not d[prop].get('notSubmittable') or prop == 'files'):
                         i = d[prop].get("items")
-                        if i.get("linkFrom") or i.get("linkTo"):
+                        #print (i)
+                        #if i.get("type") == 'object':
+                        #    for p in i.get("properties"):
+                        #        if i.get("properties")[p].get("linkTo") and not i.get("properties")[p].get('notSubmittable'):
+                        #            self.keysLink.append(prop)
+                        #            #print (prop)
+                        if i.get("linkTo"): # or i.get("linkFrom"):
                             self.keysLink.append(prop)
-
+                            #print (prop)
+        #print ()
 
     def set_up(self):
         '''do some setup for script'''
@@ -180,6 +190,7 @@ class Data_Extract():
                                 obj[key])
 
     def process_link(self, identifier_link):
+        #print (identifier_link)
         # if identifier_link.find("/") != -1:
         item = identifier_link.split("/")[1].replace("-", "")
         #else:
@@ -209,6 +220,7 @@ class Data_Extract():
                 expandedDict = encodedcc.get_ENCODE(accession, self.connection)
                 self.get_status(expandedDict)
                 for id_link in sorted(self.searched):
+                    #print ("id link " + id_link)
                     id_dict = encodedcc.get_ENCODE(id_link, self.connection)
                     uuids.add((id_dict['@type'][0], id_dict['uuid']))
                     out_file.write(id_dict['@type'][0] + '\t' + id_dict['uuid'] + '\n')
