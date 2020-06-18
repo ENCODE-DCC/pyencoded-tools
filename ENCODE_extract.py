@@ -78,6 +78,11 @@ class Data_Extract():
         self.PROFILES = {}
         self.ACCESSIONS = []
         self.EXCLUDED = [
+            'Pipeline',
+            'AnalysisStep',
+            'AnalysisStepVersion',
+            'Software',
+            'SoftwareVersion',
             'Organism',
             'Award',
             'Source',
@@ -163,8 +168,8 @@ class Data_Extract():
                 # loop through object properties
                 if key in self.PROFILES[name]:
                     # if the key is in profiles it's a link
-                    print (key)
-                    print (obj[key])
+                    #print (key)
+                    #print (obj[key])
                     if key != 'libraries':
                         if type(obj[key]) is list:
                             for link in obj[key]:
@@ -194,23 +199,29 @@ class Data_Extract():
         # also makes the list of accessions to run from
         uuids = set()
         self.set_up()
-        
+        mone = 0
+
         for accession in self.ACCESSIONS:
             self.searched = []
-            print ("Processing accession: " + accession)
-            expandedDict = encodedcc.get_ENCODE(accession, self.connection)
-            self.get_status(expandedDict)
-            for id_link in sorted(self.searched):
-                id_dict = encodedcc.get_ENCODE(id_link, self.connection)
-                uuids.add((id_dict['@type'][0], id_dict['uuid']))
-
+            mone += 1
+            print (str(mone) + " Processing accession: " + accession)
+            with open(accession + "_uuids.txt", "w") as out_file:
+                expandedDict = encodedcc.get_ENCODE(accession, self.connection)
+                self.get_status(expandedDict)
+                for id_link in sorted(self.searched):
+                    id_dict = encodedcc.get_ENCODE(id_link, self.connection)
+                    uuids.add((id_dict['@type'][0], id_dict['uuid']))
+                    out_file.write(id_dict['@type'][0] + '\t' + id_dict['uuid'] + '\n')
+                
+        print ('DONE PROCESSING')
         for (t, uuid) in sorted(list(uuids)):
             log = '%s' % "{}\t{}".format(
                 t, uuid)
             logger.info(log)
 
         # adding groups of widely used objects:
-        for prof in self.EXCLUDED:
+        '''for prof in self.EXCLUDED:
+            print (prof)
             if prof not in ['_subtypes',
                             '@type',]:
                 objects = encodedcc.get_ENCODE('/search/?type=' + prof, self.connection)['@graph']
@@ -218,7 +229,7 @@ class Data_Extract():
                     log = '%s' % "{}\t{}".format(
                         o['@type'][0], o['uuid'])
                     logger.info(log)
-
+        '''
         print("Data written to file", self.outfile)
 
 
