@@ -41,70 +41,85 @@ def main():
     connection = encodedcc.ENC_Connection(key)
     accessions_set = set()
     
-    experiments = encodedcc.get_ENCODE('search/?type=Experiment',
-                                       connection)['@graph']
-    assay_types = []
-    assay_statuses = []
-    assay_awards = []
-    for ex in experiments:
-        if ex['assay_term_name'] not in assay_types:
-            assay_types.append(ex['assay_term_name'])
-        if ex['status'] not in assay_statuses:
-            assay_statuses.append(ex['status'])
-        if ex['award'].split('/')[2] not in assay_awards:
-            assay_awards.append(ex['award'].split('/')[2])
-
-    
-    for assay_type in assay_types:
-        print (assay_type)
-        experiments = encodedcc.get_ENCODE('search/?type=Experiment&assay_term_name=' + assay_type,
-                                           connection)['@graph']
-        ex_dict = {}
+    for ex_type in ['Experiment', 'FunctionalCharacterizationExperiment']:
+        experiments = encodedcc.get_ENCODE('search/?type=' + ex_type,
+                                        connection)['@graph']
+        assay_types = []
+        assay_statuses = []
+        assay_awards = []
         for ex in experiments:
-            if len(ex['original_files']) not in ex_dict:
-                ex_dict[len(ex['original_files'])] = [ex['accession']]
-            else:
-                ex_dict[len(ex['original_files'])].append(ex['accession'])
+            if ex['assay_term_name'] not in assay_types:
+                assay_types.append(ex['assay_term_name'])
+            if ex['status'] not in assay_statuses:
+                assay_statuses.append(ex['status'])
+            if ex['award'].split('/')[2] not in assay_awards:
+                assay_awards.append(ex['award'].split('/')[2])
 
-        mone = 0
+        
+        for assay_type in assay_types:
+            print (assay_type)
+            experiments = encodedcc.get_ENCODE('search/?type=' + ex_type + '&assay_term_name=' + assay_type,
+                                            connection)['@graph']
+            ex_dict = {}
+            for ex in experiments:
+                if len(ex['original_files']) not in ex_dict:
+                    ex_dict[len(ex['original_files'])] = [ex['accession']]
+                else:
+                    ex_dict[len(ex['original_files'])].append(ex['accession'])
 
-        for file_number in sorted(ex_dict.keys(), reverse=True):
-            print (str(file_number))
-            for i in range(3):
-                accessions_set.add(random.choice(ex_dict[file_number]))
+            mone = 0
 
-            mone += 1
-            if mone == 4:
-                break
+            for file_number in sorted(ex_dict.keys(), reverse=True):
+                print (str(file_number))
+                for i in range(3):
+                    accessions_set.add(random.choice(ex_dict[file_number]))
 
-    # at this point we have representatives of different assays
-    for assay_type in assay_types:
-        for status in assay_statuses:
-            experiments = encodedcc.get_ENCODE('search/?type=Experiment&assay_term_name=' + assay_type + '&status=' + status,
-                                               connection)['@graph']
-            if (experiments):
-                print (assay_type + '\t' + status)
-                for i in range(2):
-                    random_experiment = random.choice(experiments)
-                    if status == 'replaced':
-                        replacement = encodedcc.get_ENCODE(random_experiment['accession'],
-                                                           connection)
-                        if replacement:
-                            accessions_set.add(replacement['accession'])
-                    accessions_set.add(random_experiment['accession'])
+                mone += 1
+                if mone == 4:
+                    break
 
-    # at this point we have representatives of different statuses of different assays
-    for assay_type in assay_types:
-        for award in assay_awards:
-            experiments = encodedcc.get_ENCODE('search/?type=Experiment&assay_term_name=' + assay_type + '&award.name=' + award,
-                                               connection)['@graph']
-            if experiments:
-                print (assay_type + '\t' + award)
-                for i in range(1):
-                    random_experiment = random.choice(experiments)
-                    accessions_set.add(random_experiment['accession'])
+        # at this point we have representatives of different assays
+        for assay_type in assay_types:
+            for status in assay_statuses:
+                experiments = encodedcc.get_ENCODE('search/?type='  + ex_type + '&assay_term_name=' + assay_type + '&status=' + status,
+                                                connection)['@graph']
+                if (experiments):
+                    print (assay_type + '\t' + status)
+                    for i in range(2):
+                        random_experiment = random.choice(experiments)
+                        if status == 'replaced':
+                            replacement = encodedcc.get_ENCODE(random_experiment['accession'],
+                                                            connection)
+                            if replacement:
+                                accessions_set.add(replacement['accession'])
+                        accessions_set.add(random_experiment['accession'])
 
+        # at this point we have representatives of different statuses of different assays
+        for assay_type in assay_types:
+            for award in assay_awards:
+                experiments = encodedcc.get_ENCODE('search/?type='  + ex_type + '&assay_term_name=' + assay_type + '&award.name=' + award,
+                                                connection)['@graph']
+                if experiments:
+                    print (assay_type + '\t' + award)
+                    for i in range(1):
+                        random_experiment = random.choice(experiments)
+                        accessions_set.add(random_experiment['accession'])
 
+    file_sets = encodedcc.get_ENCODE('search/?type=FileSet',
+                                  connection)['@graph']
+    file_sets_types = []
+    for s in file_sets:
+        if s['@type'][0] not in file_sets_types:
+            file_sets_types.append(s['@type'][0])
+
+    for file_sets_type in file_sets_types:
+        print (file_sets_type)
+        sets = encodedcc.get_ENCODE('search/?type=' + file_sets_type,
+                                      connection)['@graph']
+        for i in range(2):
+            accessions_set.add(random.choice(sets)['accession'])
+
+   
 
     series = encodedcc.get_ENCODE('search/?type=Series',
                                   connection)['@graph']
@@ -143,12 +158,13 @@ def main():
     biosample_statuses = []
     biosample_awards = []
     for bs in biosamples:
-        if bs['biosample_type'] not in biosample_types:
-            biosample_types.append(bs['biosample_type'])
-        if bs['status'] not in biosample_statuses:
-            biosample_statuses.append(bs['status'])
-        if bs['award'].split('/')[2] not in biosample_awards:
-            biosample_awards.append(bs['award'].split('/')[2])
+        if 'biosample_type' in bs:
+            if bs['biosample_type'] not in biosample_types:
+                biosample_types.append(bs['biosample_type'])
+            if bs['status'] not in biosample_statuses:
+                biosample_statuses.append(bs['status'])
+            if bs['award'].split('/')[2] not in biosample_awards:
+                biosample_awards.append(bs['award'].split('/')[2])
 
     for bs_type in biosample_types:
         biosamples = encodedcc.get_ENCODE('search/?type=Biosample&biosample_type=' + bs_type,
