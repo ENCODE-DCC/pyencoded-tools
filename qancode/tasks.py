@@ -399,6 +399,13 @@ class SeleniumTask(metaclass=ABCMeta):
             (By.CSS_SELECTOR, NavBar.testing_warning_banner_button_css)))
         testing_warning_banner_button.click()
 
+
+    def _get_rid_of_walkme_covid_banner(self):
+        walkme_covid_banner_button = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable(
+            (By.CSS_SELECTOR, FrontPage.covid_survey_banner_button_css)))
+        walkme_covid_banner_button.click()
+
+
     @abstractmethod
     def get_data(self):
         pass
@@ -565,6 +572,10 @@ class GetScreenShot(SeleniumTask):
 
     def get_data(self):
         self._try_load_item_type()
+        try:
+            self._get_rid_of_walkme_covid_banner()
+        except:
+            pass
         self._try_perform_click_path()
         try:
             self._expand_document_details()
