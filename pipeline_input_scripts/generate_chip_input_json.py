@@ -162,6 +162,17 @@ def get_data_from_portal(infile_df, server, keypair, link_prefix, link_src):
     return experiment_input_df, wildtype_ctl_ids, file_input_df
 
 
+# Simple function to count the number of replicates per input.json
+def count_reps(row):
+    x = 0
+    for value in row:
+        if None in value or value == []:
+            continue
+        else:
+            x = x+1
+    return x
+
+
 def main():
     keypair = (os.environ.get('DCC_API_KEY'), os.environ.get('DCC_SECRET_KEY'))
     parser = get_parser()
@@ -321,7 +332,6 @@ def main():
                     for rep_num in fastqs_by_rep_R1:
                         if file_input_df.loc[link].at['biorep_scalar'] == rep_num:
                             fastqs_by_rep_R1[rep_num].append(link_prefix + link)
-                            fastqs_by_rep_R2[rep_num].append(None)
 
                 # Collect read_lengths and run_types
                 experiment_read_lengths.append(file_input_df.loc[link].at['read_length'])
@@ -477,20 +487,24 @@ def main():
     for val in list(range(1, 11)):
         output_df[f'chip.fastqs_rep{val}_R1'] = fastqs_by_rep_R1_master[val]
         output_df[f'chip.fastqs_rep{val}_R2'] = fastqs_by_rep_R2_master[val]
+    R1_cols = [col for col in output_df.columns if col.endswith('_R1')]
+    output_df['number_of_replicates'] = output_df[R1_cols].apply(lambda x: count_reps(x), axis=1)
 
     # Build descriptions using the other parameters.
     description_strings = []
-    for accession, crop_length, is_paired_end, pipeline_type, align_only in zip(
+    for accession, crop_length, is_paired_end, pipeline_type, align_only, num_reps in zip(
             output_df['chip.title'],
             output_df['chip.crop_length'],
             output_df['chip.paired_end'],
             output_df['chip.pipeline_type'],
-            output_df['chip.align_only']
+            output_df['chip.align_only'],
+            output_df['number_of_replicates']
     ):
-        description_strings.append('{}_{}_{}_{}_{}'.format(
+        description_strings.append('{}_{}_{}_{}rep_{}_{}'.format(
             accession,
             ('PE' if is_paired_end else 'SE'),
             str(crop_length) + '_crop',
+            num_reps,
             pipeline_type,
             ('alignonly' if align_only else 'peakcall')
             ))
@@ -499,7 +513,7 @@ def main():
     # Clean up the pipeline_type data - flag cases where controls are not 'align_only', then submit all 'controls' as 'tf'
     ERROR_controls_not_align_only = output_df[
         (output_df['chip.pipeline_type'] == 'control') &
-        (output_df['chip.align_only'] == False)].get('chip.title').tolist()
+        (output_df['chip.align_only'] is False)].get('chip.title').tolist()
     for expt in ERROR_controls_not_align_only:
         print(f'ERROR: {expt} is a control but was not align_only.')
     output_df['chip.pipeline_type'].replace(to_replace='control', value='tf', inplace=True)
@@ -551,7 +565,8 @@ def main():
             ('_' + output_dict[experiment]['custom_message'] if output_dict[experiment]['custom_message'] != '' else ''))
 
         # Remove empty properties and the custom message property.
-        if output_dict[experiment]['chip.paired_end'] == False:
+        # All "read 2" properties should be removed if the experiment will be run as single-ended.
+        if output_dict[experiment]['chip.paired_end'] is False:
             for prop in [x for x in list(output_dict[experiment]) if x.endswith('_R2')]:
                 output_dict[experiment].pop(prop)
         for prop in list(output_dict[experiment]):
