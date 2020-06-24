@@ -542,6 +542,7 @@ def main():
         'chip.align_only',
         'chip.paired_end',
         'chip.crop_length',
+        'chip.crop_length_tol',
         'chip.genome_tsv',
         'chip.ref_fa',
         'chip.bowtie2_idx_tar',
