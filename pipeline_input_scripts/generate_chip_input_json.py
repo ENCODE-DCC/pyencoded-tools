@@ -9,7 +9,7 @@ import requests
 def get_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-i', "--infile", required=True, action='store',
-                        help="""Path to .txt file containing accessions of experiments to process or list of accessions separated by commas. The txt file must contain two columns with 1 header row, one labeled 'accession' and another labeled 'align_only'. It can optionally include a 3rd column for 'custom_message'.""")
+                        help="""Path to .txt file containing accessions of experiments to process or list of accessions separated by commas. The txt file must contain two columns with 1 header row, one labeled 'accession' and another labeled 'align_only'. It can optionally include 'custom_message' and 'custom_crop_length' columns.""")
     parser.add_argument('-o', '--outputpath', action='store', default='',
                         help="""Optional path to output folder. Defaults to current path.""")
     parser.add_argument('-g', '--gcpath', action='store', default='',
@@ -26,6 +26,8 @@ def get_parser():
                         help="""An additional custom string to be appended to the messages in the caper submit commands.""")
     parser.add_argument('--caper-commands-file-message', action='store', default='',
                         help="""An additional custom string to be appended to the file name of the caper submit commands.""")
+    parser.add_argument('--custom-crop-length', action='store', default='',
+                        help="""Custom value for the crop length.""")
     return parser
 
 
@@ -200,12 +202,21 @@ def main():
         accession_list = args.infile.split(',')
         align_only = strs2bool(args.align_only.split(','))
         message = args.custom_message.split(',')
+        custom_crop_length = args.custom_crop_length.split(',')
         infile_df = pd.DataFrame({
             'accession': accession_list,
             'align_only': align_only,
-            'custom_message': message
+            'custom_message': message,
+            'crop_length': custom_crop_length
         })
         infile_df.sort_values(by=['accession'], inplace=True)
+
+    use_custom_crop_length_flag = False
+    if 'custom_crop_length' in infile_df:
+        use_custom_crop_length_flag = True
+        custom_crop_lengths = infile_df['custom_crop_length'].tolist()
+    else:
+        custom_crop_lengths = [None] * len(infile_df['accession'])
 
     # Arrays to store lists of potential errors.
     ERROR_no_fastqs = []
@@ -242,7 +253,7 @@ def main():
             organism.add(rep['library']['biosample']['organism']['scientific_name'])
 
         if ''.join(organism) == 'Homo sapiens':
-            genome_tsv.append('gs://encode-pipeline-genome-data/genome_tsv/v2/hg38_gcp.tsv')
+            genome_tsv.append('https://storage.googleapis.com/encode-pipeline-genome-data/genome_tsv/v3/hg38.tsv')
             chrom_sizes.append('https://www.encodeproject.org/files/GRCh38_EBV.chrom.sizes/@@download/GRCh38_EBV.chrom.sizes.tsv')
             ref_fa.append('https://www.encodeproject.org/files/GRCh38_no_alt_analysis_set_GCA_000001405.15/@@download/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta.gz')
             if assay == 'Mint-ChIP-seq':
@@ -252,7 +263,7 @@ def main():
                 blacklist.append('https://www.encodeproject.org/files/ENCFF356LFX/@@download/ENCFF356LFX.bed.gz')
                 blacklist2.append(None)
         elif ''.join(organism) == 'Mus musculus':
-            genome_tsv.append('gs://encode-pipeline-genome-data/genome_tsv/v1/mm10_gcp.tsv')
+            genome_tsv.append('https://storage.googleapis.com/encode-pipeline-genome-data/genome_tsv/v3/mm10.tsv')
             chrom_sizes.append('https://www.encodeproject.org/files/mm10_no_alt.chrom.sizes/@@download/mm10_no_alt.chrom.sizes.tsv')
             ref_fa.append('https://www.encodeproject.org/files/mm10_no_alt_analysis_set_ENCODE/@@download/mm10_no_alt_analysis_set_ENCODE.fasta.gz')
             if assay == 'Mint-ChIP-seq':
@@ -297,7 +308,7 @@ def main():
     experiment_min_read_lengths = []
     experiment_run_types = []
 
-    for experiment_files, experiment_id in zip(experiment_input_df['files'], experiment_input_df['accession']):
+    for experiment_files, experiment_id, custom_crop_length in zip(experiment_input_df['files'], experiment_input_df['accession'], custom_crop_lengths):
         # Arrays for files within each experiment
         fastqs_by_rep_R1 = {
             1: [], 2: [],
@@ -360,7 +371,11 @@ def main():
             fastqs_by_rep_R1_master[rep_num].append(fastqs_by_rep_R1[rep_num])
             fastqs_by_rep_R2_master[rep_num].append(fastqs_by_rep_R2[rep_num])
 
-        experiment_min_read_lengths.append(min(experiment_read_lengths))
+        if use_custom_crop_length_flag:
+            experiment_min_read_lengths.append(custom_crop_length)
+        else:
+            experiment_min_read_lengths.append(min(experiment_read_lengths))
+
         if 'single-ended' in run_types:
             experiment_run_types.append('single-ended')
         elif next(iter(run_types)) == 'paired-ended':
@@ -440,7 +455,10 @@ def main():
                 # Select the minimum read length out of the files in the experiment
                 # and its control, and store the value.
                 combined_minimum_read_length = min([experiment_read_length] + control_read_lengths)
-                crop_length.append(combined_minimum_read_length)
+                if use_custom_crop_length_flag:
+                    crop_length.append(experiment_read_length)
+                else:
+                    crop_length.append(combined_minimum_read_length)
 
                 # Gather control bams based on matching read_length
                 ctl_nodup_temp_collector = []
@@ -516,7 +534,6 @@ def main():
         (output_df['chip.align_only'] is False)].get('chip.title').tolist()
     for expt in ERROR_controls_not_align_only:
         print(f'ERROR: {expt} is a control but was not align_only.')
-    output_df['chip.pipeline_type'].replace(to_replace='control', value='tf', inplace=True)
 
     # Assign parameters that are identical for all runs.
     output_df['chip.bowtie2_idx_tar'] = 'https://www.encodeproject.org/files/ENCFF110MCL/@@download/ENCFF110MCL.tar.gz'
