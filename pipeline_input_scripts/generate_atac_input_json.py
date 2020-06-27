@@ -2,7 +2,6 @@ import argparse
 import json
 import os
 import pandas as pd
-from pandas.io.json import json_normalize
 import requests
 
 
@@ -125,7 +124,7 @@ def get_data_from_portal(infile_df, server, keypair, link_prefix, link_src):
             auth=keypair,
             headers={'content-type': 'application/json'})
         experiment_report_json = json.loads(experiment_report.text)
-        experiment_df_temp = json_normalize(experiment_report_json['@graph'])
+        experiment_df_temp = pd.json_normalize(experiment_report_json['@graph'])
         experiment_input_df = experiment_input_df.append(experiment_df_temp, ignore_index=True, sort=True)
     experiment_input_df.sort_values(by=['accession'], inplace=True)
 
@@ -141,7 +140,7 @@ def get_data_from_portal(infile_df, server, keypair, link_prefix, link_src):
             auth=keypair,
             headers={'content-type': 'application/json'})
         file_report_json = json.loads(file_report.text)
-        file_df_temp = json_normalize(file_report_json['@graph'])
+        file_df_temp = pd.json_normalize(file_report_json['@graph'])
         file_input_df = file_input_df.append(file_df_temp, ignore_index=True, sort=True)
     file_input_df.set_index(link_src, inplace=True)
     if 'paired_end' not in file_input_df:
@@ -453,7 +452,7 @@ def main():
     output_df['atac.description'] = description_strings
 
     # Same values for all.
-    output_df['atac.multimapping'] = 0
+    output_df['atac.multimapping'] = 4
     output_df['atac.pipeline_type'] = 'atac'
 
     # Remove any experiments with errors from the table.
