@@ -54,20 +54,25 @@ def build_experiment_report_query(experiment_list, server):
         '&format=json'
 
 
-def build_file_report_query(experiment_list, server):
+def build_file_report_query(experiment_list, server, file_format):
     joined_list = '&dataset='.join(experiment_list)
+    if file_format == 'fastq':
+        format_parameter = '&file_format=fastq'
+        award_parameter = ''
+        output_type_parameter = '&output_type=reads'
+    elif file_format == 'bam':
+        format_parameter = '&file_format=bam'
+        award_parameter = '&award.rfa=ENCODE4'
+        output_type_parameter = '&output_type=alignments'
     return server + '/report/?type=File' + \
         f'&dataset={joined_list}' + \
         '&status=released' + \
         '&status=in+progress' + \
-        '&award.rfa=ENCODE4' + \
-        '&award.rfa=ENCODE3' + \
+        award_parameter + \
         '&assembly!=hg19' + \
         '&assembly!=mm9' + \
-        '&file_format=fastq' + \
-        '&file_format=bam' + \
-        '&output_type=reads' + \
-        '&output_type=alignments' + \
+        format_parameter + \
+        output_type_parameter + \
         '&field=@id' + \
         '&field=dataset' + \
         '&field=file_format' + \
@@ -147,13 +152,14 @@ def get_data_from_portal(infile_df, server, keypair, link_prefix, link_src):
     file_input_df = pd.DataFrame()
     chunked_dataset_accessions = [datasets_to_retrieve[x:x+100] for x in range(0, len(datasets_to_retrieve), 100)]
     for chunk in chunked_dataset_accessions:
-        file_report = requests.get(
-            build_file_report_query(chunk, server),
-            auth=keypair,
-            headers={'content-type': 'application/json'})
-        file_report_json = json.loads(file_report.text)
-        file_df_temp = pd.json_normalize(file_report_json['@graph'])
-        file_input_df = file_input_df.append(file_df_temp, ignore_index=True, sort=True)
+        for file_format in ['fastq', 'bam']:
+            file_report = requests.get(
+                build_file_report_query(chunk, server, file_format),
+                auth=keypair,
+                headers={'content-type': 'application/json'})
+            file_report_json = json.loads(file_report.text)
+            file_df_temp = pd.json_normalize(file_report_json['@graph'])
+            file_input_df = file_input_df.append(file_df_temp, ignore_index=True, sort=True)
     file_input_df.set_index(link_src, inplace=True)
     if 'paired_end' not in file_input_df:
         file_input_df['paired_end'] = None
