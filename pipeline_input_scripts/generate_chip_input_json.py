@@ -261,7 +261,7 @@ def main():
             genome_tsv.append('https://storage.googleapis.com/encode-pipeline-genome-data/genome_tsv/v3/hg38.tsv')
             chrom_sizes.append('https://www.encodeproject.org/files/GRCh38_EBV.chrom.sizes/@@download/GRCh38_EBV.chrom.sizes.tsv')
             ref_fa.append('https://www.encodeproject.org/files/GRCh38_no_alt_analysis_set_GCA_000001405.15/@@download/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta.gz')
-            if assay == 'Mint-ChIP-seq':
+            if assay in ['Mint-ChIP-seq', 'Control Mint-ChIP-seq']:
                 blacklist.append('https://www.encodeproject.org/files/ENCFF356LFX/@@download/ENCFF356LFX.bed.gz')
                 blacklist2.append('https://www.encodeproject.org/files/ENCFF023CZC/@@download/ENCFF023CZC.bed.gz')
             elif assay in ['Histone ChIP-seq', 'TF ChIP-seq', 'Control ChIP-seq']:
@@ -271,7 +271,7 @@ def main():
             genome_tsv.append('https://storage.googleapis.com/encode-pipeline-genome-data/genome_tsv/v3/mm10.tsv')
             chrom_sizes.append('https://www.encodeproject.org/files/mm10_no_alt.chrom.sizes/@@download/mm10_no_alt.chrom.sizes.tsv')
             ref_fa.append('https://www.encodeproject.org/files/mm10_no_alt_analysis_set_ENCODE/@@download/mm10_no_alt_analysis_set_ENCODE.fasta.gz')
-            if assay == 'Mint-ChIP-seq':
+            if assay in ['Mint-ChIP-seq', 'Control Mint-ChIP-seq']:
                 blacklist.append(None)
                 blacklist2.append(None)
             elif assay in ['Histone ChIP-seq', 'TF ChIP-seq', 'Control ChIP-seq']:
