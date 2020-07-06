@@ -406,6 +406,17 @@ class SeleniumTask(metaclass=ABCMeta):
         walkme_covid_banner_button.click()
 
 
+    def _expand_facets(self):
+        expand_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
+            (By.CLASS_NAME, SearchPageList.facet_expander_button)))
+        for button in expand_buttons:
+            if button.get_attribute('aria-pressed') == 'false':
+                try:
+                    button.click()
+                except:
+                    pass
+
+
     @abstractmethod
     def get_data(self):
         pass
@@ -464,6 +475,10 @@ class GetFacetNumbers(SeleniumTask):
         try:
             self.driver.wait.until(EC.title_contains('Search'))
         except TimeoutException:
+            pass
+        try:
+            self._expand_facets()
+        except:
             pass
         if 'matrix' in self.driver.current_url:
             facets = self.matrix_page()
@@ -584,6 +599,11 @@ class GetScreenShot(SeleniumTask):
         if 'https://www.encodeproject.org' not in self.driver.current_url:
             try:
                 self._get_rid_of_test_warning_banner()
+            except:
+                pass
+        if '/search/' in self.driver.current_url or '/matrix/' in self.driver.current_url:
+            try:
+                self._expand_facets()
             except:
                 pass
         self.driver.execute_script(
