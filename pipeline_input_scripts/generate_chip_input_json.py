@@ -444,7 +444,7 @@ def main():
                     final_run_type = 'single-ended'
                     final_run_types.append(False)
                 elif next(iter(run_types)) == 'paired-ended' and experiment_run_type == 'paired-ended':
-                    final_run_type = 'paired_ended'
+                    final_run_type = 'paired-ended'
                     final_run_types.append(True)
                 else:
                     ERROR_not_matching_endedness.append(experiment)
