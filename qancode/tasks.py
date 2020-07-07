@@ -413,8 +413,13 @@ class SeleniumTask(metaclass=ABCMeta):
             if button.get_attribute('aria-pressed') == 'false':
                 try:
                     button.click()
+                    assert button.get_attribute('aria-pressed') == 'true'
                 except:
-                    pass
+                    try:
+                         self.driver.execute_script('arguments[0].scrollIntoView(true);', button)
+                         button.click()
+                    except:
+                        pass
 
 
     @abstractmethod
