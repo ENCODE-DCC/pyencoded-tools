@@ -161,9 +161,10 @@ def get_data_from_portal(infile_df, server, keypair, link_prefix, link_src):
             file_df_temp = pd.json_normalize(file_report_json['@graph'])
             file_input_df = file_input_df.append(file_df_temp, ignore_index=True, sort=True)
     file_input_df.set_index(link_src, inplace=True)
-    if 'paired_end' not in file_input_df:
-        file_input_df['paired_end'] = None
-        file_input_df['paired_with'] = None
+    file_df_required_fields = ['paired_end', 'paired_with', 'mapped_run_type']
+    for field in file_df_required_fields:
+        if field not in file_input_df:
+            file_input_df[field] = None
     file_input_df['biorep_scalar'] = [x[0] for x in file_input_df['biological_replicates']]
 
     return experiment_input_df, wildtype_ctl_ids, file_input_df
