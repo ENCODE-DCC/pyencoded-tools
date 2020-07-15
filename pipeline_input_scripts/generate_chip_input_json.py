@@ -7,8 +7,9 @@ import requests
 
 def get_parser():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-i', "--infile", required=True, action='store',
-                        help="""Path to .txt file containing accessions of experiments to process or list of accessions separated by commas. The txt file must contain two columns with 1 header row, one labeled 'accession' and another labeled 'align_only'. It can optionally include 'custom_message' and 'custom_crop_length' columns.""")
+    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group.add_argument('-i', "--infile", action='store',
+                        help="""Path to .txt file containing accessions of experiments to process. The txt file must contain two columns with 1 header row, one labeled 'accession' and another labeled 'align_only'. It can optionally include 'custom_message' and 'custom_crop_length' columns.""")
     parser.add_argument('-o', '--outputpath', action='store', default='',
                         help="""Optional path to output folder. Defaults to current path.""")
     parser.add_argument('-g', '--gcpath', action='store', default='',
@@ -19,6 +20,8 @@ def get_parser():
                         help="""Optional specification of server using the full URL. Defaults to production server.""")
     parser.add_argument('--use-s3-uris', action='store_true', default=False,
                         help="""Optional flag to use s3_uri links. Otherwise, defaults to using @@download links from the ENCODE portal.""")
+    input_group.add_argument("--accessions", action='store',
+                        help="""List of accessions separated by commas.""")
     parser.add_argument('--align-only', action='store', default=False,
                         help="""Pipeline will end after alignments step if True.""")
     parser.add_argument('--custom-message', action='store',
@@ -201,11 +204,11 @@ def main():
         link_prefix = server
         link_src = 'href'
 
-    if args.infile.endswith('.txt') or args.infile.endswith('.tsv'):
+    if args.infile:
         infile_df = parse_infile(args.infile)
         infile_df.sort_values(by=['accession'], inplace=True)
-    else:
-        accession_list = args.infile.split(',')
+    elif args.accessions:
+        accession_list = args.accessions.split(',')
         align_only = strs2bool(args.align_only.split(','))
         message = args.custom_message.split(',')
         custom_crop_length = args.custom_crop_length.split(',')
