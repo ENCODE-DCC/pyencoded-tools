@@ -46,6 +46,7 @@ def build_experiment_report_query(experiment_list, server):
         '&field=files.href' + \
         '&field=files.platform' + \
         '&field=replicates.library.biosample.organism.scientific_name' + \
+        '&field=replicates.library.spikeins_used' + \
         '&limit=all' + \
         '&format=json'
 
@@ -179,6 +180,7 @@ def main():
     variants = []
     annotation_names = []
     genome_builds = []
+    spike_ins = []
     for replicates in experiment_input_df.get('replicates'):
         organism = set()
         for rep in replicates:
@@ -197,11 +199,23 @@ def main():
             variants.append(None)
             annotation_names.append('M21')
             genome_builds.append('mm10')
+
+        spike_in_reference_accessions = []
+        spike_in_fasta_links = []
+        for rep in replicates:
+            spike_in_reference_accessions.extend(rep['library']['spikeins_used'])
+        if '/references/ENCSR089MWE/' in spike_in_reference_accessions:
+            spike_in_fasta_links.append('https://www.encodeproject.org/files/ENCFF189VLW/@@download/ENCFF189VLW.fasta.gz')
+        if '/references/ENCSR156CIL/' in spike_in_reference_accessions:
+            spike_in_fasta_links.append('https://www.encodeproject.org/files/ENCFF001RTP/@@download/ENCFF001RTP.fasta.gz')
+        spike_ins.append(spike_in_fasta_links)
+
     output_df['long_read_rna_pipeline.reference_genome'] = ref_genomes
     output_df['long_read_rna_pipeline.annotation'] = annotations
-    output_df['long_read_rna_pipeline.genome_build'] =genome_builds
-    output_df['long_read_rna_pipeline.annotation_name'] =annotation_names
-    output_df['long_read_rna_pipeline.variants'] =variants
+    output_df['long_read_rna_pipeline.genome_build'] = genome_builds
+    output_df['long_read_rna_pipeline.annotation_name'] = annotation_names
+    output_df['long_read_rna_pipeline.variants'] = variants
+    output_df['long_read_rna_pipeline.spikeins'] = spike_ins
 
     # Specify input_type
     platforms = []
@@ -276,10 +290,6 @@ def main():
     # Populate the lists of fastqs and libraries.
     output_df['long_read_rna_pipeline.fastqs'] = fastqs_by_rep_R1_master
     output_df['long_read_rna_pipeline.talon_prefixes'] = libs_by_rep_R1_master
-
-    # Same values for all.
-    spikein = ['https://www.encodeproject.org/files/ENCFF189VLW/@@download/ENCFF189VLW.fasta.gz']
-    output_df['long_read_rna_pipeline.spikeins'] = [spikein] * len(output_df['long_read_rna_pipeline.experiment_prefix'].to_list())
 
     # Remove any experiments with errors from the table.
     output_df.drop(ERROR_no_fastqs, inplace=True)
