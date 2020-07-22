@@ -39,7 +39,7 @@ def _parse_args():
         help='URL of standard to compare dut.'
     )
     parser.add_argument('-i', '--item-types', nargs='+', default=_ITEM_TYPES, help='Items to check.')
-    parser.add_argument('-n', '--number-of-trials', type=int, default=10, help='Number of runs.')
+    parser.add_argument('-n', '--number-of-trials', type=int, default=25, help='Number of runs.')
     # Flags
     parser.add_argument('-a', '--alt-format', action='store_true', help='Create alt output txt')
     parser.add_argument('-d', '--dry-run', action='store_true', help='Print info, setup output dir.')

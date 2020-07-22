@@ -452,7 +452,7 @@ class QANCODE(ActionTuples):
     def _get_time_headers(url, n):
         time_headers = []
         for i in range(n):
-            r = requests.get(url)
+            r = requests.get(url, timeout=10)
             assert r.status_code == 200
             time_headers.append(r.headers)
         return time_headers

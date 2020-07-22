@@ -5,3 +5,4 @@ Pillow
 requests
 selenium
 tqdm
+matplotlib
