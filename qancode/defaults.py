@@ -225,7 +225,7 @@ class ActionTuples:
              OpenUCSCGenomeBrowserHG19fromExperiment),
             ('/experiments/ENCSR426UUG/',
              OpenUCSCGenomeBrowserGRCh38fromExperiment),
-            ('/experiments/ENCSR293WTN/',
+            ('/experiments/ENCSR000AXN/',
              OpenUCSCGenomeBrowserMM9fromExperiment),
             ('/experiments/ENCSR335LKF/',
              OpenUCSCGenomeBrowserMM10fromExperiment),
