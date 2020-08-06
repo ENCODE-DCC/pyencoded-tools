@@ -186,7 +186,7 @@ def main():
                 adapter_accession = None
                 for adapter in file_input_df.loc[link].at['replicate.library.adapters']:
                     if adapter['type'] == "5' adapter" and adapter_accession is None:
-                        adapter_accession = '{}{}@@download/{}.txt'.format(
+                        adapter_accession = '{}{}@@download/{}.txt.gz'.format(
                             server,
                             adapter['file'][1:],
                             adapter['file'][7:18])
