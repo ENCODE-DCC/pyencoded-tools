@@ -180,7 +180,6 @@ def main():
     '''
     replicate_collector_master = []
     for experiment_files, experiment_id in zip(experiment_input_df['files'], experiment_input_df['accession']):
-        accession = experiment_id[13:24]
         replicate_collector = dict()
 
         for file in experiment_files:
@@ -255,7 +254,7 @@ def main():
             'se_fastqs'
         ]
         for rep in replicate_collector:
-            replicate_collector[rep]['accession'] = accession
+            replicate_collector[rep]['accession'] = experiment_id
             min_read_length = min(replicate_collector[rep]['read_length'])
             replicate_collector[rep]['read_length'] = int(min_read_length)
             replicate_collector[rep]['number'] = int(rep)
