@@ -179,7 +179,7 @@ def main():
     Retrieve info for dnase.replicates
     '''
     replicate_collector_master = []
-    for experiment_files, experiment_id in zip(experiment_input_df['files'], experiment_input_df['@id']):
+    for experiment_files, experiment_id in zip(experiment_input_df['files'], experiment_input_df['accession']):
         accession = experiment_id[13:24]
         replicate_collector = dict()
 
@@ -205,13 +205,9 @@ def main():
                     else:
                         replicate_collector[rep_num]['pe_fastqs'] = [fastq_pair]
 
-                    adapter_pair = {}
                     adapter_R1_sequence = None
                     adapter_R2_sequence = None
-                    if len(file_input_df.loc[link].at['replicate.library.adapters']) == 0:
-                        print(f'ERROR: no adapters were found for {experiment_id}.')
-                        ERROR_missing_adapters.append(experiment_id)
-                    else:
+                    if type(file_input_df.loc[link].at['replicate.library.adapters']) == list:
                         for adapter in file_input_df.loc[link].at['replicate.library.adapters']:
                             if adapter['type'] == "read1 3' adapter":
                                 adapter_R1_sequence = adapter['sequence']
@@ -224,7 +220,7 @@ def main():
                                 break
                             else:
                                 continue
-                    
+
                     replicate_collector[rep_num]['adapters'] = {
                         'sequence_R1': adapter_R1_sequence,
                         'sequence_R2': adapter_R2_sequence
@@ -241,11 +237,15 @@ def main():
                     replicate_collector[rep_num]['read_length'] = [file_input_df.loc[link].at['read_length']]
 
         # Record error if no fastqs for found for any replicate.
-        if 'pe_fastqs' not in replicate_collector[rep_num] and 'se_fastqs' not in replicate_collector[rep_num]:
-            print(f'ERROR: no fastqs were found for {experiment_id}.')
-            ERROR_no_fastqs.append(experiment_id)
+        for rep_num in replicate_collector:
+            if 'pe_fastqs' not in replicate_collector[rep_num] and 'se_fastqs' not in replicate_collector[rep_num]:
+                print(f'ERROR: no fastqs were found for {experiment_id}.')
+                ERROR_no_fastqs.append(experiment_id)
+                continue
+            if 'pe_fastqs' in replicate_collector[rep_num] and None in replicate_collector[rep_num]['adapters'].values():
+                print(f'ERROR: no adapters were found for {experiment_id}.')
+                ERROR_missing_adapters.append(experiment_id)
 
-        
         replicate_key_order = [
             'accession',
             'number',
@@ -263,7 +263,6 @@ def main():
         sorted_rep_num = sorted(list(replicate_collector.keys()))
         replicate_collector_master.append([replicate_collector[rep] for rep in sorted_rep_num])
 
-
     '''
     Retrieve info for dnase.references
     '''
@@ -279,7 +278,6 @@ def main():
             if read_len == 36:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF405EUN/@@download/ENCFF405EUN.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF180EJG/@@download/ENCFF180EJG.tar.gz'
-
             elif read_len == 76:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF304SVB/@@download/ENCFF304SVB.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF162AKB/@@download/ENCFF162AKB.tar.gz'
