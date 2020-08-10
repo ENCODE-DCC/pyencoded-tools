@@ -66,6 +66,12 @@ def check_encode4_chip_pipeline(exp_acc):
     # replicated (rep_count > 1) experiment
     if rep_count > 1:
         expected_file_output_count['conservative IDR thresholded peaks'] = 2
+    # Fix expectation for control experiments
+    if experiment.get('control_type'):
+        expected_file_output_count = {
+            'unfiltered alignments': rep_count,
+            'alignments': rep_count,
+        }
     for analysis in experiment['analyses']:
         if sorted(analysis['pipelines']) != ENCODE4_CHIP_PIPELINES:
             skipped_analyses_count += 1
@@ -83,25 +89,39 @@ def check_encode4_chip_pipeline(exp_acc):
             if f_obj.get('preferred_default'):
                 preferred_default_file_format.append(f_obj['file_format'])
                 preferred_default_output_type.add(f_obj['output_type'])
-        if sorted(
-            preferred_default_file_format
-        ) != PREFERRED_DEFAULT_FILE_FORMAT:
-            print('Wrong preferred default file format')
-            bad_reason.append('Wrong preferred default file format')
-        if (
-            len(preferred_default_output_type) != 1
-            or list(
-                preferred_default_output_type
-            )[0] not in PREFERRED_DEFAULT_OUTPUT_TYPE
-        ):
-            print('Wrong preferred default file output type')
-            bad_reason.append('Wrong preferred default file output type')
+        # Different expectation for control experiments
+        if experiment.get('control_type'):
+            if (
+                len(preferred_default_file_format) != 0
+                or len(preferred_default_output_type) != 0
+            ):
+                print('Control experiment has preferred default by mistake')
+                bad_reason.append(
+                    'Control experiment has preferred default by mistake'
+                )
+        else:
+            if sorted(
+                preferred_default_file_format
+            ) != PREFERRED_DEFAULT_FILE_FORMAT:
+                print('Wrong preferred default file format')
+                bad_reason.append('Wrong preferred default file format')
+            if (
+                len(preferred_default_output_type) != 1
+                or list(
+                    preferred_default_output_type
+                )[0] not in PREFERRED_DEFAULT_OUTPUT_TYPE
+            ):
+                print('Wrong preferred default file output type')
+                bad_reason.append('Wrong preferred default file output type')
         if file_output_map != expected_file_output_count:
             print('Wrong file output type map')
             bad_reason.append('Wrong file output type map')
             print('Has {}'.format(str(file_output_map)))
             print('Expect {}'.format(str(expected_file_output_count)))
-    if skipped_analyses_count:
+    if skipped_analyses_count == len(experiment['analyses']):
+        print('No ENCODE4 analysis found')
+        bad_reason.append('No ENCODE4 analysis found')
+    elif skipped_analyses_count:
         print('Skipped {} non-ENCODE4 uniform analyses'.format(
             skipped_analyses_count
         ))
