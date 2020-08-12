@@ -284,11 +284,11 @@ def main():
                 'genome_name': 'GRCh38',
                 'indexed_fasta_tar_gz': 'https://www.encodeproject.org/files/ENCFF499QKB/@@download/ENCFF499QKB.tar.gz',
                 'bwa_index_tar_gz': 'https://www.encodeproject.org/files/ENCFF884HOA/@@download/ENCFF884HOA.tar.gz',
-                'nuclear_chroms': 'https://www.encodeproject.org/files/ENCFF762MJQ/@@download/ENCFF762MJQ.txt.gz',
+                'nuclear_chroms_gz': 'https://www.encodeproject.org/files/ENCFF762MJQ/@@download/ENCFF762MJQ.txt.gz',
                 'narrow_peak_auto_sql': 'https://www.encodeproject.org/documents/ee0c4be3-1f65-44e1-9539-5a864751a289/@@download/attachment/narrowPeak.as',
                 'hotspot1_tar_gz': hotspot1_link,
                 'hotspot2_tar_gz': hotspot2_link,
-                'bias_model': 'https://www.encodeproject.org/files/ENCFF119KWQ/@@download/ENCFF119KWQ.txt.gz'
+                'bias_model_gz': 'https://www.encodeproject.org/files/ENCFF119KWQ/@@download/ENCFF119KWQ.txt.gz'
             }    
         elif ''.join(organism) == 'Mus musculus':
             if read_len == 36:
@@ -301,11 +301,11 @@ def main():
                 'genome_name': 'mm10',
                 'indexed_fasta_tar_gz': 'https://www.encodeproject.org/files/ENCFF734RZS/@@download/ENCFF734RZS.tar.gz',
                 'bwa_index_tar_gz': 'https://www.encodeproject.org/files/ENCFF063EBQ/@@download/ENCFF063EBQ.tar.gz',
-                'nuclear_chroms': 'https://www.encodeproject.org/files/ENCFF882SRG/@@download/ENCFF882SRG.txt.gz',
+                'nuclear_chroms_gz': 'https://www.encodeproject.org/files/ENCFF882SRG/@@download/ENCFF882SRG.txt.gz',
                 'narrow_peak_auto_sql': 'https://www.encodeproject.org/documents/ee0c4be3-1f65-44e1-9539-5a864751a289/@@download/attachment/narrowPeak.as',
                 'hotspot1_tar_gz': hotspot1_link,
                 'hotspot2_tar_gz': hotspot2_link,
-                'bias_model': 'https://www.encodeproject.org/files/ENCFF119KWQ/@@download/ENCFF119KWQ.txt.gz'
+                'bias_model_gz': 'https://www.encodeproject.org/files/ENCFF119KWQ/@@download/ENCFF119KWQ.txt.gz'
             }
         references_master.append(refs)
 
