@@ -31,7 +31,7 @@ def get_parser():
 
 def check_path_trailing_slash(path):
     if path.endswith('/'):
-        return path.strip('/')
+        return path.rstrip('/')
     else:
         return path
 
