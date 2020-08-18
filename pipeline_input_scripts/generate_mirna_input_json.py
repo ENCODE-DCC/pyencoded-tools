@@ -14,24 +14,26 @@ import argparse
 import json
 import os
 import pandas as pd
-from pandas.io.json import json_normalize
 import requests
 
 
 def get_parser():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-i', "--infile", required=True, action='store',
-                        help="""Path to .txt file containing accessions of experiments to process or list of accessions separated by commas.""")
+    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group.add_argument('-i', "--infile", action='store',
+                        help="""Path to .txt file containing accessions of experiments to process.""")
+    input_group.add_argument("--accessions", action='store',
+                        help="""List of accessions separated by commas.""")
     parser.add_argument('-o', '--outputpath', action='store', default='',
                         help="""Optional path to output folder. Defaults to current path.""")
     parser.add_argument('-g', '--gcpath', action='store', default='',
                         help="""Optional path where the input.json will be uploaded to the Google Cloud instance. Only affects the list of caper commands that is generated.""")
     parser.add_argument('-s', '--server', action='store', default='https://www.encodeproject.org/',
                         help="""Optional specification of server using the full URL. Defaults to production server.""")
-    parser.add_argument('-r', '--replicates', action='store', default=[1,2], nargs='*', type=int,
-                        help="""Optional specification of biological replicates to use. Any number of biological replicates can be added, such as: -r 1 2 4 8. For each biological replicate, the script will collect every associated technical replicate. These biological replicates will be used for every experiment. The script assumes the user is entering valid replicate numbers in the correct order, so errors will occur if nonexistent replicates are specified. It is also up to the user to ensure that the adapters match the given replicates. Defaults to [1,2].""")
     parser.add_argument('--s3_uri', action='store_true', default=False,
                         help="""Optional flag to use s3_uri links from the ENCODE portal. Otherwise, defaults to using http links.""")
+    parser.add_argument('--custom-message', action='store',
+                        help="""An additional custom string to be appended to the messages in the caper submit commands.""")
     parser.add_argument('--caper-commands-file-message', action='store', default='',
                         help="""An additional custom string to be appended to the file name of the caper submit commands.""")
     parser.add_argument('--wdl', action='store', default=False,
@@ -40,34 +42,24 @@ def get_parser():
 
 
 def parse_infile(infile):
-    if infile.endswith('.txt'):
-        try:
-            accs_list = []
-            with open(infile, 'r') as file:
-                for line in file:
-                    accs_list.append(line.strip())
-            return accs_list
-        except:
-            raise Exception('Input file could not be read.')
-            exit()
-    else:
-        accs_list = infile.split(',')
-        return accs_list
+    try:
+        infile_df = pd.read_csv(infile, '\t')
+        return infile_df
+    except FileNotFoundError as e:
+        print(e)
+        exit()
 
 
 def build_experiment_report_query(experiment_list, server):
     joined_list = '&accession='.join(experiment_list)
-    return server + 'report/?type=Experiment' + \
+    return server + '/report/?type=Experiment' + \
         '&accession={}'.format(joined_list) + \
         '&field=@id' + \
         '&field=accession' + \
         '&field=assay_title' + \
         '&field=files.@id' + \
-        '&field=replicates.biological_replicate_number' + \
-        '&field=replicates.technical_replicate_number' + \
         '&field=replicates.status' + \
         '&field=replicates.library.biosample.organism.scientific_name' + \
-        '&field=replicates.library.adapters' + \
         '&field=documents' + \
         '&field=files.s3_uri' + \
         '&field=files.href' + \
@@ -77,13 +69,12 @@ def build_experiment_report_query(experiment_list, server):
 
 def build_file_report_query(experiment_list, server):
     joined_list = '&dataset='.join(experiment_list)
-    return server + 'report/?type=File' + \
+    return server + '/report/?type=File' + \
         '&dataset={}'.format(joined_list) + \
         '&file_format=fastq' + \
         '&field=@id' + \
         '&field=dataset' + \
-        '&field=replicate.technical_replicate_number' + \
-        '&field=replicate.biological_replicate_number' + \
+        '&field=biological_replicates' + \
         '&field=replicate.library.adapters' + \
         '&field=status' + \
         '&field=s3_uri' + \
@@ -94,10 +85,46 @@ def build_file_report_query(experiment_list, server):
 
 
 def check_path_trailing_slash(path):
-    if path.endswith('/') or len(path) == 0:
-        return path
+    if path.endswith('/'):
+        return path.rstrip('/')
     else:
-        return path + '/'
+        return path
+
+
+def get_data_from_portal(infile_df, server, keypair, link_prefix, link_src):
+    # Retrieve experiment report view json with necessary fields and store as DataFrame.
+    experiment_input_df = pd.DataFrame()
+    experiment_accessions = infile_df['accession'].tolist()
+    # Chunk the list to avoid sending queries longer than the character limit
+    chunked_experiment_accessions = [experiment_accessions[x:x+100] for x in range(0, len(experiment_accessions), 100)]
+    for chunk in chunked_experiment_accessions:
+        experiment_report = requests.get(
+            build_experiment_report_query(chunk, server),
+            auth=keypair,
+            headers={'content-type': 'application/json'})
+        experiment_report_json = json.loads(experiment_report.text)
+        experiment_df_temp = pd.json_normalize(experiment_report_json['@graph'])
+        experiment_input_df = experiment_input_df.append(experiment_df_temp, ignore_index=True, sort=True)
+    experiment_input_df.sort_values(by=['accession'], inplace=True)
+
+    # Gather list of controls from the list of experiments to query for their files.
+    datasets_to_retrieve = experiment_input_df.get('@id').tolist()
+
+    # Retrieve file report view json with necessary fields and store as DataFrame.
+    file_input_df = pd.DataFrame()
+    chunked_dataset_accessions = [datasets_to_retrieve[x:x+100] for x in range(0, len(datasets_to_retrieve), 100)]
+    for chunk in chunked_dataset_accessions:
+        file_report = requests.get(
+            build_file_report_query(chunk, server),
+            auth=keypair,
+            headers={'content-type': 'application/json'})
+        file_report_json = json.loads(file_report.text)
+        file_df_temp = pd.json_normalize(file_report_json['@graph'])
+        file_input_df = file_input_df.append(file_df_temp, ignore_index=True, sort=True)
+    file_input_df.set_index(link_src, inplace=True)
+    file_input_df['biorep_scalar'] = [x[0] for x in file_input_df['biological_replicates']]
+
+    return experiment_input_df, file_input_df
 
 
 def main():
@@ -123,30 +150,30 @@ def main():
     output_path = check_path_trailing_slash(args.outputpath)
     caper_commands_file_message = args.caper_commands_file_message
     wdl = args.wdl
-    infile = args.infile
-    experiment_list = parse_infile(infile)
+    if args.infile:
+        infile_df = parse_infile(args.infile)
+        infile_df.sort_values(by=['accession'], inplace=True)
+    elif args.accessions:
+        accession_list = args.accessions.split(',')
+        message = args.custom_message.split(',')
+        infile_df = pd.DataFrame({
+            'accession': accession_list,
+            'custom_message': message
+        })
+        infile_df.sort_values(by=['accession'], inplace=True)
 
-    # Retrieve experiment report view json with necessary fields and store as DataFrame.
-    experiment_report = requests.get(
-        build_experiment_report_query(experiment_list, server),
-        auth=keypair,
-        headers={'content-type': 'application/json'})
-    experiment_report_json = json.loads(experiment_report.text)
-    experiment_input_df = json_normalize(experiment_report_json['@graph'])
-
-    # Retrieve file report view json with necessary fields and store as DataFrame.
-    file_report = requests.get(
-        build_file_report_query(experiment_input_df.get('@id'), server),
-        auth=keypair,
-        headers={'content-type': 'application/json'})
-    file_report_json = json.loads(file_report.text)
-    file_input_df = json_normalize(file_report_json['@graph'])
-    file_input_df.set_index(link_src, inplace=True)
+    # Fetch data from the ENCODE portal
+    experiment_input_df, file_input_df = get_data_from_portal(infile_df, server, keypair, link_prefix, link_src)
 
     # Create output DataFrame to store all data for the input.json files.
     output_df = pd.DataFrame()
     # Assign experiment_prefix values. For simplicity, this is the same as the experiment accession.
     output_df['mirna_seq_pipeline.experiment_prefix'] = experiment_input_df['accession']
+    if 'custom_message' in infile_df:
+        output_df['custom_message'] = infile_df['custom_message']
+        output_df['custom_message'].fillna('', inplace=True)
+    else:
+        output_df['custom_message'] = ''
     output_df.set_index('mirna_seq_pipeline.experiment_prefix', inplace=True, drop=False)
 
     # To correctly get the information for fastqs and adapters, this script looks up fastq files associated with each specified experiment in a 2nd table containing only file metadata. 
@@ -157,17 +184,20 @@ def main():
     extra_adapters_detected = []
 
     for experiment_files in experiment_input_df.get('files'):
-        # Arrays to store the list of arrays of fastqs/adapters grouped by biological replicates.
-        links_sorted_by_rep = []
-        adapters_sorted_by_rep = []
-
-        # Arrays to store metadata for all fastqs in an experiment.
-        fastq_links_by_rep = []
-        bio_reps = []
-        tech_reps = []
-        file_to_dataset = []
-        adapters_by_rep = []
-        file_rep_sorter = pd.DataFrame()
+        fastqs_by_rep = {
+            1: [], 2: [],
+            3: [], 4: [],
+            5: [], 6: [],
+            7: [], 8: [],
+            9: [], 10: []
+        }
+        adapters_by_rep = {
+            1: [], 2: [],
+            3: [], 4: [],
+            5: [], 6: [],
+            7: [], 8: [],
+            9: [], 10: []
+        }
 
         # Iterate over each file in the current experiment and collect data on fastq files
         for file in experiment_files:
@@ -177,45 +207,33 @@ def main():
                     and link in file_input_df.index \
                     and file_input_df.loc[link].at['status'] in allowed_statuses \
                     and file_input_df.loc[link].at['replicate.status'] in allowed_statuses:
+                for rep_num in fastqs_by_rep:
+                    if file_input_df.loc[link].at['biorep_scalar'] == rep_num:
+                        fastqs_by_rep[rep_num].append(link_prefix + link)
 
-                fastq_links_by_rep.append(link_prefix + link)
-                bio_reps.append(file_input_df.loc[link].at['replicate.biological_replicate_number'])
-                tech_reps.append(file_input_df.loc[link].at['replicate.technical_replicate_number'])
-                file_to_dataset.append(file_input_df.loc[link].at['dataset'][13:24])
+                        adapter_accession = None
+                        for adapter in file_input_df.loc[link].at['replicate.library.adapters']:
+                            if adapter['type'] == "read1 5' adapter" and adapter_accession is None:
+                                adapter_accession = '{}{}@@download/{}.txt.gz'.format(
+                                    server,
+                                    adapter['file'],
+                                    adapter['file'].split('/')[2])
+                            elif adapter['type'] == "read1 3' adapter":
+                                continue
+                            else:
+                                extra_adapters_detected.append(file_input_df.loc[link].at['dataset'][13:24])
+                        adapters_by_rep[rep_num].append(adapter_accession)
 
-                adapter_accession = None
-                for adapter in file_input_df.loc[link].at['replicate.library.adapters']:
-                    if adapter['type'] == "5' adapter" and adapter_accession is None:
-                        adapter_accession = '{}{}@@download/{}.txt.gz'.format(
-                            server,
-                            adapter['file'][1:],
-                            adapter['file'][7:18])
-                    elif adapter['type'] == "3' adapter":
-                        continue
-                    else:
-                        extra_adapters_detected.append(file_input_df.loc[link].at['dataset'][13:24])
-                adapters_by_rep.append(adapter_accession)
+        formatted_fastq_links = []
+        formatted_adapter_links = []
+        for key in fastqs_by_rep:
+            if len(fastqs_by_rep[key]) > 0:
+                formatted_fastq_links.append(fastqs_by_rep[key])
+                formatted_adapter_links.append(adapters_by_rep[key])
 
-        # Add the collected data to a new DataFrame
-        file_rep_sorter['fastq'] = fastq_links_by_rep
-        file_rep_sorter['biorep'] = bio_reps
-        file_rep_sorter['techrep'] = tech_reps
-        file_rep_sorter['repstrings'] = file_rep_sorter['biorep'].astype(str).str.cat(others=file_rep_sorter['techrep'].astype(str), sep=',')
-        file_rep_sorter['dataset'] = file_to_dataset
-        file_rep_sorter['adapter'] = adapters_by_rep
-
-        # Sort the DataFrame so that files are now ordered by replicate: 1_1, 1_2, 1_3, 2_1, 2_2...
-        file_rep_sorter.sort_values(by=['biorep', 'techrep'], inplace=True)
-        file_rep_sorter.reset_index(drop=True, inplace=True)
-
-        for rep_num in replicate_nums:
-            # Iterate over the biological replicates, appending an array of all technical replicates associated with that biological replicate.
-            links_sorted_by_rep.append(list(file_rep_sorter.loc[file_rep_sorter['biorep'] == rep_num]['fastq']))
-            adapters_sorted_by_rep.append(list(file_rep_sorter.loc[file_rep_sorter['biorep'] == rep_num]['adapter']))
-
-        # Lastly, append the list of lists to (yet another) list, which is the experiment level one.
-        final_input_fastq_links.append(links_sorted_by_rep)
-        final_input_five_prime_adapters.append(adapters_sorted_by_rep)
+        # Append the list of lists to (yet another) list, which is the experiment level one.
+        final_input_fastq_links.append(formatted_fastq_links)
+        final_input_five_prime_adapters.append(formatted_adapter_links)
 
     output_df['mirna_seq_pipeline.fastqs'] = final_input_fastq_links
     output_df['mirna_seq_pipeline.five_prime_adapters'] = final_input_five_prime_adapters
@@ -232,13 +250,13 @@ def main():
             organism.add(rep['library']['biosample']['organism']['scientific_name'])
 
         if ''.join(organism) == 'Homo sapiens':
-            star_indices.append(server + 'files/ENCFF123QLG/@@download/ENCFF123QLG.tar.gz')
-            mirna_annotations.append(server + 'files/ENCFF470CZH/@@download/ENCFF470CZH.gtf.gz')
-            chrom_sizes.append(server + 'files/GRCh38_EBV.chrom.sizes/@@download/GRCh38_EBV.chrom.sizes.tsv')
+            star_indices.append(server + '/files/ENCFF123QLG/@@download/ENCFF123QLG.tar.gz')
+            mirna_annotations.append(server + '/files/ENCFF470CZH/@@download/ENCFF470CZH.gtf.gz')
+            chrom_sizes.append(server + '/files/GRCh38_EBV.chrom.sizes/@@download/GRCh38_EBV.chrom.sizes.tsv')
         elif ''.join(organism) == 'Mus musculus':
-            star_indices.append(server + 'files/ENCFF795AAA/@@download/ENCFF795AAA.tar.gz')
-            mirna_annotations.append(server + 'files/ENCFF094ICJ/@@download/ENCFF094ICJ.gtf.gz')
-            chrom_sizes.append(server + 'files/mm10_no_alt.chrom.sizes/@@download/mm10_no_alt.chrom.sizes.tsv')
+            star_indices.append(server + '/files/ENCFF795AAA/@@download/ENCFF795AAA.tar.gz')
+            mirna_annotations.append(server + '/files/ENCFF094ICJ/@@download/ENCFF094ICJ.gtf.gz')
+            chrom_sizes.append(server + '/files/mm10_no_alt.chrom.sizes/@@download/mm10_no_alt.chrom.sizes.tsv')
         else:
             star_indices.append('')
             mirna_annotations.append('')
@@ -249,7 +267,7 @@ def main():
     output_df['mirna_seq_pipeline.chrom_sizes'] = chrom_sizes
 
     # Assign other parameters, which are identical for all runs.
-    output_df['mirna_seq_pipeline.three_prime_adapters'] = server + 'files/ENCFF463QEL/@@download/ENCFF463QEL.txt'
+    output_df['mirna_seq_pipeline.three_prime_adapters'] = server + '/files/ENCFF937TEF/@@download/ENCFF937TEF.txt.gz'
     output_df['mirna_seq_pipeline.cutadapt_ncpus'] = 2
     output_df['mirna_seq_pipeline.cutadapt_ramGB'] = 7
     output_df['mirna_seq_pipeline.cutadapt_disk'] = 'local-disk 200 SSD'
@@ -290,18 +308,32 @@ def main():
     command_output = ''
     for experiment in output_dict:
         accession = output_dict[experiment]['mirna_seq_pipeline.experiment_prefix']
-        # Write as .json file
-        with open('{}input_{}.json'.format(output_path, accession), 'w') as output_file:
-            output_file.write(json.dumps(output_dict[experiment], indent=4))
+
         # Write a corresponding caper command.
-        command_output = command_output + 'caper submit {} -i {}{} -s {}_final_run\n'.format(
+        command_output = command_output + 'caper submit {} -i {}{} -s {}{}\nsleep 1\n'.format(
             wdl,
-            gc_path,
-            '{}input_{}.json'.format(output_path, accession),
-            accession)
+            (gc_path + '/' if not gc_path.endswith('/') else gc_path),
+            accession + '.json',
+            accession,
+            ('_' + output_dict[experiment]['custom_message'] if output_dict[experiment]['custom_message'] != '' else '')
+        )
+
+        # Write as .json file
+        for prop in list(output_dict[experiment]):
+            if output_dict[experiment][prop] in (None, [], '') or (type(output_dict[experiment][prop]) == list and None in output_dict[experiment][prop]):
+                output_dict[experiment].pop(prop)
+        output_dict[experiment].pop('custom_message')
+
+        file_name = f'{output_path}{"/" if output_path else ""}{accession}.json'
+        with open(file_name, 'w') as output_file:
+            output_file.write(json.dumps(output_dict[experiment], indent=4))
 
     if command_output != '':
-        with open(f'{output_path}caper_submit{"_" if caper_commands_file_message else ""}{caper_commands_file_message}.sh', 'w') as command_output_file:
+        commands_file_path = (
+            f'{output_path}{"/" if output_path else ""}'
+            f'caper_submit{"_" if caper_commands_file_message else ""}{caper_commands_file_message}.sh'
+        )
+        with open(commands_file_path, 'w') as command_output_file:
             command_output_file.write(command_output)
 
 
