@@ -142,9 +142,6 @@ def main():
         link_prefix = server
         link_src = 'href'
 
-    # Store the provided replicate numbers.
-    replicate_nums = args.replicates
-
     # Set the output paths and load the list of experiments to process.
     gc_path = check_path_trailing_slash(args.gcpath)
     output_path = check_path_trailing_slash(args.outputpath)
