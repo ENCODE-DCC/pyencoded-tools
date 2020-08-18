@@ -234,6 +234,8 @@ def main():
 
     output_df['mirna_seq_pipeline.fastqs'] = final_input_fastq_links
     output_df['mirna_seq_pipeline.five_prime_adapters'] = final_input_five_prime_adapters
+    # Same 3' adapters were used for all experiments.
+    output_df['mirna_seq_pipeline.three_prime_adapters'] = server + '/files/ENCFF937TEF/@@download/ENCFF937TEF.txt.gz'
 
     # Specify star_index, mirna_annotation, and chrom_size.
     star_indices = []
@@ -264,7 +266,6 @@ def main():
     output_df['mirna_seq_pipeline.chrom_sizes'] = chrom_sizes
 
     # Assign other parameters, which are identical for all runs.
-    output_df['mirna_seq_pipeline.three_prime_adapters'] = server + '/files/ENCFF937TEF/@@download/ENCFF937TEF.txt.gz'
     output_df['mirna_seq_pipeline.cutadapt_ncpus'] = 2
     output_df['mirna_seq_pipeline.cutadapt_ramGB'] = 7
     output_df['mirna_seq_pipeline.cutadapt_disk'] = 'local-disk 200 SSD'
@@ -305,12 +306,13 @@ def main():
     command_output = ''
     for experiment in output_dict:
         accession = output_dict[experiment]['mirna_seq_pipeline.experiment_prefix']
+        file_name = f'{output_path}{"/" if output_path else ""}{accession}_{len(output_dict[experiment]["mirna_seq_pipeline.fastqs"])}rep.json'
 
         # Write a corresponding caper command.
         command_output = command_output + 'caper submit {} -i {}{} -s {}{}\nsleep 1\n'.format(
             wdl,
             (gc_path + '/' if not gc_path.endswith('/') else gc_path),
-            accession + '.json',
+            file_name,
             accession,
             ('_' + output_dict[experiment]['custom_message'] if output_dict[experiment]['custom_message'] != '' else '')
         )
@@ -321,7 +323,6 @@ def main():
                 output_dict[experiment].pop(prop)
         output_dict[experiment].pop('custom_message')
 
-        file_name = f'{output_path}{"/" if output_path else ""}{accession}.json'
         with open(file_name, 'w') as output_file:
             output_file.write(json.dumps(output_dict[experiment], indent=4))
 
