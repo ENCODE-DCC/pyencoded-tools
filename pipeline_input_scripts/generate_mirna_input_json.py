@@ -306,14 +306,14 @@ def main():
     command_output = ''
     for experiment in output_dict:
         accession = output_dict[experiment]['mirna_seq_pipeline.experiment_prefix']
-        file_name = f'{output_path}{"/" if output_path else ""}{accession}_{len(output_dict[experiment]["mirna_seq_pipeline.fastqs"])}rep.json'
+        file_name = f'{accession}_mirna_{len(output_dict[experiment]["mirna_seq_pipeline.fastqs"])}rep.json'
 
         # Write a corresponding caper command.
         command_output = command_output + 'caper submit {} -i {}{} -s {}{}\nsleep 1\n'.format(
             wdl,
             (gc_path + '/' if not gc_path.endswith('/') else gc_path),
             file_name,
-            accession,
+            file_name[:-5],
             ('_' + output_dict[experiment]['custom_message'] if output_dict[experiment]['custom_message'] != '' else '')
         )
 
@@ -323,7 +323,7 @@ def main():
                 output_dict[experiment].pop(prop)
         output_dict[experiment].pop('custom_message')
 
-        with open(file_name, 'w') as output_file:
+        with open(f'{output_path}{"/" if output_path else ""}{file_name}', 'w') as output_file:
             output_file.write(json.dumps(output_dict[experiment], indent=4))
 
     if command_output != '':
