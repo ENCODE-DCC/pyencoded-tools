@@ -337,7 +337,7 @@ def main():
             (gc_path + '/' if not gc_path.endswith('/') else gc_path),
             output_dict[experiment]['accession'] + '.json',
             output_dict[experiment]['accession'],
-            ('_' + output_dict[experiment]['custom_message'] if output_dict[experiment]['custom_message'] != '' else ''))
+            ('_' + str(output_dict[experiment]['custom_message']) if output_dict[experiment]['custom_message'] != '' else ''))
 
         # Remove empty properties and the custom message property.
         for prop in list(output_dict[experiment]):
