@@ -31,7 +31,7 @@ def get_parser():
 
 def check_path_trailing_slash(path):
     if path.endswith('/'):
-        return path.strip('/')
+        return path.rstrip('/')
     else:
         return path
 
@@ -57,8 +57,6 @@ def build_file_report_query(experiment_list, server):
         f'&dataset={joined_list}' + \
         '&status=released' + \
         '&status=in+progress' + \
-        '&assembly!=hg19' + \
-        '&assembly!=mm9' + \
         '&file_format=fastq' + \
         '&output_type=reads' + \
         '&field=@id' + \
