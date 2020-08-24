@@ -341,7 +341,17 @@ def main():
         output_dict[experiment].pop('custom_message')
         output_dict[experiment].pop('accession')
 
-        file_name = f'{output_path}{"/" if output_path else ""}{accession}.json'
+        endedness = []
+        for rep in output_dict[experiment]['dnase.replicates']:
+            endedness.extend(x for x in rep.keys() if x.endswith('fastqs'))
+        if 'pe_fastqs' in endedness and 'se_fastqs' in endedness:
+            endedness = 'mixed'
+        else:
+            endedness = endedness[0][:2].upper()
+
+        file_name = f'{output_path}{"/" if output_path else ""}{accession}_' + \
+            f'{len(output_dict[experiment]["dnase.replicates"])}rep_' + \
+            f'{endedness}_{min(set(rep["read_length"] for rep in output_dict[experiment]["dnase.replicates"]))}bp.json'
 
         with open(file_name, 'w') as output_file:
             output_file.write(json.dumps(output_dict[experiment], indent=4))
