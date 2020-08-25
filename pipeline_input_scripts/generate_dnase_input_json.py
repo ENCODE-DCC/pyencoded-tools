@@ -324,14 +324,24 @@ def main():
     ]
     for experiment in output_dict:
         output_dict[experiment] = {key: output_dict[experiment][key] for key in desired_key_order}
-        accession = output_dict[experiment]['accession']
+
+        endedness = []
+        for rep in output_dict[experiment]['dnase.replicates']:
+            endedness.extend(x for x in rep.keys() if x.endswith('fastqs'))
+        if 'pe_fastqs' in endedness and 'se_fastqs' in endedness:
+            endedness = 'mixed'
+        else:
+            endedness = endedness[0][:2].upper()
+        file_name = f'{output_dict[experiment]["accession"]}_' + \
+            f'{len(output_dict[experiment]["dnase.replicates"])}rep_' + \
+            f'{endedness}_{min(set(rep["read_length"] for rep in output_dict[experiment]["dnase.replicates"]))}bp'
 
         # Build strings of caper commands.
         command_output = command_output + 'caper submit {} -i {}{} -s {}{}\nsleep 1\n'.format(
             wdl_path,
             (gc_path + '/' if not gc_path.endswith('/') else gc_path),
-            output_dict[experiment]['accession'] + '.json',
-            output_dict[experiment]['accession'],
+            file_name + '.json',
+            file_name,
             ('_' + str(output_dict[experiment]['custom_message']) if output_dict[experiment]['custom_message'] != '' else ''))
 
         # Remove empty properties and the custom message property.
@@ -341,19 +351,7 @@ def main():
         output_dict[experiment].pop('custom_message')
         output_dict[experiment].pop('accession')
 
-        endedness = []
-        for rep in output_dict[experiment]['dnase.replicates']:
-            endedness.extend(x for x in rep.keys() if x.endswith('fastqs'))
-        if 'pe_fastqs' in endedness and 'se_fastqs' in endedness:
-            endedness = 'mixed'
-        else:
-            endedness = endedness[0][:2].upper()
-
-        file_name = f'{output_path}{"/" if output_path else ""}{accession}_' + \
-            f'{len(output_dict[experiment]["dnase.replicates"])}rep_' + \
-            f'{endedness}_{min(set(rep["read_length"] for rep in output_dict[experiment]["dnase.replicates"]))}bp.json'
-
-        with open(file_name, 'w') as output_file:
+        with open(f'{output_path}{"/" if output_path else ""}{file_name}.json', 'w') as output_file:
             output_file.write(json.dumps(output_dict[experiment], indent=4))
 
     # Output .txt with caper commands.
