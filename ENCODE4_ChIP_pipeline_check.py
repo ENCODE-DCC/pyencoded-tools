@@ -15,14 +15,11 @@ ENCODE4_CHIP_PIPELINES = [
     '/pipelines/ENCPL612HIG/',
     '/pipelines/ENCPL809GEM/',
 ]
-PREFERRED_DEFAULT_FILE_FORMAT = ['bed', 'bigBed']
-PREFERRED_DEFAULT_OUTPUT_TYPE = [
-    'IDR thresholded peaks', 'conservative IDR thresholded peaks'
-]
 
 
 def check_encode4_chip_pipeline(exp_acc):
     experiment = requests.get(BASE_URL.format(exp_acc), auth=AUTH).json()
+    is_histone = 'histone' in experiment['target']['investigated_as']
     print('------------------------------')
     print(exp_acc)
     print('------------------------------')
@@ -59,13 +56,34 @@ def check_encode4_chip_pipeline(exp_acc):
         # Pooled peak only available for replicated (rep_count > 1) experiment
         'fold change over control': rep_count + int(rep_count > 1),
         'signal p-value': rep_count + int(rep_count > 1),
-        'IDR ranked peaks': rep_count + rep_pair_count + int(rep_count > 1),
-        'IDR thresholded peaks': (rep_count + rep_pair_count) * 2,
     }
-    # Conservative peak (true replicated peak) only available for
-    # replicated (rep_count > 1) experiment
-    if rep_count > 1:
-        expected_file_output_count['conservative IDR thresholded peaks'] = 2
+    if is_histone:
+        expected_file_output_count['stable peaks'] = (
+            rep_count + int(rep_count > 1)
+        ) * 2
+        expected_file_output_count['replicated peaks'] = rep_pair_count * 2
+        expected_preferred_default_file_format = ['bed', 'bigBed']
+        expected_preferred_default_output_type = [
+            'stable peaks', 'replicated peaks'
+        ]
+    else:
+        expected_file_output_count.update(
+            {
+                'IDR ranked peaks':
+                    rep_count + rep_pair_count + int(rep_count > 1),
+                'IDR thresholded peaks': (rep_count + rep_pair_count) * 2,
+            }
+        )
+        expected_preferred_default_file_format = ['bed', 'bigBed']
+        expected_preferred_default_output_type = [
+            'IDR thresholded peaks', 'conservative IDR thresholded peaks'
+        ]
+        # Conservative peak (true replicated peak) only available for
+        # replicated (rep_count > 1) experiment
+        if rep_count > 1:
+            expected_file_output_count[
+                'conservative IDR thresholded peaks'
+            ] = 2
     # Fix expectation for control experiments
     if experiment.get('control_type'):
         expected_file_output_count = {
@@ -102,17 +120,23 @@ def check_encode4_chip_pipeline(exp_acc):
         else:
             if sorted(
                 preferred_default_file_format
-            ) != PREFERRED_DEFAULT_FILE_FORMAT:
-                print('Wrong preferred default file format')
-                bad_reason.append('Wrong preferred default file format')
+            ) != expected_preferred_default_file_format:
+                msg = 'Wrong preferred default file format'
+                if rep_count == 1:
+                    msg += '; unreplicated experiment'
+                print(msg)
+                bad_reason.append(msg)
             if (
                 len(preferred_default_output_type) != 1
                 or list(
                     preferred_default_output_type
-                )[0] not in PREFERRED_DEFAULT_OUTPUT_TYPE
+                )[0] not in expected_preferred_default_output_type
             ):
-                print('Wrong preferred default file output type')
-                bad_reason.append('Wrong preferred default file output type')
+                msg = 'Wrong preferred default file output type'
+                if rep_count == 1:
+                    msg += '; unreplicated experiment'
+                print(msg)
+                bad_reason.append(msg)
         if file_output_map != expected_file_output_count:
             print('Wrong file output type map')
             bad_reason.append('Wrong file output type map')
