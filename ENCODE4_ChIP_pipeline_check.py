@@ -61,11 +61,14 @@ def check_encode4_chip_pipeline(exp_acc):
         expected_file_output_count['stable peaks'] = (
             rep_count + int(rep_count > 1)
         ) * 2
-        expected_file_output_count['replicated peaks'] = rep_pair_count * 2
         expected_preferred_default_file_format = ['bed', 'bigBed']
         expected_preferred_default_output_type = [
             'stable peaks', 'replicated peaks'
         ]
+        # Replicated peak (true replicated peak) only available for
+        # replicated (rep_count > 1) experiment
+        if rep_count > 1:
+            expected_file_output_count['replicated peaks'] = rep_pair_count * 2
     else:
         expected_file_output_count.update(
             {
