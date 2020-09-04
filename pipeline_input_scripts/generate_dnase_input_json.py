@@ -177,13 +177,13 @@ def main():
     for experiment_files, experiment_id in zip(experiment_input_df['files'], experiment_input_df['accession']):
         replicate_collector = dict()
 
-        for file in experiment_files:
+        for file in sorted(experiment_files, key=lambda x:x['href']):
             link = file[link_src]
             if link.endswith('fastq.gz') \
                     and link in file_input_df.index \
                     and file_input_df.loc[link].at['status'] in allowed_statuses \
                     and file_input_df.loc[link].at['replicate.status'] in allowed_statuses:
-                
+
                 rep_num = file_input_df.loc[link].at['biorep_scalar']
                 if rep_num not in replicate_collector:
                         replicate_collector[rep_num] = {}
