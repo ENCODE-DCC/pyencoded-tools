@@ -37,9 +37,14 @@ def check_encode4_chip_pipeline(exp_acc):
     print('Number of original files: {}'.format(
         len(experiment['original_files'])
     ))
-    print('Number of analyses: {}'.format(len(experiment['analyses'])))
+    anals = []
+    if 'analyses' in experiment:
+        anals = experiment['analyses']
+    else:
+        anals = experiment['analysis_objects']
+    print('Number of analyses: {}'.format(len(anals)))
     print('File count in analyses: {}'.format(list(
-        len(analsis['files']) for analsis in experiment['analyses']
+        len(analsis['files']) for analsis in anals
     )))
     skipped_analyses_count = 0
     preferred_default_file_format = []
@@ -57,18 +62,30 @@ def check_encode4_chip_pipeline(exp_acc):
         'fold change over control': rep_count + int(rep_count > 1),
         'signal p-value': rep_count + int(rep_count > 1),
     }
+    expected_file_output_count_pseudo = {
+        'unfiltered alignments': rep_count,
+        'alignments': rep_count,
+        # Pooled peak only available for replicated (rep_count > 1) experiment
+        'fold change over control': rep_count + int(rep_count > 1),
+        'signal p-value': rep_count + int(rep_count > 1),
+    }  
     if is_histone:
         expected_file_output_count['stable peaks'] = (
             rep_count + int(rep_count > 1)
         ) * 2
-        expected_preferred_default_file_format = ['bed', 'bigBed']
-        expected_preferred_default_output_type = [
-            'stable peaks', 'replicated peaks'
-        ]
+        expected_file_output_count_pseudo['pseudo-replicated peaks'] = (
+            rep_count + int(rep_count > 1)
+        ) * 2
         # Replicated peak (true replicated peak) only available for
         # replicated (rep_count > 1) experiment
         if rep_count > 1:
             expected_file_output_count['replicated peaks'] = rep_pair_count * 2
+            expected_file_output_count_pseudo['replicated peaks'] = rep_pair_count * 2
+        expected_preferred_default_file_format = ['bed', 'bigBed']
+        expected_preferred_default_output_type = [
+            'stable peaks', 'replicated peaks', 'pseudo-replicated peaks'
+        ]
+
     else:
         expected_file_output_count.update(
             {
@@ -93,16 +110,26 @@ def check_encode4_chip_pipeline(exp_acc):
             'unfiltered alignments': rep_count,
             'alignments': rep_count,
         }
-    for analysis in experiment['analyses']:
+    for analysis in anals:
         if sorted(analysis['pipelines']) != ENCODE4_CHIP_PIPELINES:
             skipped_analyses_count += 1
             continue
-        if analysis['assemblies'] != ['GRCh38']:
-            print('Wrong assembly')
-            bad_reason.append('Wrong assembly')
-        if analysis['genome_annotations'] != []:
-            print('Has genome annotations')
-            bad_reason.append('Has genome annotations')
+        if 'assemblies' in analysis:
+            if analysis['assemblies'] != ['GRCh38']:
+                print('Wrong assembly')
+                bad_reason.append('Wrong assembly')
+        else:
+            if analysis['assembly'] != 'GRCh38':
+                print('Wrong assembly')
+                bad_reason.append('Wrong assembly')
+        if 'genome_annotations' in analysis:
+            if analysis['genome_annotations'] != []:
+                print('Has genome annotations')
+                bad_reason.append('Has genome annotations')
+        else:
+            if 'genome_annotation' in analysis:
+                print('Has genome annotations')
+                bad_reason.append('Has genome annotations')
         for fid in analysis['files']:
             f_obj = requests.get(BASE_URL.format(fid), auth=AUTH).json()
             file_output_map.setdefault(f_obj['output_type'], 0)
@@ -140,12 +167,12 @@ def check_encode4_chip_pipeline(exp_acc):
                     msg += '; unreplicated experiment'
                 print(msg)
                 bad_reason.append(msg)
-        if file_output_map != expected_file_output_count:
+        if file_output_map != expected_file_output_count and file_output_map != expected_file_output_count_pseudo:
             print('Wrong file output type map')
             bad_reason.append('Wrong file output type map')
             print('Has {}'.format(str(file_output_map)))
             print('Expect {}'.format(str(expected_file_output_count)))
-    if skipped_analyses_count == len(experiment['analyses']):
+    if skipped_analyses_count == len(anals):
         print('No ENCODE4 analysis found')
         bad_reason.append('No ENCODE4 analysis found')
     elif skipped_analyses_count:
