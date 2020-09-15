@@ -19,7 +19,12 @@ ENCODE4_CHIP_PIPELINES = [
 
 def check_encode4_chip_pipeline(exp_acc):
     experiment = requests.get(BASE_URL.format(exp_acc), auth=AUTH).json()
-    is_histone = 'histone' in experiment['target']['investigated_as']
+    
+    # Check for target and determine if histone ChIP
+    is_histone = []
+    if experiment.get('target'):
+        is_histone = 'histone' in experiment['target']['investigated_as']
+
     print('------------------------------')
     print(exp_acc)
     print('------------------------------')
@@ -37,14 +42,15 @@ def check_encode4_chip_pipeline(exp_acc):
     print('Number of original files: {}'.format(
         len(experiment['original_files'])
     ))
-    anals = []
-    if 'analyses' in experiment:
-        anals = experiment['analyses']
+    analysisObj = []
+    if 'analysis_objects' in experiment:
+        analysisObj = experiment['analysis_objects']
     else:
-        anals = experiment['analysis_objects']
-    print('Number of analyses: {}'.format(len(anals)))
+        analysisObj = experiment['analyses']
+
+    print('Number of analyses: {}'.format(len(analysisObj)))
     print('File count in analyses: {}'.format(list(
-        len(analsis['files']) for analsis in anals
+        len(analysis['files']) for analysis in analysisObj
     )))
     skipped_analyses_count = 0
     preferred_default_file_format = []
@@ -110,7 +116,7 @@ def check_encode4_chip_pipeline(exp_acc):
             'unfiltered alignments': rep_count,
             'alignments': rep_count,
         }
-    for analysis in anals:
+    for analysis in analysisObj:
         if sorted(analysis['pipelines']) != ENCODE4_CHIP_PIPELINES:
             skipped_analyses_count += 1
             continue
@@ -172,7 +178,7 @@ def check_encode4_chip_pipeline(exp_acc):
             bad_reason.append('Wrong file output type map')
             print('Has {}'.format(str(file_output_map)))
             print('Expect {}'.format(str(expected_file_output_count)))
-    if skipped_analyses_count == len(anals):
+    if skipped_analyses_count == len(analysisObj):
         print('No ENCODE4 analysis found')
         bad_reason.append('No ENCODE4 analysis found')
     elif skipped_analyses_count:
