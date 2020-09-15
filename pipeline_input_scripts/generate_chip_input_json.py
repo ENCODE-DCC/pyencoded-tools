@@ -477,8 +477,8 @@ def main():
                         (file_input_df['biorep_scalar'] == rep_num) &
                         (file_input_df['file_format'] == 'bam') &
                         (file_input_df['mapped_run_type'] == final_run_type) &
-                        (file_input_df['cropped_read_length'] < combined_minimum_read_length + 2) &
-                        (file_input_df['cropped_read_length'] > combined_minimum_read_length - 2)
+                        (file_input_df['cropped_read_length'] <= combined_minimum_read_length + 2) &
+                        (file_input_df['cropped_read_length'] >= combined_minimum_read_length - 2)
                     ]
                     if not ctl_search.empty:
                         if ctl_search['cropped_read_length_tolerance'].values[0] == 2:
