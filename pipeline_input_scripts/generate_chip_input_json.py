@@ -256,6 +256,7 @@ def main():
     genome_tsv = []
     chrom_sizes = []
     ref_fa = []
+    bowtie2 = []
     for assay, replicates in zip(experiment_input_df.get('assay_title'), experiment_input_df.get('replicates')):
         organism = set()
         for rep in replicates:
@@ -265,6 +266,7 @@ def main():
             genome_tsv.append('https://storage.googleapis.com/encode-pipeline-genome-data/genome_tsv/v3/hg38.tsv')
             chrom_sizes.append('https://www.encodeproject.org/files/GRCh38_EBV.chrom.sizes/@@download/GRCh38_EBV.chrom.sizes.tsv')
             ref_fa.append('https://www.encodeproject.org/files/GRCh38_no_alt_analysis_set_GCA_000001405.15/@@download/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta.gz')
+            bowtie2.append('https://www.encodeproject.org/files/ENCFF110MCL/@@download/ENCFF110MCL.tar.gz')
             if assay in ['Mint-ChIP-seq', 'Control Mint-ChIP-seq']:
                 blacklist.append('https://www.encodeproject.org/files/ENCFF356LFX/@@download/ENCFF356LFX.bed.gz')
                 blacklist2.append('https://www.encodeproject.org/files/ENCFF023CZC/@@download/ENCFF023CZC.bed.gz')
@@ -275,6 +277,7 @@ def main():
             genome_tsv.append('https://storage.googleapis.com/encode-pipeline-genome-data/genome_tsv/v3/mm10.tsv')
             chrom_sizes.append('https://www.encodeproject.org/files/mm10_no_alt.chrom.sizes/@@download/mm10_no_alt.chrom.sizes.tsv')
             ref_fa.append('https://www.encodeproject.org/files/mm10_no_alt_analysis_set_ENCODE/@@download/mm10_no_alt_analysis_set_ENCODE.fasta.gz')
+            bowtie2.append('https://www.encodeproject.org/files/ENCFF309GLL/@@download/ENCFF309GLL.tar.gz')
             if assay in ['Mint-ChIP-seq', 'Control Mint-ChIP-seq']:
                 blacklist.append(None)
                 blacklist2.append(None)
@@ -286,6 +289,7 @@ def main():
     output_df['chip.genome_tsv'] = genome_tsv
     output_df['chip.chrsz'] = chrom_sizes
     output_df['chip.ref_fa'] = ref_fa
+    output_df['chip.bowtie2_idx_tar'] = bowtie2
 
     # Determine pipeline types.
     pipeline_types = []
@@ -545,7 +549,6 @@ def main():
         print(f'ERROR: {expt} is a control but was not align_only.')
 
     # Assign parameters that are identical for all runs.
-    output_df['chip.bowtie2_idx_tar'] = 'https://www.encodeproject.org/files/ENCFF110MCL/@@download/ENCFF110MCL.tar.gz'
     output_df['chip.crop_length_tol'] = 2
 
     # Remove any experiments with errors from the table.
