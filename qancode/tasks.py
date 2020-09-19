@@ -419,7 +419,11 @@ class SeleniumTask(metaclass=ABCMeta):
                          self.driver.execute_script('arguments[0].scrollIntoView(true);', button)
                          button.click()
                     except:
-                        pass
+                        try:
+                            self.driver.execute_script('window.scrollBy(0,-100);', button)
+                            button.click()
+                        except:
+                            pass
 
 
     @abstractmethod
