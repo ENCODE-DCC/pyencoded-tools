@@ -9,18 +9,21 @@ import requests
 
 AUTH = (os.environ.get("DCC_API_KEY"), os.environ.get("DCC_SECRET_KEY"))
 BASE_URL = 'https://www.encodeproject.org/{}/?format=json'
-ENCODE4_ATAC_PIPELINES = [
-    '/pipelines/ENCPL344QWT/',
-    '/pipelines/ENCPL787FUN/',
-]
-PREFERRED_DEFAULT_FILE_FORMAT = ['bed', 'bigBed']
-PREFERRED_DEFAULT_OUTPUT_TYPE = [
-    'replicated peaks', 'stable peaks'
+ENCODE4_CHIP_PIPELINES = [
+    '/pipelines/ENCPL367MAS/',
+    '/pipelines/ENCPL481MLO/',
+    '/pipelines/ENCPL612HIG/',
+    '/pipelines/ENCPL809GEM/',
 ]
 
 
-def check_encode4_atac_pipeline(exp_acc):
+def check_encode4_chip_pipeline(exp_acc):
     experiment = requests.get(BASE_URL.format(exp_acc), auth=AUTH).json()
+    # Check for target and determine if histone ChIP
+    is_histone = []
+    if experiment.get('target'):
+        is_histone = 'histone' in experiment['target']['investigated_as']
+
     print('------------------------------')
     print(exp_acc)
     print('------------------------------')
@@ -38,9 +41,10 @@ def check_encode4_atac_pipeline(exp_acc):
     print('Number of original files: {}'.format(
         len(experiment['original_files'])
     ))
-    print('Number of analyses: {}'.format(len(experiment['analyses'])))
+    analysisObj = experiment.get('analysis_objects', [])
+    print('Number of analyses: {}'.format(len(analysisObj)))
     print('File count in analyses: {}'.format(list(
-        len(analsis['files']) for analsis in experiment['analyses']
+        len(analysis['files']) for analysis in analysisObj
     )))
     skipped_analyses_count = 0
     preferred_default_file_format = []
@@ -57,25 +61,54 @@ def check_encode4_atac_pipeline(exp_acc):
         # Pooled peak only available for replicated (rep_count > 1) experiment
         'fold change over control': rep_count + int(rep_count > 1),
         'signal p-value': rep_count + int(rep_count > 1),
-        'IDR ranked peaks': rep_count + rep_pair_count + int(rep_count > 1),
-        'IDR thresholded peaks': (rep_count + rep_pair_count) * 2,
-        'stable peaks': (rep_count + int(rep_count > 1)) * 2,
     }
-    # Conservative peak (true replicated peak) only available for
-    # replicated (rep_count > 1) experiment
-    if rep_count > 1:
-        expected_file_output_count['conservative IDR thresholded peaks'] = 2
-        expected_file_output_count['replicated peaks'] = rep_pair_count * 2
-    for analysis in experiment['analyses']:
-        if sorted(analysis['pipelines']) != ENCODE4_ATAC_PIPELINES:
+    if is_histone:
+        expected_file_output_count['pseudo-replicated peaks'] = (
+            rep_count + int(rep_count > 1)
+        ) * 2
+        # Replicated peak (true replicated peak) only available for
+        # replicated (rep_count > 1) experiment
+        if rep_count > 1:
+            expected_file_output_count['replicated peaks'] = rep_pair_count * 2
+        expected_preferred_default_file_format = ['bed', 'bigBed']
+        expected_preferred_default_output_type = [
+            'replicated peaks', 'pseudo-replicated peaks'
+        ]
+
+    else:
+        expected_file_output_count.update(
+            {
+                'IDR ranked peaks':
+                    rep_count + rep_pair_count + int(rep_count > 1),
+                'IDR thresholded peaks': (rep_count + rep_pair_count) * 2,
+            }
+        )
+        expected_preferred_default_file_format = ['bed', 'bigBed']
+        expected_preferred_default_output_type = [
+            'IDR thresholded peaks', 'conservative IDR thresholded peaks'
+        ]
+        # Conservative peak (true replicated peak) only available for
+        # replicated (rep_count > 1) experiment
+        if rep_count > 1:
+            expected_file_output_count[
+                'conservative IDR thresholded peaks'
+            ] = 2
+    # Fix expectation for control experiments
+    if experiment.get('control_type'):
+        expected_file_output_count = {
+            'unfiltered alignments': rep_count,
+            'alignments': rep_count,
+        }
+    for analysis in analysisObj:
+        if sorted(analysis['pipelines']) != ENCODE4_CHIP_PIPELINES:
             skipped_analyses_count += 1
             continue
-        if analysis['assemblies'] != ['GRCh38']:
+        if analysis.get('assembly') != 'GRCh38':
             print('Wrong assembly')
             bad_reason.append('Wrong assembly')
-        if analysis['genome_annotations'] != []:
-            print('Has genome annotations')
-            bad_reason.append('Has genome annotations')
+        if analysis.get('genome_annotation'):
+            print('Has genome annotation')
+            bad_reason.append('Has genome annotation')
         for fid in analysis['files']:
             f_obj = requests.get(BASE_URL.format(fid), auth=AUTH).json()
             file_output_map.setdefault(f_obj['output_type'], 0)
@@ -83,35 +116,45 @@ def check_encode4_atac_pipeline(exp_acc):
             if f_obj.get('preferred_default'):
                 preferred_default_file_format.append(f_obj['file_format'])
                 preferred_default_output_type.add(f_obj['output_type'])
-        if (
-            rep_count == 1
-            and not preferred_default_file_format
-            and not preferred_default_output_type
-        ):
-            print('Unreplicated experiment with no preferred default')
+        # Different expectation for control experiments
+        if experiment.get('control_type'):
+            if (
+                len(preferred_default_file_format) != 0
+                or len(preferred_default_output_type) != 0
+            ):
+                print('Control experiment has preferred default by mistake')
+                bad_reason.append(
+                    'Control experiment has preferred default by mistake'
+                )
         else:
             if sorted(
                 preferred_default_file_format
-            ) != PREFERRED_DEFAULT_FILE_FORMAT:
-                print('Wrong preferred default file format')
-                bad_reason.append('Wrong preferred default file format')
+            ) != expected_preferred_default_file_format:
+                msg = 'Wrong preferred default file format'
+                if rep_count == 1:
+                    msg += '; unreplicated experiment'
+                print(msg)
+                bad_reason.append(msg)
             if (
                 len(preferred_default_output_type) != 1
                 or list(
                     preferred_default_output_type
-                )[0] not in PREFERRED_DEFAULT_OUTPUT_TYPE
+                )[0] not in expected_preferred_default_output_type
             ):
-                print('Wrong preferred default file output type')
-                bad_reason.append('Wrong preferred default file output type')
+                msg = 'Wrong preferred default file output type'
+                if rep_count == 1:
+                    msg += '; unreplicated experiment'
+                print(msg)
+                bad_reason.append(msg)
         if file_output_map != expected_file_output_count:
             print('Wrong file output type map')
             bad_reason.append('Wrong file output type map')
             print('Has {}'.format(str(file_output_map)))
             print('Expect {}'.format(str(expected_file_output_count)))
-    if skipped_analyses_count == len(experiment['analyses']):
+    if skipped_analyses_count == len(analysisObj):
         print('No ENCODE4 analysis found')
         bad_reason.append('No ENCODE4 analysis found')
-    if skipped_analyses_count:
+    elif skipped_analyses_count:
         print('Skipped {} non-ENCODE4 uniform analyses'.format(
             skipped_analyses_count
         ))
@@ -121,7 +164,7 @@ def check_encode4_atac_pipeline(exp_acc):
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        description='Script to check result of ENCODE4 ATAC-seq processing on '
+        description='Script to check result of ENCODE4 ChIP-seq processing on '
         'the ENCODE portal'
     )
     parser.add_argument(
@@ -143,7 +186,7 @@ def main():
     summary = {}
     GoodExperiments = {}
     for exp_acc in args.exp_accs:
-        bad_reason, serious_audits = check_encode4_atac_pipeline(
+        bad_reason, serious_audits = check_encode4_chip_pipeline(
             exp_acc.strip()
         )
         status = ', '.join(bad_reason) or 'Good'
