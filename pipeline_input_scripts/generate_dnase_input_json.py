@@ -275,6 +275,12 @@ def main():
             elif read_len == 76:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF304SVB/@@download/ENCFF304SVB.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF162AKB/@@download/ENCFF162AKB.tar.gz'
+            elif read_len == 51:
+                hotspot1_link = 'https://www.encodeproject.org/files/ENCFF748WDF/@@download/ENCFF748WDF.tar.gz'
+                hotspot2_link = 'https://www.encodeproject.org/files/ENCFF078NTJ/@@download/ENCFF078NTJ.tar.gz'
+            elif read_len == 101:
+                hotspot1_link = 'https://www.encodeproject.org/files/ENCFF798YMP/@@download/ENCFF798YMP.tar.gz'
+                hotspot2_link = 'https://www.encodeproject.org/files/ENCFF588WKD/@@download/ENCFF588WKD.tar.gz'
             refs = {
                 'genome_name': 'GRCh38',
                 'indexed_fasta_tar_gz': 'https://www.encodeproject.org/files/ENCFF499QKB/@@download/ENCFF499QKB.tar.gz',
@@ -292,6 +298,12 @@ def main():
             elif read_len == 76:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF950RBV/@@download/ENCFF950RBV.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF566YRR/@@download/ENCFF566YRR.tar.gz'
+            elif read_len == 51:
+                hotspot1_link = 'https://www.encodeproject.org/files/ENCFF397XER/@@download/ENCFF397XER.tar.gz'
+                hotspot2_link = 'https://www.encodeproject.org/files/ENCFF319HJG/@@download/ENCFF319HJG.tar.gz'
+            elif read_len == 101:
+                hotspot1_link = 'https://www.encodeproject.org/files/ENCFF974OZN/@@download/ENCFF974OZN.tar.gz'
+                hotspot2_link = 'https://www.encodeproject.org/files/ENCFF769YPQ/@@download/ENCFF769YPQ.tar.gz'
             refs = {
                 'genome_name': 'mm10',
                 'indexed_fasta_tar_gz': 'https://www.encodeproject.org/files/ENCFF734RZS/@@download/ENCFF734RZS.tar.gz',
