@@ -207,6 +207,7 @@ def main():
     if args.infile:
         infile_df = parse_infile(args.infile)
         infile_df.sort_values(by=['accession'], inplace=True)
+        infile_df.drop_duplicates(subset=['accession'],inplace=True)
     elif args.accessions:
         accession_list = args.accessions.split(',')
         align_only = strs2bool(args.align_only.split(','))
