@@ -269,16 +269,16 @@ def main():
             organism.add(rep['library']['biosample']['organism']['scientific_name'])
 
         if ''.join(organism) == 'Homo sapiens':
-            if read_len == 36:
+            if read_len <= 36:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF405EUN/@@download/ENCFF405EUN.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF180EJG/@@download/ENCFF180EJG.tar.gz'
             elif read_len == 76:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF304SVB/@@download/ENCFF304SVB.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF162AKB/@@download/ENCFF162AKB.tar.gz'
-            elif read_len == 51:
+            elif read_len == 51 or read_len == 50:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF748WDF/@@download/ENCFF748WDF.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF078NTJ/@@download/ENCFF078NTJ.tar.gz'
-            elif read_len == 101:
+            elif read_len == 101 or read_len == 100:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF798YMP/@@download/ENCFF798YMP.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF588WKD/@@download/ENCFF588WKD.tar.gz'
             refs = {
@@ -292,16 +292,16 @@ def main():
                 'bias_model_gz': 'https://www.encodeproject.org/files/ENCFF119KWQ/@@download/ENCFF119KWQ.txt.gz'
             }    
         elif ''.join(organism) == 'Mus musculus':
-            if read_len == 36:
+            if read_len <= 36:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF785GGO/@@download/ENCFF785GGO.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF749IUT/@@download/ENCFF749IUT.tar.gz'
             elif read_len == 76:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF950RBV/@@download/ENCFF950RBV.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF566YRR/@@download/ENCFF566YRR.tar.gz'
-            elif read_len == 51:
+            elif read_len == 51 or read_len == 50:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF397XER/@@download/ENCFF397XER.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF319HJG/@@download/ENCFF319HJG.tar.gz'
-            elif read_len == 101:
+            elif read_len == 101 or read_len == 100:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF974OZN/@@download/ENCFF974OZN.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF769YPQ/@@download/ENCFF769YPQ.tar.gz'
             refs = {
