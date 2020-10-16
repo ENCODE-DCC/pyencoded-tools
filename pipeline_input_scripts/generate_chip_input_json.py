@@ -30,6 +30,8 @@ def get_parser():
                         help="""An additional custom string to be appended to the file name of the caper submit commands.""")
     parser.add_argument('--custom-crop-length', action='store', default='',
                         help="""Custom value for the crop length.""")
+    parser.add_argument('--multiple-controls', action='store', default='',
+                        help="""Pipeline will assume multiple controls should be used.""")
     return parser
 
 
@@ -213,11 +215,13 @@ def main():
         align_only = strs2bool(args.align_only.split(','))
         message = args.custom_message.split(',')
         custom_crop_length = args.custom_crop_length.split(',')
+        multiple_controls = strs2bool(args.multiple_controls.split(','))
         infile_df = pd.DataFrame({
             'accession': accession_list,
             'align_only': align_only,
             'custom_message': message,
-            'crop_length': custom_crop_length
+            'crop_length': custom_crop_length,
+            'multiple_controls': multiple_controls
         })
         infile_df.sort_values(by=['accession'], inplace=True)
 
@@ -227,6 +231,11 @@ def main():
         custom_crop_lengths = infile_df['custom_crop_length'].tolist()
     else:
         custom_crop_lengths = [None] * len(infile_df['accession'])
+
+    if 'multiple_controls' in infile_df:
+        multiple_controls = infile_df['multiple_controls'].tolist()
+    else:
+        multiple_controls = False * len(infile_df['accession'])
 
     # Arrays to store lists of potential errors.
     ERROR_no_fastqs = []
@@ -401,25 +410,25 @@ def main():
 
     ctl_nodup_bams = []
     final_run_types = []
-    for control, experiment, pipeline_type, experiment_run_type, replicates, experiment_read_length in zip(
+    for controls, experiment, pipeline_type, experiment_run_type, replicates, experiment_read_length, use_multiple_controls in zip(
             experiment_input_df['possible_controls'],
             experiment_input_df['accession'],
             pipeline_types,
             experiment_run_types,
             experiment_input_df['replicates'],
-            experiment_min_read_lengths
+            experiment_min_read_lengths,
+            multiple_controls
     ):
         try:
             if pipeline_type == 'control':
                 ctl_nodup_bams.append(None)
                 final_run_types.append(False if experiment_run_type == 'single-ended' else True)
                 crop_length.append(experiment_read_length)
-            elif control == []:
+            elif controls == []:
                 print(f'ERROR: No controls in possible_controls for experiment {experiment}.')
                 raise Warning
             else:
-                control_id = None
-                if len(control) > 1:
+                if len(controls) > 1 and not use_multiple_controls:
                     # Only check TF ChIP if the antibody is eGFP; otherwise throw
                     # an error if there are more than one control specified.
                     antibody = set()
@@ -431,40 +440,42 @@ def main():
                             print(f'ERROR: Replicate in {experiment} is missing metadata about the antibody used.')
                             raise Warning
                     if ''.join(antibody) == '/targets/eGFP-avictoria/' and pipeline_type == 'tf':
-                        for ctl in control:
+                        for ctl in controls:
                             if ctl['@id'] in wildtype_ctl_ids:
-                                control_id = ctl['@id']
+                                controls = [ctl]
                                 break
-                        if control_id is None:
+                        if len(control_ids) == 0:
                             print(f'ERROR: Could not locate wildtype control for {experiment}.')
                             raise Warning
                     else:
                         print(f'ERROR: Too many controls for experiment {experiment}.')
                         raise Warning
-                else:
-                    control_id = control[0]['@id']
 
-                # Identify run_types in the control
-                run_types = set(file_input_df[
-                        (file_input_df['dataset'] == control_id) &
-                        (file_input_df['file_format'] == 'fastq')
-                        ].get('run_type'))
-                if 'single-ended' in run_types or experiment_run_type == 'single-ended':
+                control_run_types = set()
+                control_read_lengths = list()
+                for control in controls:
+                    # Identify run_types in the control(s)
+                    control_run_types.update(file_input_df[
+                            (file_input_df['dataset'] == control['@id']) &
+                            (file_input_df['file_format'] == 'fastq')
+                            ].get('run_type'))
+                    # Collect read_lengths in the control(s)
+                    control_read_lengths.extend(file_input_df[
+                            (file_input_df['dataset'] == control['@id']) &
+                            (file_input_df['file_format'] == 'fastq')
+                            ].get('read_length').tolist())
+
+                # Determine endedness based on the run types of the control(s) and experiment.
+                if 'single-ended' in control_run_types or experiment_run_type == 'single-ended':
                     final_run_type = 'single-ended'
                     final_run_types.append(False)
-                elif next(iter(run_types)) == 'paired-ended' and experiment_run_type == 'paired-ended':
+                elif next(iter(control_run_types)) == 'paired-ended' and experiment_run_type == 'paired-ended':
                     final_run_type = 'paired-ended'
                     final_run_types.append(True)
                 else:
                     ERROR_not_matching_endedness.append(experiment)
                     print(f'ERROR: Could not determine correct endedness for experiment {experiment} and its control.')
                     raise Warning
-
-                # Collect read_lengths in the control
-                control_read_lengths = file_input_df[
-                        (file_input_df['dataset'] == control_id) &
-                        (file_input_df['file_format'] == 'fastq')
-                        ].get('read_length').tolist()
 
                 # Select the minimum read length out of the files in the experiment
                 # and its control, and store the value.
@@ -476,21 +487,29 @@ def main():
 
                 # Gather control bams based on matching read_length
                 ctl_nodup_temp_collector = []
-                for rep_num in list(range(1, 11)):
-                    ctl_search = file_input_df[
-                        (file_input_df['dataset'] == control_id) &
-                        (file_input_df['biorep_scalar'] == rep_num) &
-                        (file_input_df['file_format'] == 'bam') &
-                        (file_input_df['mapped_run_type'] == final_run_type) &
-                        (file_input_df['cropped_read_length'] <= combined_minimum_read_length + 2) &
-                        (file_input_df['cropped_read_length'] >= combined_minimum_read_length - 2)
-                    ]
-                    if not ctl_search.empty:
-                        if ctl_search['cropped_read_length_tolerance'].values[0] == 2:
-                            ctl_nodup_temp_collector.append(link_prefix + ctl_search.index.values[0])
-                        else:
-                            print(f'ERROR: Tolerance of control bam {ctl_search["@id"].values[0]} is not 2 bp.')
-                            ctl_nodup_temp_collector.append(None)
+                for control in controls:
+                    matching_bam_found = False
+                    for rep_num in list(range(1, 11)):
+                        ctl_search = file_input_df[
+                            (file_input_df['dataset'] == control['@id']) &
+                            (file_input_df['biorep_scalar'] == rep_num) &
+                            (file_input_df['file_format'] == 'bam') &
+                            (file_input_df['mapped_run_type'] == final_run_type) &
+                            (file_input_df['cropped_read_length'] <= combined_minimum_read_length + 2) &
+                            (file_input_df['cropped_read_length'] >= combined_minimum_read_length - 2)
+                        ]
+                        if not ctl_search.empty:
+                            if ctl_search['cropped_read_length_tolerance'].values[0] == 2:
+                                ctl_nodup_temp_collector.append(link_prefix + ctl_search.index.values[0])
+                            else:
+                                print(f'ERROR: Tolerance of control bam {ctl_search["@id"].values[0]} is not 2 bp.')
+                                ctl_nodup_temp_collector.append(None)
+                            matching_bam_found = True
+                    # If the experiment has multiple controls that should be used,
+                    # we expect each control to have at least one matching bam. Otherwise, treat it as an error.
+                    if not matching_bam_found:
+                        print(f'ERROR: no bams found in control of {experiment}.')
+                        ERROR_control_error_detected.append(experiment)
                 if not ctl_nodup_temp_collector:
                     print(f'ERROR: no bams found for {experiment}.')
                     ctl_nodup_bams.append(None)
