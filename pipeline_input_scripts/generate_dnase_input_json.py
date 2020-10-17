@@ -269,7 +269,10 @@ def main():
             organism.add(rep['library']['biosample']['organism']['scientific_name'])
 
         if ''.join(organism) == 'Homo sapiens':
-            if read_len <= 36:
+            if read_len == 20:
+                hotspot1_link = 'https://www.encodeproject.org/files/ENCFF100CQH/@@download/ENCFF100CQH.tar.gz'
+                hotspot2_link = 'https://www.encodeproject.org/files/ENCFF635XTF/@@download/ENCFF635XTF.tar.gz'
+            elif read_len <= 36 and read_len > 20:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF405EUN/@@download/ENCFF405EUN.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF180EJG/@@download/ENCFF180EJG.tar.gz'
             elif read_len == 76:
@@ -292,7 +295,10 @@ def main():
                 'bias_model_gz': 'https://www.encodeproject.org/files/ENCFF119KWQ/@@download/ENCFF119KWQ.txt.gz'
             }    
         elif ''.join(organism) == 'Mus musculus':
-            if read_len <= 36:
+            if read_len == 20:
+                hotspot1_link = 'https://www.encodeproject.org/files/ENCFF358OXD/@@download/ENCFF358OXD.tar.gz'
+                hotspot2_link = 'https://www.encodeproject.org/files/ENCFF106FWF/@@download/ENCFF106FWF.tar.gz'
+            elif read_len <= 36 and read_len > 20:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF785GGO/@@download/ENCFF785GGO.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF749IUT/@@download/ENCFF749IUT.tar.gz'
             elif read_len == 76:
