@@ -444,7 +444,7 @@ def main():
                             if ctl['@id'] in wildtype_ctl_ids:
                                 controls = [ctl]
                                 break
-                        if len(control_ids) == 0:
+                        if len(controls) == 0:
                             print(f'ERROR: Could not locate wildtype control for {experiment}.')
                             raise Warning
                     else:
