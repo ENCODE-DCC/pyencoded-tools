@@ -32,6 +32,8 @@ def get_parser():
                         help="""Custom value for the crop length.""")
     parser.add_argument('--multiple-controls', action='store', default='',
                         help="""Pipeline will assume multiple controls should be used.""")
+    parser.add_argument('--force-se', action='store', default='',
+                        help="""Pipeline will map as single-ended regardless of input fastqs.""")
     return parser
 
 
@@ -101,6 +103,8 @@ def parse_infile(infile):
     try:
         infile_df = pd.read_csv(infile, '\t')
         infile_df['align_only'].astype('bool')
+        infile_df['multiple_controls'].astype('bool')
+        infile_df['force_se'].astype('bool')
         return infile_df
     except FileNotFoundError as e:
         print(e)
@@ -216,12 +220,14 @@ def main():
         message = args.custom_message.split(',')
         custom_crop_length = args.custom_crop_length.split(',')
         multiple_controls = strs2bool(args.multiple_controls.split(','))
+        force_se = strs2bool(args.force_se.split(','))
         infile_df = pd.DataFrame({
             'accession': accession_list,
             'align_only': align_only,
             'custom_message': message,
             'crop_length': custom_crop_length,
-            'multiple_controls': multiple_controls
+            'multiple_controls': multiple_controls,
+            'force_se': force_se
         })
         infile_df.sort_values(by=['accession'], inplace=True)
 
@@ -231,6 +237,13 @@ def main():
         custom_crop_lengths = infile_df['custom_crop_length'].tolist()
     else:
         custom_crop_lengths = [None] * len(infile_df['accession'])
+
+    force_se_flag = False
+    if 'force_se' in infile_df:
+        force_se_flag = True
+        force_ses = infile_df['force_se'].tolist()
+    else:
+        force_ses = False * len(infile_df['accession'])
 
     if 'multiple_controls' in infile_df:
         multiple_controls = infile_df['multiple_controls'].tolist()
@@ -410,19 +423,20 @@ def main():
 
     ctl_nodup_bams = []
     final_run_types = []
-    for controls, experiment, pipeline_type, experiment_run_type, replicates, experiment_read_length, use_multiple_controls in zip(
+    for controls, experiment, pipeline_type, experiment_run_type, replicates, experiment_read_length, use_multiple_controls, map_as_SE in zip(
             experiment_input_df['possible_controls'],
             experiment_input_df['accession'],
             pipeline_types,
             experiment_run_types,
             experiment_input_df['replicates'],
             experiment_min_read_lengths,
-            multiple_controls
+            multiple_controls,
+            force_ses
     ):
         try:
             if pipeline_type == 'control':
                 ctl_nodup_bams.append(None)
-                final_run_types.append(False if experiment_run_type == 'single-ended' else True)
+                final_run_types.append(False if experiment_run_type == 'single-ended' or map_as_SE else True)
                 crop_length.append(experiment_read_length)
             elif controls == []:
                 print(f'ERROR: No controls in possible_controls for experiment {experiment}.')
@@ -466,7 +480,7 @@ def main():
                             ].get('read_length').tolist())
 
                 # Determine endedness based on the run types of the control(s) and experiment.
-                if 'single-ended' in control_run_types or experiment_run_type == 'single-ended':
+                if 'single-ended' in control_run_types or experiment_run_type == 'single-ended' or map_as_SE:
                     final_run_type = 'single-ended'
                     final_run_types.append(False)
                 elif next(iter(control_run_types)) == 'paired-ended' and experiment_run_type == 'paired-ended':
