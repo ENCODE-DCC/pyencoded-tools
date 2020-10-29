@@ -578,7 +578,7 @@ def main():
     # Clean up the pipeline_type data - flag cases where controls are not 'align_only', then submit all 'controls' as 'tf'
     ERROR_controls_not_align_only = output_df[
         (output_df['chip.pipeline_type'] == 'control') &
-        (output_df['chip.align_only'] is False)].get('chip.title').tolist()
+        (output_df['chip.align_only'] == False)].get('chip.title').tolist()
     for expt in ERROR_controls_not_align_only:
         print(f'ERROR: {expt} is a control but was not align_only.')
 
