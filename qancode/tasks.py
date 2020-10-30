@@ -501,6 +501,8 @@ class GetFacetNumbers(SeleniumTask):
                 title_selector = 'legend'
                 category_class = SearchPageList.category_title_class_radio
                 number_class = SearchPageList.number_class_radio
+            elif facet.get_attribute('class') == 'facet facet--audit-warning':
+                continue
             else:
                 title_selector = 'h5'
                 category_class = SearchPageList.category_title_class
