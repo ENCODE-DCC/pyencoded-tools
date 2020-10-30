@@ -103,6 +103,10 @@ def check_encode4_chip_pipeline(exp_acc):
         if sorted(analysis['pipelines']) != ENCODE4_CHIP_PIPELINES:
             skipped_analyses_count += 1
             continue
+        analysisStatus = ["released", "in progress", "archived"]
+        if analysis.get('status') not in analysisStatus:
+            skipped_analyses_count += 1
+            continue
         if analysis.get('assembly') != 'GRCh38':
             print('Wrong assembly')
             bad_reason.append('Wrong assembly')
@@ -152,8 +156,8 @@ def check_encode4_chip_pipeline(exp_acc):
             print('Has {}'.format(str(file_output_map)))
             print('Expect {}'.format(str(expected_file_output_count)))
     if skipped_analyses_count == len(analysisObj):
-        print('No ENCODE4 analysis found')
-        bad_reason.append('No ENCODE4 analysis found')
+        print('No good ENCODE4 analysis found')
+        bad_reason.append('No good ENCODE4 analysis found')
     elif skipped_analyses_count:
         print('Skipped {} non-ENCODE4 uniform analyses'.format(
             skipped_analyses_count
