@@ -47,6 +47,7 @@ def check_encode4_dnase_pipeline(exp_acc):
         ('alignments', 'bam'): rep_count,
         ('peaks', 'bed'): rep_count * 2,
         ('peaks', 'bigBed'): rep_count * 2,
+        ('peaks', 'starch'): rep_count,
         ('FDR cut rate', 'bed'): rep_count,
         ('FDR cut rate', 'bigBed'): rep_count,
         ('read-depth normalized signal', 'bigWig'): rep_count,
