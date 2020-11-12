@@ -252,6 +252,7 @@ def main():
 
     # Arrays to store lists of potential errors.
     ERROR_no_fastqs = []
+    ERROR_missing_fastq_pairs = []
     ERROR_control_error_detected = []
     ERROR_not_matching_endedness = []
 
@@ -374,7 +375,11 @@ def main():
                     for rep_num in fastqs_by_rep_R1:
                         if file_input_df.loc[link].at['biorep_scalar'] == rep_num:
                             fastqs_by_rep_R1[rep_num].append(link_prefix + link)
-                            fastqs_by_rep_R2[rep_num].append(link_prefix + file_input_df[file_input_df['@id'] == pair].index.values[0])
+                            try:
+                                fastqs_by_rep_R2[rep_num].append(link_prefix + file_input_df[file_input_df['@id'] == pair].index.values[0])
+                            except IndexError:
+                                print(f'ERROR: Metadata error (missing expected read 2 fastq) in {experiment_id}.')
+                                ERROR_missing_fastq_pairs.append(experiment_id)
                 elif pd.isnull(file_input_df.loc[link].at['paired_end']):
                     for rep_num in fastqs_by_rep_R1:
                         if file_input_df.loc[link].at['biorep_scalar'] == rep_num:
@@ -589,6 +594,7 @@ def main():
     output_df.drop(
         ERROR_control_error_detected +
         ERROR_no_fastqs +
+        ERROR_missing_fastq_pairs +
         ERROR_not_matching_endedness +
         ERROR_controls_not_align_only,
         inplace=True)
