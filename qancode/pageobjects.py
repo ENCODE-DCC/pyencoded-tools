@@ -25,7 +25,7 @@ class SignInModal:
     button_tag = 'button'
     github_user_id_input_css = '#login_field'
     github_password_input_css = '#password'
-    github_submit_button_css = '#login > form > div.auth-form-body.mt-3 > input.btn.btn-primary.btn-block'
+    github_submit_button_css = '#login > div.auth-form-body.mt-3 > form > input.btn.btn-primary.btn-block'
     two_step_user_id_input_css = '#username'
     two_step_password_input_css = '#password'
     two_step_submit_css = '#login > input'
