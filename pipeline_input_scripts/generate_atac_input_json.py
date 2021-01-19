@@ -349,7 +349,6 @@ def main():
                             if file_input_df.loc[link].at['replicate.library.adapters']:
                                 for adapter in file_input_df.loc[link].at['replicate.library.adapters']:
                                     if adapter['type'] == "read1 3' adapter":
-                                        print(adapter['type'])
                                         adapter_sequence = adapter['sequence']
                                     else:
                                         continue
