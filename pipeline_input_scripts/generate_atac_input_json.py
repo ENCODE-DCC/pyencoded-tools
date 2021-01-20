@@ -142,6 +142,8 @@ def get_data_from_portal(infile_df, server, keypair, link_prefix, link_src):
     if 'paired_end' not in file_input_df:
         file_input_df['paired_end'] = None
         file_input_df['paired_with'] = None
+    if 'replicate.library.adapters' not in file_input_df:
+        file_input_df['replicate.library.adapters'] = None
     file_input_df['biorep_scalar'] = [x[0] for x in file_input_df['biological_replicates']]
 
     return experiment_input_df, file_input_df
@@ -296,6 +298,7 @@ def main():
     }
     # Store experiment run types
     experiment_run_types = []
+    experiment_auto_detect = []
 
     for experiment_files, experiment_id in zip(experiment_input_df['files'], experiment_input_df['@id']):
         # Arrays for files within each experiment
@@ -328,6 +331,7 @@ def main():
             9: [], 10: []
         }
         run_types = set()
+        auto_detect_flag = False
 
         for file in experiment_files:
             link = file[link_src]
@@ -342,19 +346,23 @@ def main():
                             fastqs_by_rep_R1[rep_num].append(link_prefix + link)
                             fastqs_by_rep_R2[rep_num].append(link_prefix + file_input_df[file_input_df['@id'] == pair].index.values[0])
 
-                            for adapter in file_input_df.loc[link].at['replicate.library.adapters']:
-                                if adapter['type'] == "read1 3' adapter":
-                                    adapter_sequence = adapter['sequence']
-                                else:
-                                    continue
-                            adapters_by_rep_R1[rep_num].append(adapter_sequence)
+                            if file_input_df.loc[link].at['replicate.library.adapters']:
+                                for adapter in file_input_df.loc[link].at['replicate.library.adapters']:
+                                    if adapter['type'] == "read1 3' adapter":
+                                        adapter_sequence = adapter['sequence']
+                                    else:
+                                        continue
+                                adapters_by_rep_R1[rep_num].append(adapter_sequence)
 
-                            for adapter in file_input_df.loc[file_input_df[file_input_df['@id'] == pair].index.values[0]].at['replicate.library.adapters']:
-                                if adapter['type'] == "read2 3' adapter":
-                                    adapter_sequence = adapter['sequence']
-                                else:
-                                    continue
-                            adapters_by_rep_R2[rep_num].append(adapter_sequence)
+                                for adapter in file_input_df.loc[file_input_df[file_input_df['@id'] == pair].index.values[0]].at['replicate.library.adapters']:
+                                    if adapter['type'] == "read2 3' adapter":
+                                        adapter_sequence = adapter['sequence']
+                                    else:
+                                        continue
+                                adapters_by_rep_R2[rep_num].append(adapter_sequence)
+                            else:
+                                adapters_by_rep_R1[rep_num] = None
+                                adapters_by_rep_R2[rep_num] = None
 
                 elif pd.isnull(file_input_df.loc[link].at['paired_end']):
                     for rep_num in fastqs_by_rep_R1:
@@ -362,13 +370,17 @@ def main():
                             fastqs_by_rep_R1[rep_num].append(link_prefix + link)
                             fastqs_by_rep_R2[rep_num].append(None)
 
-                            for adapter in file_input_df.loc[link].at['replicate.library.adapters']:
-                                if adapter['type'] == "read1 3' adapter":
-                                    adapter_sequence = adapter['sequence']
-                                else:
-                                    continue
-                            adapters_by_rep_R1[rep_num].append(adapter_sequence)
-                            adapters_by_rep_R2[rep_num].append(None)
+                            if file_input_df.loc[link].at['replicate.library.adapters']:
+                                for adapter in file_input_df.loc[link].at['replicate.library.adapters']:
+                                    if adapter['type'] == "read1 3' adapter":
+                                        adapter_sequence = adapter['sequence']
+                                    else:
+                                        continue
+                                adapters_by_rep_R1[rep_num].append(adapter_sequence)
+                                adapters_by_rep_R2[rep_num].append(None)
+                            else:
+                                adapters_by_rep_R1[rep_num] = None
+                                adapters_by_rep_R2[rep_num] = None
 
                 run_types.add(file_input_df.loc[link].at['run_type'])
 
@@ -400,6 +412,9 @@ def main():
             fastqs_by_rep_R2_master[rep_num].append(fastqs_by_rep_R2[rep_num])
             adapters_by_rep_R1_master[rep_num].append(adapters_by_rep_R1[rep_num])
             adapters_by_rep_R2_master[rep_num].append(adapters_by_rep_R2[rep_num])
+            if None in adapters_by_rep_R1_master[rep_num]:
+                auto_detect_flag = True
+        experiment_auto_detect.append(auto_detect_flag)
 
         if 'single-ended' in run_types:
             experiment_run_types.append('single-ended')
@@ -430,6 +445,7 @@ def main():
         output_df[f'atac.adapters_rep{val}_R2'] = adapters_by_rep_R2_master[val]
     R1_cols = [col for col in output_df.columns if col.endswith('_R1') and 'fastqs' in col]
     output_df['number_of_replicates'] = output_df[R1_cols].apply(lambda x: count_reps(x), axis=1)
+    output_df['atac.auto_detect_adapter'] = experiment_auto_detect
 
     # Build descriptions using the other parameters.
     description_strings = []
@@ -480,6 +496,7 @@ def main():
         'atac.prom',
         'atac.enh',
         'atac.gensz',
+        'atac.auto_detect_adapter'
     ]
     for val in list(range(1, 11)):
         desired_key_order.extend([f'atac.fastqs_rep{val}_R1', f'atac.fastqs_rep{val}_R2'])
