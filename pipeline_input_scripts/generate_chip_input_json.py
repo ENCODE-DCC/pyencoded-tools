@@ -34,6 +34,8 @@ def get_parser():
                         help="""Pipeline will assume multiple controls should be used.""")
     parser.add_argument('--force-se', action='store', default='',
                         help="""Pipeline will map as single-ended regardless of input fastqs.""")
+    parser.add_argument('--redacted', action='store', default='',
+                        help="""Control experiment has redacted alignments.""")
     return parser
 
 
@@ -70,7 +72,7 @@ def build_file_report_query(experiment_list, server, file_format):
     elif file_format == 'bam':
         format_parameter = '&file_format=bam'
         award_parameter = '&award.rfa=ENCODE4'
-        output_type_parameter = '&output_type=alignments'
+        output_type_parameter = '&output_type=alignments&output_type=redacted alignments'
     return server + '/report/?type=File' + \
         f'&dataset={joined_list}' + \
         '&status=released' + \
@@ -221,13 +223,15 @@ def main():
         custom_crop_length = args.custom_crop_length.split(',')
         multiple_controls = strs2bool(args.multiple_controls.split(','))
         force_se = strs2bool(args.force_se.split(','))
+        redacted = strs2bool(args.redacted.split(','))
         infile_df = pd.DataFrame({
             'accession': accession_list,
             'align_only': align_only,
             'custom_message': message,
             'crop_length': custom_crop_length,
             'multiple_controls': multiple_controls,
-            'force_se': force_se
+            'force_se': force_se,
+            'redacted': redacted
         })
         infile_df.sort_values(by=['accession'], inplace=True)
 
@@ -244,6 +248,11 @@ def main():
         force_ses = infile_df['force_se'].tolist()
     else:
         force_ses = False * len(infile_df['accession'])
+
+    if 'redacted' in infile_df:
+        redacted_flags = infile_df['redacted'].tolist()
+    else:
+        redacted_flags = False * len(infile_df['accession'])
 
     if 'multiple_controls' in infile_df:
         multiple_controls = infile_df['multiple_controls'].tolist()
@@ -552,6 +561,7 @@ def main():
     output_df['chip.ctl_nodup_bams'] = ctl_nodup_bams
     output_df['chip.pipeline_type'] = pipeline_types
     output_df['chip.always_use_pooled_ctl'] = [True if x != 'control' else None for x in output_df['chip.pipeline_type']]
+    output_df['chip.redact_nodup_bam'] = redacted_flags
 
     # Populate the lists of fastqs.
     for val in list(range(1, 11)):
@@ -619,6 +629,7 @@ def main():
         'chip.blacklist',
         'chip.blacklist2',
         'chip.ctl_nodup_bams',
+        'chip.redact_nodup_bam',
         'chip.always_use_pooled_ctl'
     ]
     for val in list(range(1, 11)):
