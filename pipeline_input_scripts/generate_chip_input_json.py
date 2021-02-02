@@ -250,9 +250,9 @@ def main():
         force_ses = False * len(infile_df['accession'])
 
     if 'redacted' in infile_df:
-        redacted_flags = infile_df['redacted'].tolist()
+        redacted_flags = [x if x is True else None for x in infile_df['redacted'].tolist()]
     else:
-        redacted_flags = False * len(infile_df['accession'])
+        redacted_flags = [None] * len(infile_df['accession'])
 
     if 'multiple_controls' in infile_df:
         multiple_controls = infile_df['multiple_controls'].tolist()
