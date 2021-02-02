@@ -206,6 +206,7 @@ class ActionTuples:
             ('/search/?type=Biosample&status=deleted&sort=accession', None),
             ('/sescc-stem-cell-matrix/?type=Experiment&internal_tags=SESCC', None),
             ('/search/?type=Target&name=AARS-human', None),
+            ('/series-search/', None),
             ('/summary/?type=Experiment&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens', None),
             ('/targets/?status=deleted', None),
             ('/targets/CG15455-dmelanogaster/', None),

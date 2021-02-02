@@ -106,7 +106,7 @@ class Driver:
         else:
             self.driver = getattr(webdriver, browser)()
         self.driver.wait = WebDriverWait(self.driver, 5)
-        self.driver.wait_long = WebDriverWait(self.driver, 20)
+        self.driver.wait_long = WebDriverWait(self.driver, 30)
         self.driver.set_window_size(1500, 950)
         self.driver.set_window_position(0, 0)
         self.driver.get(url)
