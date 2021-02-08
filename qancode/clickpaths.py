@@ -64,7 +64,7 @@ class OpenUCSCGenomeBrowser:
         time.sleep(1)
         self.driver.switch_to_window([h for h in self.driver.window_handles
                                       if h != current_window][0])
-        self.driver.wait.until(EC.element_to_be_clickable(
+        self.driver.wait_long.until(EC.element_to_be_clickable(
             (By.ID, UCSCGenomeBrowser.zoom_one_id)))
         time.sleep(3)
 
