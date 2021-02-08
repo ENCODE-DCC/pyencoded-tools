@@ -108,6 +108,7 @@ class OpenUCSCGenomeBrowserFromExperiment:
         for y in self.driver.find_elements_by_tag_name(ExperimentPage.all_buttons_tag_name):
             try:
                 if y.text == 'Visualize':
+                    self.driver.execute_script("window.scrollBy(0,100)","");
                     y.click()
                     print('Opening genome browser')
                     break
