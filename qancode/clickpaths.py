@@ -100,6 +100,7 @@ class OpenUCSCGenomeBrowserFromExperiment:
         # Forced scrolling is necessary for the Edge webdriver, otherwise it's unable to interact with the selector.
         try:
             self.driver.execute_script("arguments[0].scrollIntoView(false);", selector_elem);
+            self.driver.execute_script("window.scrollBy(0,100)","");
             selector.select_by_visible_text(selected_assembly.text)
         except Exception as e:
             print(e)
@@ -108,7 +109,6 @@ class OpenUCSCGenomeBrowserFromExperiment:
         for y in self.driver.find_elements_by_tag_name(ExperimentPage.all_buttons_tag_name):
             try:
                 if y.text == 'Visualize':
-                    self.driver.execute_script("window.scrollBy(0,100)","");
                     y.click()
                     print('Opening genome browser')
                     break
