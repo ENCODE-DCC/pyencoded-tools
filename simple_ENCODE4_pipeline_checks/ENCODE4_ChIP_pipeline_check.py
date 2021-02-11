@@ -63,7 +63,7 @@ def check_encode4_chip_pipeline(exp_acc):
         'signal p-value': rep_count + int(rep_count > 1),
     }
     if is_histone:
-        expected_file_output_count['pseudo-replicated peaks'] = (
+        expected_file_output_count['pseudoreplicated peaks'] = (
             rep_count + int(rep_count > 1)
         ) * 2
         # Replicated peak (true replicated peak) only available for
@@ -72,7 +72,7 @@ def check_encode4_chip_pipeline(exp_acc):
             expected_file_output_count['replicated peaks'] = rep_pair_count * 2
         expected_preferred_default_file_format = ['bed', 'bigBed']
         expected_preferred_default_output_type = [
-            'replicated peaks', 'pseudo-replicated peaks'
+            'replicated peaks', 'pseudoreplicated peaks'
         ]
 
     else:
