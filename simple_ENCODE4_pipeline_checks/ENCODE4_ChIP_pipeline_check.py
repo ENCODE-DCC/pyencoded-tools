@@ -6,6 +6,7 @@ import os
 import sys
 import csv
 import requests
+import datetime
 
 AUTH = (os.environ.get("DCC_API_KEY"), os.environ.get("DCC_SECRET_KEY"))
 BASE_URL = 'https://www.encodeproject.org/{}/?format=json'
@@ -16,18 +17,62 @@ ENCODE4_CHIP_PIPELINES = [
     '/pipelines/ENCPL809GEM/',
 ]
 
+def get_latest_analysis(analyses):
+
+    # preprocessing
+    if not analyses:
+        return None
+
+    analyses_dict = {}
+    for a in analyses:
+        analysis = requests.get(BASE_URL.format(a['accession']), auth=AUTH).json()
+        date_created = analysis['date_created'].split('T')[0]
+        date_obj = datetime.datetime.strptime(date_created, '%Y-%m-%d')
+        analyses_dict[analysis['accession']] = {
+            'date': date_obj,
+            'pipeline_rfas': analysis['pipeline_award_rfas'],
+            'pipeline_labs': analysis['pipeline_labs'],
+            'status': analysis['status'],
+            'assembly': analysis['assembly']
+        }
+
+    latest = None
+    assembly_latest = False
+
+    for acc in analyses_dict.keys():
+        
+        archivedFiles = False
+        encode_rfa = False
+        assembly_latest = False
+        
+        if not latest:
+            latest = acc
+
+        if analyses_dict[acc]['date'] > analyses_dict[latest]['date']:
+            latest = acc
+
+    return latest
+
 
 def check_encode4_chip_pipeline(exp_acc):
     experiment = requests.get(BASE_URL.format(exp_acc), auth=AUTH).json()
     # Check for target and determine if histone ChIP
     is_histone = []
+    is_dbgap = False
     if experiment.get('target'):
         is_histone = 'histone' in experiment['target']['investigated_as']
+
+    # Check for dpGaP
+    if experiment.get('internal_tags'):
+        if 'dbGaP' in experiment.get('internal_tags'):
+            is_dbgap = True
 
     print('------------------------------')
     print(exp_acc)
     print('------------------------------')
     bad_reason = []
+    archiveAnalyses = {}
+    archiveAnalyses[exp_acc] = []
     serious_audits = {
         'ERROR': len(experiment['audit'].get('ERROR', [])),
         'NOT_COMPLIANT': len(experiment['audit'].get('NOT_COMPLIANT', [])),
@@ -42,6 +87,8 @@ def check_encode4_chip_pipeline(exp_acc):
         len(experiment['original_files'])
     ))
     analysisObj = experiment.get('analysis_objects', [])
+    latest = get_latest_analysis(analysisObj)
+
     print('Number of analyses: {}'.format(len(analysisObj)))
     print('File count in analyses: {}'.format(list(
         len(analysis['files']) for analysis in analysisObj
@@ -56,13 +103,29 @@ def check_encode4_chip_pipeline(exp_acc):
     rep_pair_count = rep_count * (rep_count - 1) // 2
     file_output_map = {}
     expected_file_output_count = {
-        'unfiltered alignments': rep_count,
-        'alignments': rep_count,
         # Pooled peak only available for replicated (rep_count > 1) experiment
         'fold change over control': rep_count + int(rep_count > 1),
         'signal p-value': rep_count + int(rep_count > 1),
     }
-    if is_histone:
+
+    if is_dbgap:
+        expected_file_output_count['redacted alignments'] = rep_count
+        expected_file_output_count['pseudoreplicated peaks'] = (
+            rep_count + int(rep_count > 1)
+        ) * 2
+
+        # Replicated peak (true replicated peak) only available for
+        # replicated (rep_count > 1) experiment
+        if rep_count > 1:
+            expected_file_output_count['replicated peaks'] = rep_pair_count * 2
+        expected_preferred_default_file_format = ['bigWig', 'bed', 'bigBed']
+        expected_preferred_default_output_type = [
+            'signal p-value', 'replicated peaks', 'pseudoreplicated peaks'
+        ]
+
+    elif is_histone:
+        expected_file_output_count['unfiltered alignments'] = rep_count
+        expected_file_output_count['alignments'] = rep_count
         expected_file_output_count['pseudoreplicated peaks'] = (
             rep_count + int(rep_count > 1)
         ) * 2
@@ -70,12 +133,14 @@ def check_encode4_chip_pipeline(exp_acc):
         # replicated (rep_count > 1) experiment
         if rep_count > 1:
             expected_file_output_count['replicated peaks'] = rep_pair_count * 2
-        expected_preferred_default_file_format = ['bed', 'bigBed']
+        expected_preferred_default_file_format = ['bigWig', 'bed', 'bigBed']
         expected_preferred_default_output_type = [
-            'replicated peaks', 'pseudoreplicated peaks'
+            'signal p-value', 'replicated peaks', 'pseudoreplicated peaks'
         ]
 
     else:
+        expected_file_output_count['unfiltered alignments'] = rep_count
+        expected_file_output_count['alignments'] = rep_count
         expected_file_output_count.update(
             {
                 'IDR ranked peaks':
@@ -83,9 +148,9 @@ def check_encode4_chip_pipeline(exp_acc):
                 'IDR thresholded peaks': (rep_count + rep_pair_count) * 2,
             }
         )
-        expected_preferred_default_file_format = ['bed', 'bigBed']
+        expected_preferred_default_file_format = ['bigWig', 'bed', 'bigBed']
         expected_preferred_default_output_type = [
-            'IDR thresholded peaks', 'conservative IDR thresholded peaks'
+            'signal p-value', 'IDR thresholded peaks', 'conservative IDR thresholded peaks'
         ]
         # Conservative peak (true replicated peak) only available for
         # replicated (rep_count > 1) experiment
@@ -94,12 +159,25 @@ def check_encode4_chip_pipeline(exp_acc):
                 'conservative IDR thresholded peaks'
             ] = 2
     # Fix expectation for control experiments
-    if experiment.get('control_type'):
-        expected_file_output_count = {
-            'unfiltered alignments': rep_count,
-            'alignments': rep_count,
+    if experiment.get('control_type'): 
+        if is_dbgap:
+            expected_file_output_count = {
+            'redacted alignments': rep_count
         }
+
+        else:
+            expected_file_output_count = {
+            'unfiltered alignments': rep_count,
+            'alignments': rep_count
+            }
+
+    possibleArchive = []
     for analysis in analysisObj:
+
+        # which analyses to archive, despite RFA
+        if analysis['status'] in ['released', 'in progress'] and analysis['accession'] != latest:
+                archiveAnalyses[exp_acc].append(analysis['accession'])
+
         if sorted(analysis['pipelines']) != ENCODE4_CHIP_PIPELINES:
             skipped_analyses_count += 1
             continue
@@ -133,17 +211,20 @@ def check_encode4_chip_pipeline(exp_acc):
         else:
             if sorted(
                 preferred_default_file_format
-            ) != expected_preferred_default_file_format:
+            ) != sorted(expected_preferred_default_file_format):
                 msg = 'Wrong preferred default file format'
                 if rep_count == 1:
                     msg += '; unreplicated experiment'
                 print(msg)
                 bad_reason.append(msg)
             if (
-                len(preferred_default_output_type) != 1
+                len(preferred_default_output_type) != 2
                 or list(
                     preferred_default_output_type
                 )[0] not in expected_preferred_default_output_type
+                or list(
+                    preferred_default_output_type
+                )[1] not in expected_preferred_default_output_type
             ):
                 msg = 'Wrong preferred default file output type'
                 if rep_count == 1:
@@ -155,6 +236,8 @@ def check_encode4_chip_pipeline(exp_acc):
             bad_reason.append('Wrong file output type map')
             print('Has {}'.format(str(file_output_map)))
             print('Expect {}'.format(str(expected_file_output_count)))
+
+
     if skipped_analyses_count == len(analysisObj):
         print('No good ENCODE4 analysis found')
         bad_reason.append('No good ENCODE4 analysis found')
@@ -162,8 +245,9 @@ def check_encode4_chip_pipeline(exp_acc):
         print('Skipped {} non-ENCODE4 uniform analyses'.format(
             skipped_analyses_count
         ))
+
     print('')
-    return bad_reason, serious_audits
+    return bad_reason, serious_audits, archiveAnalyses
 
 
 def get_parser():
@@ -189,8 +273,9 @@ def main():
     args = parser.parse_args()
     summary = {}
     GoodExperiments = {}
+    patchAnalyses = {}
     for exp_acc in args.exp_accs:
-        bad_reason, serious_audits = check_encode4_chip_pipeline(
+        bad_reason, serious_audits, archiveAnalyses = check_encode4_chip_pipeline(
             exp_acc.strip()
         )
         status = ', '.join(bad_reason) or 'Good'
@@ -204,20 +289,27 @@ def main():
             )
 
         summary[exp_acc.strip()] = status
+        patchAnalyses[exp_acc.strip()] = archiveAnalyses[exp_acc.strip()]
 
     for exp_acc in summary:
         print('{}: {}'.format(exp_acc, summary[exp_acc]))
 
+   
     if GoodExperiments:
         if args.ticket:
+            analysisArchive_filename = '%s_analysisStatusPatch.txt' % (args.ticket).strip()
             release_filename = '%s_releasedPatch.txt' % (args.ticket).strip()
-            problem_filename = '%s_internalstatusPatch.txt' % (args.ticket).strip()
+            problem_filename = '%s_internalStatusPatch.txt' % (args.ticket).strip()
         else:
+            analysisArchive_filename = 'analysisStatusPatch.txt'
             release_filename = 'releasedPatch.txt'
-            problem_filename = 'internalstatusPatch.txt'
+            problem_filename = 'internalStatusPatch.txt'
 
         releasedFiles = open(release_filename, 'w+')
         problemFiles = open(problem_filename, 'w+')
+        analysisPatch = open(analysisArchive_filename, 'w+')
+        analysisWriter = csv.writer(analysisPatch, delimiter='\t')
+        analysisWriter.writerow(['record_id', 'status'])
         problemWriter = csv.writer(problemFiles, delimiter='\t')
         problemWriter.writerow(['record_id', 'internal_status'])
 
@@ -228,6 +320,11 @@ def main():
                 releasedFiles.write(key)
                 releasedFiles.write('\n')
                 problemWriter.writerow([key, 'release ready'])
+                try:
+                    for analysis in patchAnalyses[key]:
+                        analysisWriter.writerow([analysis, 'archived'])
+                except KeyError:
+                    continue
 
 
 if __name__ == '__main__':

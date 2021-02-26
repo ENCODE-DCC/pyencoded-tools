@@ -6,6 +6,7 @@ import os
 import sys
 import csv
 import requests
+import datetime
 
 AUTH = (os.environ.get("DCC_API_KEY"), os.environ.get("DCC_SECRET_KEY"))
 BASE_URL = 'https://www.encodeproject.org/{}/?format=json'
@@ -13,10 +14,47 @@ ENCODE4_ATAC_PIPELINES = [
     '/pipelines/ENCPL344QWT/',
     '/pipelines/ENCPL787FUN/',
 ]
-PREFERRED_DEFAULT_FILE_FORMAT = ['bed', 'bigBed']
+PREFERRED_DEFAULT_FILE_FORMAT = ['bigWig', 'bed', 'bigBed']
 PREFERRED_DEFAULT_OUTPUT_TYPE = [
-    'replicated peaks', 'pseudo-replicated peaks'
+    'signal p-value', 'replicated peaks', 'pseudoreplicated peaks'
 ]
+
+
+def get_latest_analysis(analyses):
+
+    # preprocessing
+    if not analyses:
+        return None
+
+    analyses_dict = {}
+    for a in analyses:
+        analysis = requests.get(BASE_URL.format(a['accession']), auth=AUTH).json()
+        date_created = analysis['date_created'].split('T')[0]
+        date_obj = datetime.datetime.strptime(date_created, '%Y-%m-%d')
+        analyses_dict[analysis['accession']] = {
+            'date': date_obj,
+            'pipeline_rfas': analysis['pipeline_award_rfas'],
+            'pipeline_labs': analysis['pipeline_labs'],
+            'status': analysis['status'],
+            'assembly': analysis['assembly']
+        }
+
+    latest = None
+    assembly_latest = False
+
+    for acc in analyses_dict.keys():
+        
+        archivedFiles = False
+        encode_rfa = False
+        assembly_latest = False
+        
+        if not latest:
+            latest = acc
+
+        if analyses_dict[acc]['date'] > analyses_dict[latest]['date']:
+            latest = acc
+
+    return latest
 
 
 def check_encode4_atac_pipeline(exp_acc):
@@ -25,6 +63,8 @@ def check_encode4_atac_pipeline(exp_acc):
     print(exp_acc)
     print('------------------------------')
     bad_reason = []
+    archiveAnalyses = {}
+    archiveAnalyses[exp_acc] = []
     serious_audits = {
         'ERROR': len(experiment['audit'].get('ERROR', [])),
         'NOT_COMPLIANT': len(experiment['audit'].get('NOT_COMPLIANT', [])),
@@ -39,10 +79,12 @@ def check_encode4_atac_pipeline(exp_acc):
         len(experiment['original_files'])
     ))
     analysisObj = experiment.get('analysis_objects', [])
+    latest = get_latest_analysis(analysisObj)
     print('Number of analyses: {}'.format(len(analysisObj)))
     print('File count in analyses: {}'.format(list(
         len(analysis['files']) for analysis in analysisObj
     )))
+    skipped_ENC4_analyses_count = 0
     skipped_analyses_count = 0
     preferred_default_file_format = []
     preferred_default_output_type = set()
@@ -60,7 +102,7 @@ def check_encode4_atac_pipeline(exp_acc):
         'signal p-value': rep_count + int(rep_count > 1),
         'IDR ranked peaks': rep_count + rep_pair_count + int(rep_count > 1),
         'IDR thresholded peaks': (rep_count + rep_pair_count) * 2,
-        'pseudo-replicated peaks': (rep_count + int(rep_count > 1)) * 2,
+        'pseudoreplicated peaks': (rep_count + int(rep_count > 1)) * 2,
     }
     # Conservative peak (true replicated peak) only available for
     # replicated (rep_count > 1) experiment
@@ -68,9 +110,20 @@ def check_encode4_atac_pipeline(exp_acc):
         expected_file_output_count['conservative IDR thresholded peaks'] = 2
         expected_file_output_count['replicated peaks'] = rep_pair_count * 2
     for analysis in analysisObj:
+        # skip old ENCODE4 analysis
+        if analysis['status'] in ['released', 'in progress'] and analysis['accession'] != latest:
+            archiveAnalyses[exp_acc].append(analysis['accession'])
+            skipped_ENC4_analyses_count += 1
+            continue
         if sorted(analysis['pipelines']) != ENCODE4_ATAC_PIPELINES:
             skipped_analyses_count += 1
             continue
+        analysisStatus = ["released", "in progress", "archived"]
+        if analysis.get('status') not in analysisStatus:
+            skipped_analyses_count += 1
+            continue
+        print(latest)
+  
         if analysis.get('assembly') != 'GRCh38':
             print('Wrong assembly')
             bad_reason.append('Wrong assembly')
@@ -93,15 +146,20 @@ def check_encode4_atac_pipeline(exp_acc):
         else:
             if sorted(
                 preferred_default_file_format
-            ) != PREFERRED_DEFAULT_FILE_FORMAT:
+            ) != sorted(PREFERRED_DEFAULT_FILE_FORMAT):
+                print(sorted(preferred_default_file_format))
                 print('Wrong preferred default file format')
                 bad_reason.append('Wrong preferred default file format')
             if (
-                len(preferred_default_output_type) != 1
+                len(preferred_default_output_type) != 2
                 or list(
                     preferred_default_output_type
                 )[0] not in PREFERRED_DEFAULT_OUTPUT_TYPE
+                or list(
+                    preferred_default_output_type
+                )[1] not in PREFERRED_DEFAULT_OUTPUT_TYPE
             ):
+
                 print('Wrong preferred default file output type')
                 bad_reason.append('Wrong preferred default file output type')
         if file_output_map != expected_file_output_count:
@@ -109,6 +167,10 @@ def check_encode4_atac_pipeline(exp_acc):
             bad_reason.append('Wrong file output type map')
             print('Has {}'.format(str(file_output_map)))
             print('Expect {}'.format(str(expected_file_output_count)))
+    if skipped_ENC4_analyses_count > 0:
+        print('Skipped {} old ENCODE4 uniform analyses'.format(
+            skipped_ENC4_analyses_count
+        ))
     if skipped_analyses_count == len(analysisObj):
         print('No ENCODE4 analysis found')
         bad_reason.append('No ENCODE4 analysis found')
@@ -117,7 +179,7 @@ def check_encode4_atac_pipeline(exp_acc):
             skipped_analyses_count
         ))
     print('')
-    return bad_reason, serious_audits
+    return bad_reason, serious_audits, archiveAnalyses
 
 
 def get_parser():
@@ -143,8 +205,9 @@ def main():
     args = parser.parse_args()
     summary = {}
     GoodExperiments = {}
+    patchAnalyses = {}
     for exp_acc in args.exp_accs:
-        bad_reason, serious_audits = check_encode4_atac_pipeline(
+        bad_reason, serious_audits, archiveAnalyses = check_encode4_atac_pipeline(
             exp_acc.strip()
         )
         status = ', '.join(bad_reason) or 'Good'
@@ -158,20 +221,27 @@ def main():
             )
 
         summary[exp_acc.strip()] = status
+        patchAnalyses[exp_acc.strip()] = archiveAnalyses[exp_acc.strip()]
 
     for exp_acc in summary:
         print('{}: {}'.format(exp_acc, summary[exp_acc]))
 
+   
     if GoodExperiments:
         if args.ticket:
+            analysisArchive_filename = '%s_analysisStatusPatch.txt' % (args.ticket).strip()
             release_filename = '%s_releasedPatch.txt' % (args.ticket).strip()
-            problem_filename = '%s_internalstatusPatch.txt' % (args.ticket).strip()
+            problem_filename = '%s_internalStatusPatch.txt' % (args.ticket).strip()
         else:
+            analysisArchive_filename = 'analysisStatusPatch.txt'
             release_filename = 'releasedPatch.txt'
-            problem_filename = 'internalstatusPatch.txt'
+            problem_filename = 'internalStatusPatch.txt'
 
         releasedFiles = open(release_filename, 'w+')
         problemFiles = open(problem_filename, 'w+')
+        analysisPatch = open(analysisArchive_filename, 'w+')
+        analysisWriter = csv.writer(analysisPatch, delimiter='\t')
+        analysisWriter.writerow(['record_id', 'status'])
         problemWriter = csv.writer(problemFiles, delimiter='\t')
         problemWriter.writerow(['record_id', 'internal_status'])
 
@@ -182,6 +252,12 @@ def main():
                 releasedFiles.write(key)
                 releasedFiles.write('\n')
                 problemWriter.writerow([key, 'release ready'])
+                try:
+                    print(patchAnalyses[key])
+                    for item in patchAnalyses[key]:
+                        analysisWriter.writerow([item, 'archived'])
+                except KeyError:
+                    continue
 
 
 if __name__ == '__main__':
