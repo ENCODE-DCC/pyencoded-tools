@@ -122,7 +122,6 @@ def check_encode4_atac_pipeline(exp_acc):
         if analysis.get('status') not in analysisStatus:
             skipped_analyses_count += 1
             continue
-        print(latest)
   
         if analysis.get('assembly') != 'GRCh38':
             print('Wrong assembly')
@@ -253,7 +252,6 @@ def main():
                 releasedFiles.write('\n')
                 problemWriter.writerow([key, 'release ready'])
                 try:
-                    print(patchAnalyses[key])
                     for item in patchAnalyses[key]:
                         analysisWriter.writerow([item, 'archived'])
                 except KeyError:
