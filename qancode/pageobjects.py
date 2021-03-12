@@ -21,11 +21,11 @@ class SignInModal:
     Page object model.
     """
     login_modal_class = 'auth0-lock-header-logo'
-    github_button_css = '#auth0-lock-container-1 > div > div.auth0-lock-center > form > div > div > div > div.auth0-lock-content-wrapper > div:nth-child(2) > span > div > div > div > div > div > div > div > div:nth-child(1) > div > div > div.auth0-lock-social-buttons-container > [data-provider="github"]'
+    github_button_css = 'a[data-provider="github"]'
     button_tag = 'button'
     github_user_id_input_css = '#login_field'
     github_password_input_css = '#password'
-    github_submit_button_css = '#login > div.auth-form-body.mt-3 > form > input.btn.btn-primary.btn-block'
+    github_submit_button_css = '#login > div.auth-form-body.mt-3 > form > div > input.btn.btn-primary.btn-block'
     two_step_user_id_input_css = '#username'
     two_step_password_input_css = '#password'
     two_step_submit_css = '#login > input'

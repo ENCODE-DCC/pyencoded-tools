@@ -64,7 +64,7 @@ class OpenUCSCGenomeBrowser:
         time.sleep(1)
         self.driver.switch_to_window([h for h in self.driver.window_handles
                                       if h != current_window][0])
-        self.driver.wait.until(EC.element_to_be_clickable(
+        self.driver.wait_long.until(EC.element_to_be_clickable(
             (By.ID, UCSCGenomeBrowser.zoom_one_id)))
         time.sleep(3)
 
@@ -100,6 +100,7 @@ class OpenUCSCGenomeBrowserFromExperiment:
         # Forced scrolling is necessary for the Edge webdriver, otherwise it's unable to interact with the selector.
         try:
             self.driver.execute_script("arguments[0].scrollIntoView(false);", selector_elem);
+            self.driver.execute_script("window.scrollBy(0,100)","");
             selector.select_by_visible_text(selected_assembly.text)
         except Exception as e:
             print(e)
@@ -117,9 +118,8 @@ class OpenUCSCGenomeBrowserFromExperiment:
         self.driver.switch_to_window([h for h in self.driver.window_handles
                                       if h != current_window][0])
         time.sleep(3)
-        self.driver.wait.until(EC.element_to_be_clickable(
+        self.driver.wait_long.until(EC.element_to_be_clickable(
             (By.ID, UCSCGenomeBrowser.zoom_one_id)))
-        time.sleep(3)
 
 class OpenUCSCGenomeBrowserGRCh38:
     """
