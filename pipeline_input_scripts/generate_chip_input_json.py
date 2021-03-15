@@ -354,7 +354,12 @@ def main():
     experiment_min_read_lengths = []
     experiment_run_types = []
 
-    for experiment_files, experiment_id, custom_crop_length in zip(experiment_input_df['files'], experiment_input_df['accession'], custom_crop_lengths):
+    for experiment_files, experiment_id, custom_crop_length, map_as_SE in zip(
+        experiment_input_df['files'],
+        experiment_input_df['accession'],
+        custom_crop_lengths,
+        force_ses
+    ):
         # Arrays for files within each experiment
         fastqs_by_rep_R1 = {
             1: [], 2: [],
@@ -384,11 +389,12 @@ def main():
                     for rep_num in fastqs_by_rep_R1:
                         if file_input_df.loc[link].at['biorep_scalar'] == rep_num:
                             fastqs_by_rep_R1[rep_num].append(link_prefix + link)
-                            try:
-                                fastqs_by_rep_R2[rep_num].append(link_prefix + file_input_df[file_input_df['@id'] == pair].index.values[0])
-                            except IndexError:
-                                print(f'ERROR: Metadata error (missing expected read 2 fastq) in {experiment_id}.')
-                                ERROR_missing_fastq_pairs.append(experiment_id)
+                            if not map_as_SE:
+                                try:
+                                    fastqs_by_rep_R2[rep_num].append(link_prefix + file_input_df[file_input_df['@id'] == pair].index.values[0])
+                                except IndexError:
+                                    print(f'ERROR: Metadata error (missing expected read 2 fastq) in {experiment_id}.')
+                                    ERROR_missing_fastq_pairs.append(experiment_id)
                 elif pd.isnull(file_input_df.loc[link].at['paired_end']):
                     for rep_num in fastqs_by_rep_R1:
                         if file_input_df.loc[link].at['biorep_scalar'] == rep_num:
