@@ -174,17 +174,19 @@ def check_encode4_chip_pipeline(exp_acc):
     possibleArchive = []
     for analysis in analysisObj:
 
-        # which analyses to archive, despite RFA
-        if analysis['status'] in ['released', 'in progress'] and analysis['accession'] != latest:
-                archiveAnalyses[exp_acc].append(analysis['accession'])
+        # archive all other released analyses
+        if analysis['status'] in ['released'] and analysis['accession'] != latest:
+            archiveAnalyses[exp_acc].append(analysis['accession'])
+            continue
 
-        if sorted(analysis['pipelines']) != ENCODE4_CHIP_PIPELINES:
-            skipped_analyses_count += 1
-            continue
         analysisStatus = ["released", "in progress", "archived"]
-        if analysis.get('status') not in analysisStatus:
+        if sorted(analysis['pipelines']) != ENCODE4_CHIP_PIPELINES and analysis.get('status') not in analysisStatus:
             skipped_analyses_count += 1
             continue
+        elif analysis['accession'] != latest and sorted(analysis['pipelines']) == ENCODE4_CHIP_PIPELINES and analysis.get('status') not in analysisStatus:
+            skipped_ENC4_analyses_count += 1
+            continue
+  
         if analysis.get('assembly') != 'GRCh38':
             print('Wrong assembly')
             bad_reason.append('Wrong assembly')
@@ -238,14 +240,17 @@ def check_encode4_chip_pipeline(exp_acc):
             print('Expect {}'.format(str(expected_file_output_count)))
 
 
+    if skipped_ENC4_analyses_count > 0:
+        print('Skipped {} old ENCODE4 uniform analyses'.format(
+            skipped_ENC4_analyses_count
+        ))
     if skipped_analyses_count == len(analysisObj):
-        print('No good ENCODE4 analysis found')
-        bad_reason.append('No good ENCODE4 analysis found')
-    elif skipped_analyses_count:
+        print('No ENCODE4 analysis found')
+        bad_reason.append('No ENCODE4 analysis found')
+    if skipped_analyses_count:
         print('Skipped {} non-ENCODE4 uniform analyses'.format(
             skipped_analyses_count
         ))
-
     print('')
     return bad_reason, serious_audits, archiveAnalyses
 

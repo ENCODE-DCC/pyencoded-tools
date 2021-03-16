@@ -110,17 +110,17 @@ def check_encode4_atac_pipeline(exp_acc):
         expected_file_output_count['conservative IDR thresholded peaks'] = 2
         expected_file_output_count['replicated peaks'] = rep_pair_count * 2
     for analysis in analysisObj:
-        # skip old ENCODE4 analysis
-        if analysis['status'] in ['released', 'in progress'] and analysis['accession'] != latest:
+        # archive all other released analyses
+        if analysis['status'] in ['released'] and analysis['accession'] != latest:
             archiveAnalyses[exp_acc].append(analysis['accession'])
-            skipped_ENC4_analyses_count += 1
             continue
-        if sorted(analysis['pipelines']) != ENCODE4_ATAC_PIPELINES:
-            skipped_analyses_count += 1
-            continue
+
         analysisStatus = ["released", "in progress", "archived"]
-        if analysis.get('status') not in analysisStatus:
+        if sorted(analysis['pipelines']) != ENCODE4_ATAC_PIPELINES and analysis.get('status') not in analysisStatus:
             skipped_analyses_count += 1
+            continue
+        elif analysis['accession'] != latest and sorted(analysis['pipelines']) == ENCODE4_ATAC_PIPELINES and analysis.get('status') not in analysisStatus:
+            skipped_ENC4_analyses_count += 1
             continue
   
         if analysis.get('assembly') != 'GRCh38':
