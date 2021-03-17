@@ -171,21 +171,21 @@ def check_encode4_chip_pipeline(exp_acc):
             'alignments': rep_count
             }
 
-    possibleArchive = []
     for analysis in analysisObj:
 
         # archive all other released analyses
         if analysis['status'] in ['released'] and analysis['accession'] != latest:
             archiveAnalyses[exp_acc].append(analysis['accession'])
-            continue
 
         analysisStatus = ["released", "in progress", "archived"]
-        if sorted(analysis['pipelines']) != ENCODE4_CHIP_PIPELINES and analysis.get('status') not in analysisStatus:
+        if sorted(analysis['pipelines']) != ENCODE4_ATAC_PIPELINES and analysis['status'] in analysisStatus:
             skipped_analyses_count += 1
             continue
-        elif analysis['accession'] != latest and sorted(analysis['pipelines']) == ENCODE4_CHIP_PIPELINES and analysis.get('status') not in analysisStatus:
+
+        if sorted(analysis['pipelines']) == ENCODE4_ATAC_PIPELINES and analysis['accession'] != latest:
             skipped_ENC4_analyses_count += 1
-            continue
+            continue 
+
   
         if analysis.get('assembly') != 'GRCh38':
             print('Wrong assembly')
