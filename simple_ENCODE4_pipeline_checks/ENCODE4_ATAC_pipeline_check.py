@@ -124,6 +124,7 @@ def check_encode4_atac_pipeline(exp_acc):
             skipped_ENC4_analyses_count += 1
             continue 
 
+        print('Analysis object {} was checked'.format(analysis['accession']))
         if analysis.get('assembly') != 'GRCh38':
             print('Wrong assembly')
             bad_reason.append('Wrong assembly')
