@@ -93,6 +93,7 @@ def check_encode4_chip_pipeline(exp_acc):
     print('File count in analyses: {}'.format(list(
         len(analysis['files']) for analysis in analysisObj
     )))
+    skipped_ENC4_analyses_count = 0
     skipped_analyses_count = 0
     preferred_default_file_format = []
     preferred_default_output_type = set()
