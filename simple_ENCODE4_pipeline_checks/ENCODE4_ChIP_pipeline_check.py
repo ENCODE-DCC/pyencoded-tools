@@ -178,11 +178,11 @@ def check_encode4_chip_pipeline(exp_acc):
             archiveAnalyses[exp_acc].append(analysis['accession'])
 
         analysisStatus = ["released", "in progress", "archived"]
-        if sorted(analysis['pipelines']) != ENCODE4_ATAC_PIPELINES and analysis['status'] in analysisStatus:
+        if sorted(analysis['pipelines']) != ENCODE4_CHIP_PIPELINES and analysis['status'] in analysisStatus:
             skipped_analyses_count += 1
             continue
 
-        if sorted(analysis['pipelines']) == ENCODE4_ATAC_PIPELINES and analysis['accession'] != latest:
+        if sorted(analysis['pipelines']) == ENCODE4_CHIP_PIPELINES and analysis['accession'] != latest:
             skipped_ENC4_analyses_count += 1
             continue 
 
