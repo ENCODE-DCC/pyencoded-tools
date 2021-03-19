@@ -13,6 +13,42 @@ ENCODE4_BULK_RNA_PIPELINES = [
     '/pipelines/ENCPL862USL/',
 ]
 
+def get_latest_analysis(analyses):
+
+    # preprocessing
+    if not analyses:
+        return None
+
+    analyses_dict = {}
+    for a in analyses:
+        analysis = requests.get(BASE_URL.format(a['accession']), auth=AUTH).json()
+        date_created = analysis['date_created'].split('T')[0]
+        date_obj = datetime.datetime.strptime(date_created, '%Y-%m-%d')
+        analyses_dict[analysis['accession']] = {
+            'date': date_obj,
+            'pipeline_rfas': analysis['pipeline_award_rfas'],
+            'pipeline_labs': analysis['pipeline_labs'],
+            'status': analysis['status'],
+            'assembly': analysis['assembly']
+        }
+
+    latest = None
+    assembly_latest = False
+
+    for acc in analyses_dict.keys():
+        
+        archivedFiles = False
+        encode_rfa = False
+        assembly_latest = False
+        
+        if not latest:
+            latest = acc
+
+        if analyses_dict[acc]['date'] > analyses_dict[latest]['date']:
+            latest = acc
+
+    return latest
+
 
 def check_encode4_bulk_rna_pipeline(exp_acc):
     experiment = requests.get(BASE_URL.format(exp_acc), auth=AUTH).json()
@@ -21,6 +57,8 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
     print(exp_acc)
     print('------------------------------')
     bad_reason = []
+    archiveAnalyses = {}
+    archiveAnalyses[exp_acc] = []
     serious_audits = {
         'ERROR': len(experiment['audit'].get('ERROR', [])),
         'NOT_COMPLIANT': len(experiment['audit'].get('NOT_COMPLIANT', [])),
@@ -39,6 +77,7 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
     print('File count in analyses: {}'.format(list(
         len(analysis['files']) for analysis in analysisObj
     )))
+    skipped_ENC4_analyses_count = 0
     skipped_analyses_count = 0
     rep_count = len({
         rep['biological_replicate_number']
@@ -57,9 +96,20 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
     }
 
     for analysis in analysisObj:
-        if sorted(analysis['pipelines']) != ENCODE4_BULK_RNA_PIPELINES:
+
+        # archive all other released analyses
+        if analysis['status'] in ['released'] and analysis['accession'] != latest:
+            archiveAnalyses[exp_acc].append(analysis['accession'])
+
+        analysisStatus = ["released", "in progress", "archived"]
+        if sorted(analysis['pipelines']) != ENCODE4_BULK_RNA_PIPELINES and analysis['status'] in analysisStatus:
             skipped_analyses_count += 1
             continue
+
+        if sorted(analysis['pipelines']) == ENCODE4_BULK_RNA_PIPELINES and analysis['accession'] != latest:
+            skipped_ENC4_analyses_count += 1
+            continue 
+
         if analysis.get('assembly') not in ['GRCh38', 'mm10']:
             print('Wrong assembly')
             bad_reason.append('Wrong assembly')
@@ -75,13 +125,18 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
             bad_reason.append('Wrong file output type map')
             print('Has {}'.format(str(file_output_map)))
             print('Expect {}'.format(str(expected_file_output_count)))
-    if skipped_analyses_count == len(analysisObj):
-        print('No ENCODE4 analysis found')
-        bad_reason.append('No ENCODE4 analysis found')
-    elif skipped_analyses_count:
-        print('Skipped {} non-ENCODE4 uniform analyses'.format(
-            skipped_analyses_count
+        
+        if skipped_ENC4_analyses_count > 0:
+        print('Skipped {} old ENCODE4 uniform analyses'.format(
+            skipped_ENC4_analyses_count
         ))
+        if skipped_analyses_count == len(analysisObj):
+            print('No ENCODE4 analysis found')
+            bad_reason.append('No ENCODE4 analysis found')
+        elif skipped_analyses_count:
+            print('Skipped {} non-ENCODE4 uniform analyses'.format(
+                skipped_analyses_count
+            ))
     print('')
     return bad_reason, serious_audits
 
