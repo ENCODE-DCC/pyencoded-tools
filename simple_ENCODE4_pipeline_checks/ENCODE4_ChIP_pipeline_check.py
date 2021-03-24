@@ -188,7 +188,7 @@ def check_encode4_chip_pipeline(exp_acc):
             continue 
 
   
-        if analysis.get('assembly') != 'GRCh38':
+        if analysis.get('assembly') not in ['GRCh38', 'mm10']:
             print('Wrong assembly')
             bad_reason.append('Wrong assembly')
         if analysis.get('genome_annotation'):
