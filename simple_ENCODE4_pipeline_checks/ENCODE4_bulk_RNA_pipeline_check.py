@@ -6,6 +6,7 @@ import os
 import sys
 import csv
 import requests
+import datetime
 
 AUTH = (os.environ.get("DCC_API_KEY"), os.environ.get("DCC_SECRET_KEY"))
 BASE_URL = 'https://www.encodeproject.org/{}/?format=json'
@@ -73,6 +74,7 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
         len(experiment['original_files'])
     ))
     analysisObj = experiment.get('analysis_objects', [])
+    latest = get_latest_analysis(analysisObj)
     print('Number of analyses: {}'.format(len(analysisObj)))
     print('File count in analyses: {}'.format(list(
         len(analysis['files']) for analysis in analysisObj
@@ -127,8 +129,8 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
             print('Expect {}'.format(str(expected_file_output_count)))
         
         if skipped_ENC4_analyses_count > 0:
-        print('Skipped {} old ENCODE4 uniform analyses'.format(
-            skipped_ENC4_analyses_count
+            print('Skipped {} old ENCODE4 uniform analyses'.format(
+                skipped_ENC4_analyses_count
         ))
         if skipped_analyses_count == len(analysisObj):
             print('No ENCODE4 analysis found')
