@@ -30,8 +30,12 @@ def get_parser():
                         help="""Optional specification of server using the full URL. Defaults to production server.""")
     parser.add_argument('-r', '--replicates', action='store', default=[1,2], nargs='*', type=int,
                         help="""Optional specification of biological replicates to use. Any number of biological replicates can be added, such as: -r 1 2 4 8. For each biological replicate, the script will collect every associated technical replicate. These biological replicates will be used for every experiment. The script assumes the user is entering valid replicate numbers in the correct order, so errors will occur if nonexistent replicates are specified. It is also up to the user to ensure that the adapters match the given replicates. Defaults to [1,2].""")
-    parser.add_argument('-e', '--encodeurl', action='store_true', default=False,
-                        help="""Optional flag to use @@download links from the ENCODE portal. Otherwise, defaults to using s3_uri.""")
+    parser.add_argument('--s3_uri', action='store_true', default=False,
+                        help="""Optional flag to use s3_uri links from the ENCODE portal. Otherwise, defaults to using http links.""")
+    parser.add_argument('--caper-commands-file-message', action='store', default='',
+                        help="""An additional custom string to be appended to the file name of the caper submit commands.""")
+    parser.add_argument('--wdl', action='store', default=False,
+                        help="""Path to .wdl file.""")
     return parser
 
 
@@ -103,13 +107,13 @@ def main():
 
     # Check encodeurl flag and define the link source to use.
     server = check_path_trailing_slash(args.server)
-    encodeurl = args.encodeurl
-    if encodeurl:
-        link_prefix = server
-        link_src = 'href'
-    else:
+    use_s3 = args.s3_uri
+    if use_s3:
         link_prefix = ''
         link_src = 's3_uri'
+    else:
+        link_prefix = server
+        link_src = 'href'
 
     # Store the provided replicate numbers.
     replicate_nums = args.replicates
@@ -117,6 +121,8 @@ def main():
     # Set the output paths and load the list of experiments to process.
     gc_path = check_path_trailing_slash(args.gcpath)
     output_path = check_path_trailing_slash(args.outputpath)
+    caper_commands_file_message = args.caper_commands_file_message
+    wdl = args.wdl
     infile = args.infile
     experiment_list = parse_infile(infile)
 
@@ -148,9 +154,8 @@ def main():
     final_input_five_prime_adapters = []
     allowed_statuses = ['released', 'in progress']
     # List to store Experiment accessions with more than 1 fastq found per replicate.
-    extra_fastqs_detected = []
     extra_adapters_detected = []
-    
+
     for experiment_files in experiment_input_df.get('files'):
         # Arrays to store the list of arrays of fastqs/adapters grouped by biological replicates.
         links_sorted_by_rep = []
@@ -160,7 +165,6 @@ def main():
         fastq_links_by_rep = []
         bio_reps = []
         tech_reps = []
-        rep_strings = []
         file_to_dataset = []
         adapters_by_rep = []
         file_rep_sorter = pd.DataFrame()
@@ -182,7 +186,7 @@ def main():
                 adapter_accession = None
                 for adapter in file_input_df.loc[link].at['replicate.library.adapters']:
                     if adapter['type'] == "5' adapter" and adapter_accession is None:
-                        adapter_accession = '{}{}@@download/{}.txt'.format(
+                        adapter_accession = '{}{}@@download/{}.txt.gz'.format(
                             server,
                             adapter['file'][1:],
                             adapter['file'][7:18])
@@ -196,17 +200,13 @@ def main():
         file_rep_sorter['fastq'] = fastq_links_by_rep
         file_rep_sorter['biorep'] = bio_reps
         file_rep_sorter['techrep'] = tech_reps
-        file_rep_sorter['repstrings'] = file_rep_sorter['biorep'].astype(str).str.cat(others=file_rep_sorter['techrep'].astype(str),sep=',')
+        file_rep_sorter['repstrings'] = file_rep_sorter['biorep'].astype(str).str.cat(others=file_rep_sorter['techrep'].astype(str), sep=',')
         file_rep_sorter['dataset'] = file_to_dataset
         file_rep_sorter['adapter'] = adapters_by_rep
 
         # Sort the DataFrame so that files are now ordered by replicate: 1_1, 1_2, 1_3, 2_1, 2_2...
-        file_rep_sorter.sort_values(by=['biorep','techrep'], inplace=True)
+        file_rep_sorter.sort_values(by=['biorep', 'techrep'], inplace=True)
         file_rep_sorter.reset_index(drop=True, inplace=True)
-
-        # Detect cases where more than one fastq is associated with a given combination of biological replicate and technical replicate, and then drop the duplicates.
-        extra_fastqs_detected.extend(list(file_rep_sorter.loc[file_rep_sorter.duplicated(subset=['repstrings'])]['dataset']))
-        file_rep_sorter.drop_duplicates(subset=['repstrings'], keep=False, inplace=True)
 
         for rep_num in replicate_nums:
             # Iterate over the biological replicates, appending an array of all technical replicates associated with that biological replicate.
@@ -270,19 +270,16 @@ def main():
     # Print error messages to terminal.
     for accession in missing_fastqs_detected:
         print('ERROR: Missing fastqs in experiment {}.'.format(accession))
-    for accession in extra_fastqs_detected:
-        print('ERROR: More than 1 fastq per replicate in experiment {}.'.format(accession))
     for accession in extra_adapters_detected:
         print('ERROR: More than 1 5\' adapter detected for library in experiment {}.'.format(accession))
     for accession in no_adapters_detected:
         print('ERROR: Missing adapters in experiment {}.'.format(accession))
     for accession in no_organism_detected:
         print('ERROR: Missing star_index, mirna_annotation, and chrom_sizes in experiment {}.'.format(accession))
-        
+
     # Drop items which had errors from the table.
     output_df.drop(
         missing_fastqs_detected +
-        extra_fastqs_detected +
         extra_adapters_detected +
         no_adapters_detected +
         no_organism_detected,
@@ -297,13 +294,14 @@ def main():
         with open('{}input_{}.json'.format(output_path, accession), 'w') as output_file:
             output_file.write(json.dumps(output_dict[experiment], indent=4))
         # Write a corresponding caper command.
-        command_output = command_output + 'caper submit mirna_seq_pipeline.wdl -i {}{} -s {}_final_run --use-netrc\n'.format(
+        command_output = command_output + 'caper submit {} -i {}{} -s {}_final_run\n'.format(
+            wdl,
             gc_path,
             '{}input_{}.json'.format(output_path, accession),
             accession)
 
     if command_output != '':
-        with open('{}caper_submit_commands.txt'.format(output_path), 'w') as command_output_file:
+        with open(f'{output_path}caper_submit{"_" if caper_commands_file_message else ""}{caper_commands_file_message}.sh', 'w') as command_output_file:
             command_output_file.write(command_output)
 
 
