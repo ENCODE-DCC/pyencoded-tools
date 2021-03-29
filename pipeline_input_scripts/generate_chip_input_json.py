@@ -278,6 +278,7 @@ def main():
     else:
         output_df['custom_message'] = ''
     output_df.set_index('chip.title', inplace=True, drop=False)
+    output_df['assay_title'] = experiment_input_df['assay_title'].to_list()
 
     '''
     Experiment sorting section
@@ -324,15 +325,37 @@ def main():
     output_df['chip.ref_fa'] = ref_fa
     output_df['chip.bowtie2_idx_tar'] = bowtie2
 
-    # Determine pipeline types.
+    # Determine pipeline types and bwa related properties for Mint
     pipeline_types = []
+    aligners = []
+    use_bwa_mem_for_pes = []
+    bwa_mem_read_len_limits = []
     for assay, ctl_type in zip(experiment_input_df.get('assay_title'), experiment_input_df.get('control_type')):
-        if pd.notna(ctl_type) or assay in ['Control ChIP-seq', 'Control Mint-ChIP-seq']:
+        if pd.notna(ctl_type) or assay == 'Control ChIP-seq':
             pipeline_types.append('control')
+            aligners.append('')
+            use_bwa_mem_for_pes.append('')
+            bwa_mem_read_len_limits.append('')
+        elif pd.notna(ctl_type) or assay == 'Control Mint-ChIP-seq':
+            pipeline_types.append('control')
+            aligners.append('bwa')
+            use_bwa_mem_for_pes.append(True)
+            bwa_mem_read_len_limits.append(0)
         elif assay == 'TF ChIP-seq':
             pipeline_types.append('tf')
-        elif assay in ['Histone ChIP-seq', 'Mint-ChIP-seq']:
+            aligners.append('')
+            use_bwa_mem_for_pes.append('')
+            bwa_mem_read_len_limits.append('')
+        elif assay == 'Histone ChIP-seq':
             pipeline_types.append('histone')
+            aligners.append('')
+            use_bwa_mem_for_pes.append('')
+            bwa_mem_read_len_limits.append('')
+        elif assay == 'Mint-ChIP-seq':
+            pipeline_types.append('histone')
+            aligners.append('bwa')
+            use_bwa_mem_for_pes.append(True)
+            bwa_mem_read_len_limits.append(0)
 
     # Arrays which will be added to the master Dataframe for all experiments
     crop_length = []
@@ -565,6 +588,9 @@ def main():
     output_df['chip.paired_end'] = final_run_types
     output_df['chip.crop_length'] = [int(x) if x is not None else '' for x in crop_length]
     output_df['chip.ctl_nodup_bams'] = ctl_nodup_bams
+    output_df['chip.aligner'] = aligners
+    output_df['chip.use_bwa_mem_for_pe'] = use_bwa_mem_for_pes
+    output_df['chip.bwa_mem_read_len_limit'] = bwa_mem_read_len_limits
     output_df['chip.pipeline_type'] = pipeline_types
     output_df['chip.always_use_pooled_ctl'] = [True if x != 'control' else None for x in output_df['chip.pipeline_type']]
     output_df['chip.redact_nodup_bam'] = redacted_flags
@@ -621,6 +647,7 @@ def main():
     # Order for parameters in the input.jsons
     desired_key_order = [
         'custom_message',
+        'assay_title',
         'chip.title',
         'chip.description',
         'chip.pipeline_type',
@@ -636,7 +663,10 @@ def main():
         'chip.blacklist2',
         'chip.ctl_nodup_bams',
         'chip.redact_nodup_bam',
-        'chip.always_use_pooled_ctl'
+        'chip.always_use_pooled_ctl',
+        'chip.aligner',
+        'chip.use_bwa_mem_for_pe',
+        'chip.bwa_mem_read_len_limit'
     ]
     for val in list(range(1, 11)):
         desired_key_order.extend([f'chip.fastqs_rep{val}_R1', f'chip.fastqs_rep{val}_R2'])
@@ -659,7 +689,12 @@ def main():
         for prop in list(output_dict[experiment]):
             if output_dict[experiment][prop] in (None, [], '') or (type(output_dict[experiment][prop]) == list and None in output_dict[experiment][prop]):
                 output_dict[experiment].pop(prop)
+        # Drop crop_length and crop_length_tol for Mint-ChIP only.
+        if output_dict[experiment]['assay_title'] in ['Mint-ChIP-seq', 'Control Mint-ChIP-seq']:
+            output_dict[experiment].pop('chip.crop_length')
+            output_dict[experiment].pop('chip.crop_length_tol')
         output_dict[experiment].pop('custom_message')
+        output_dict[experiment].pop('assay_title')
 
         file_name = f'{output_path}{"/" if output_path else ""}{output_dict[experiment]["chip.description"]}.json'
         with open(file_name, 'w') as output_file:
