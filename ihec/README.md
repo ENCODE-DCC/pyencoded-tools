@@ -28,7 +28,7 @@ Both EpiRR and IHEC data hub submissions can be validated with ihec-ecosystems (
 
   - `epiRR.py`.
 
-    This script needs to be run under version_metadata folder of ihec-ecosystems repository because it will use ihec-ecosystems to validate outputs. An "ENCODE" folder need to be created under version_metadata folder if it's not there before running this script.
+    This script needs to be run at the same directory as version_metadata folder of ihec-ecosystems repository because it will use ihec-ecosystems to validate outputs. An "ENCODE" folder need to be created in the same directory as the version_metadata folder if it's not there before running this script.
 
   - `compare_epirr_submission.py`.
 
@@ -83,7 +83,7 @@ Both EpiRR and IHEC data hub submissions can be validated with ihec-ecosystems (
 
     __*It's worth noting*__ that this script heavily depends on the `batch_hub` end point of the portal and doesn't do too much customization on its own. Therefore, any changes in encoded `batch_hub` end point could affect this script and any changes needed for IHEC data hub submission should be address in encoded `batch_hub` end point.
 
-  - `ENCODE_IHEC_data_hub_valiation.sh`
+  - `ENCODE_IHEC_data_hub_validation.sh`
 
     This script will assume there are three JSON submissions named as `ENCODE_IHEC_Data_Hub_hg19.json`, `ENCODE_IHEC_Data_Hub_hg38.json`, `ENCODE_IHEC_Data_Hub_mm10.json`. Such naming is not required. Feel free to run the command within the script separately as you like. Just remember to use the options as exampled in the script.
 
@@ -97,7 +97,7 @@ Both EpiRR and IHEC data hub submissions can be validated with ihec-ecosystems (
 
     Create one set of submissions, one JSON per assembly (hg19, hg38, mm10), for all released ENCODE reference epigenomes.
 
-  - `ENCODE_IHEC_data_hub_valiation.sh &> valiation.log`: validate three IHEC data submissions named as `ENCODE_IHEC_Data_Hub_hg19.json`, `ENCODE_IHEC_Data_Hub_hg38.json`, `ENCODE_IHEC_Data_Hub_mm10.json`.
+  - `ENCODE_IHEC_data_hub_validation.sh &> validation.log`: validate three IHEC data submissions named as `ENCODE_IHEC_Data_Hub_hg19.json`, `ENCODE_IHEC_Data_Hub_hg38.json`, `ENCODE_IHEC_Data_Hub_mm10.json`.
 
 * Expected outputs:
   IHEC data portal required us to combine tracks for all our reference epigenomes as one hub per assembly. The exact output depends on what reference epigenomes you'd like to submit. Generating submissions for all released ENCODE reference epigenomes will create three JSON files:

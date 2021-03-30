@@ -155,7 +155,7 @@ def make_matrix(refepi_queries, assay_queries):
                 if len(current_datasets) == 1:
                     current_assays.append(
                         '=HYPERLINK("{}/{}","{}")'.format(
-                            CONN.dcc_url,
+                            CONN.dcc_mode.url,
                             current_datasets[0]['accession'],
                             current_datasets[0]['accession'],
                         )
@@ -183,7 +183,7 @@ def make_matrix(refepi_queries, assay_queries):
                 if len(candidate_datasets) == 1:
                     candidate_assays.append(
                         '=HYPERLINK("{}/{}","{}")'.format(
-                            CONN.dcc_url,
+                            CONN.dcc_mode.url,
                             candidate_datasets[0]['accession'],
                             candidate_datasets[0]['accession'],
                         )

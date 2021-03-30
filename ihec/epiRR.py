@@ -283,9 +283,7 @@ def exp_ontology_uri(exp):
     assay_id = exp.get('assay_term_id')
     if not assay_id:
         return 'none'
-    return 'http://purl.obolibrary.org/obo/{}'.format(
-        assay_id.replace(':', '_')
-    )
+    return assay_id.lower()
 
 
 def exp_molecule(exp):
@@ -295,7 +293,7 @@ def exp_molecule(exp):
     }
     molecule_DNA = {
         "molecule": "genomic DNA",
-        "uri": "http://purl.obolibrary.org/obo/SO_0000991"
+        "uri": "so:0000991"
     }
 
     molecule_other = {
@@ -338,9 +336,7 @@ def exp_molecule(exp):
     if (molecule_conv != "none"):
         molecule = molecule_conv
 
-    molecule_uri = 'http://purl.obolibrary.org/obo/' + molecule_id.replace(
-        ':', '_'
-    )
+    molecule_uri = molecule_id.lower()
 
     molecule_other["molecule"] = molecule
     molecule_other["uri"] = molecule_uri
@@ -466,9 +462,7 @@ def samples_xml(ref_epi_obj):
 
 def cellLineXML(biosampleObj):
     return {
-        'SAMPLE_ONTOLOGY_CURIE': 'https://www.ebi.ac.uk/efo/{}'.format(
-            biosampleObj['biosample_ontology']['term_id'].replace(':', '_')
-        ),
+        'SAMPLE_ONTOLOGY_CURIE': biosampleObj['biosample_ontology']['term_id'].lower(),
         'BIOMATERIAL_TYPE': 'Cell Line',
         'LINE': biosampleObj['biosample_ontology']['term_name'],
         'PASSAGE': str(biosampleObj.get("passage_number", "unknown")),
@@ -516,9 +510,7 @@ def donor(biosampleObj):
 
 def tissueXML(biosampleObj):
     sample_attribute_dict = {
-        'SAMPLE_ONTOLOGY_CURIE': 'http://purl.obolibrary.org/obo/{}'.format(
-            biosampleObj['biosample_ontology']['term_id'].replace(':', '_')
-        ),
+        'SAMPLE_ONTOLOGY_CURIE': biosampleObj['biosample_ontology']['term_id'].lower(),
         'BIOMATERIAL_TYPE': 'Primary Tissue',
         'TISSUE_TYPE': biosampleObj['biosample_ontology']['term_name'],
         'TISSUE_DEPOT': biosampleObj['biosample_ontology']['term_name'],
@@ -530,9 +522,7 @@ def tissueXML(biosampleObj):
 
 def primaryCellCultureXML(biosampleObj):
     sample_attribute_dict = {
-        'SAMPLE_ONTOLOGY_CURIE': 'http://purl.obolibrary.org/obo/{}'.format(
-            biosampleObj['biosample_ontology']['term_id'].replace(':', '_')
-        ),
+        'SAMPLE_ONTOLOGY_CURIE': biosampleObj['biosample_ontology']['term_id'].lower(),
         'BIOMATERIAL_TYPE': 'Primary Cell Culture',
         'CELL_TYPE': biosampleObj['biosample_ontology']['term_name'],
         'MARKERS': 'unknown',
@@ -544,9 +534,7 @@ def primaryCellCultureXML(biosampleObj):
         origin_sample = conn.get(originated_from_uuid)
         sample_attribute_dict[
             'ORIGIN_SAMPLE_ONTOLOGY_CURIE'
-        ] = 'http://purl.obolibrary.org/obo/{}'.format(
-            origin_sample['biosample_ontology']['term_id']
-        )
+        ] = origin_sample['biosample_ontology']['term_id'].lower()
         sample_attribute_dict[
             'ORIGIN_SAMPLE'
         ] = origin_sample['biosample_ontology']['term_name']
