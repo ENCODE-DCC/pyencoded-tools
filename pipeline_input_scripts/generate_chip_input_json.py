@@ -331,12 +331,12 @@ def main():
     use_bwa_mem_for_pes = []
     bwa_mem_read_len_limits = []
     for assay, ctl_type in zip(experiment_input_df.get('assay_title'), experiment_input_df.get('control_type')):
-        if pd.notna(ctl_type) or assay == 'Control ChIP-seq':
+        if pd.notna(ctl_type) and assay == 'Control ChIP-seq':
             pipeline_types.append('control')
             aligners.append('')
             use_bwa_mem_for_pes.append('')
             bwa_mem_read_len_limits.append('')
-        elif pd.notna(ctl_type) or assay == 'Control Mint-ChIP-seq':
+        elif pd.notna(ctl_type) and assay == 'Control Mint-ChIP-seq':
             pipeline_types.append('control')
             aligners.append('bwa')
             use_bwa_mem_for_pes.append(True)
@@ -604,18 +604,19 @@ def main():
 
     # Build descriptions using the other parameters.
     description_strings = []
-    for accession, crop_length, is_paired_end, pipeline_type, align_only, num_reps in zip(
+    for accession, crop_length, is_paired_end, pipeline_type, align_only, num_reps, assay in zip(
             output_df['chip.title'],
             output_df['chip.crop_length'],
             output_df['chip.paired_end'],
             output_df['chip.pipeline_type'],
             output_df['chip.align_only'],
-            output_df['number_of_replicates']
+            output_df['number_of_replicates'],
+            output_df['assay_title']
     ):
         description_strings.append('{}_{}_{}_{}rep_{}_{}'.format(
             accession,
             ('PE' if is_paired_end else 'SE'),
-            str(crop_length) + '_crop',
+            (f'{crop_length}_crop' if 'Mint' not in assay else 'no_crop'),
             num_reps,
             pipeline_type,
             ('alignonly' if align_only else 'peakcall')
