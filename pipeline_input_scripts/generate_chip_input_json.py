@@ -291,6 +291,8 @@ def main():
     chrom_sizes = []
     ref_fa = []
     bowtie2 = []
+    # Only (human) Mint-ChIP-seq should have bwa_idx_tar value.
+    bwa_index = []
     for assay, replicates in zip(experiment_input_df.get('assay_title'), experiment_input_df.get('replicates')):
         organism = set()
         for rep in replicates:
@@ -300,30 +302,37 @@ def main():
             genome_tsv.append('https://storage.googleapis.com/encode-pipeline-genome-data/genome_tsv/v3/hg38.tsv')
             chrom_sizes.append('https://www.encodeproject.org/files/GRCh38_EBV.chrom.sizes/@@download/GRCh38_EBV.chrom.sizes.tsv')
             ref_fa.append('https://www.encodeproject.org/files/GRCh38_no_alt_analysis_set_GCA_000001405.15/@@download/GRCh38_no_alt_analysis_set_GCA_000001405.15.fasta.gz')
-            bowtie2.append('https://www.encodeproject.org/files/ENCFF110MCL/@@download/ENCFF110MCL.tar.gz')
             if assay in ['Mint-ChIP-seq', 'Control Mint-ChIP-seq']:
                 blacklist.append('https://www.encodeproject.org/files/ENCFF356LFX/@@download/ENCFF356LFX.bed.gz')
                 blacklist2.append('https://www.encodeproject.org/files/ENCFF023CZC/@@download/ENCFF023CZC.bed.gz')
+                bowtie2.append(None)
+                bwa_index.append('https://www.encodeproject.org/files/ENCFF643CGH/@@download/ENCFF643CGH.tar.gz')
             elif assay in ['Histone ChIP-seq', 'TF ChIP-seq', 'Control ChIP-seq']:
                 blacklist.append('https://www.encodeproject.org/files/ENCFF356LFX/@@download/ENCFF356LFX.bed.gz')
                 blacklist2.append(None)
+                bowtie2.append('https://www.encodeproject.org/files/ENCFF110MCL/@@download/ENCFF110MCL.tar.gz')
+                bwa_index.append(None)
         elif ''.join(organism) == 'Mus musculus':
             genome_tsv.append('https://storage.googleapis.com/encode-pipeline-genome-data/genome_tsv/v3/mm10.tsv')
             chrom_sizes.append('https://www.encodeproject.org/files/mm10_no_alt.chrom.sizes/@@download/mm10_no_alt.chrom.sizes.tsv')
             ref_fa.append('https://www.encodeproject.org/files/mm10_no_alt_analysis_set_ENCODE/@@download/mm10_no_alt_analysis_set_ENCODE.fasta.gz')
-            bowtie2.append('https://www.encodeproject.org/files/ENCFF309GLL/@@download/ENCFF309GLL.tar.gz')
             if assay in ['Mint-ChIP-seq', 'Control Mint-ChIP-seq']:
                 blacklist.append(None)
                 blacklist2.append(None)
+                bowtie2.append(None)
+                bwa_index.append(None)
             elif assay in ['Histone ChIP-seq', 'TF ChIP-seq', 'Control ChIP-seq']:
                 blacklist.append('https://www.encodeproject.org/files/ENCFF547MET/@@download/ENCFF547MET.bed.gz')
                 blacklist2.append(None)
+                bowtie2.append('https://www.encodeproject.org/files/ENCFF309GLL/@@download/ENCFF309GLL.tar.gz')
+                bwa_index.append(None)
     output_df['chip.blacklist'] = blacklist
     output_df['chip.blacklist2'] = blacklist2
     output_df['chip.genome_tsv'] = genome_tsv
     output_df['chip.chrsz'] = chrom_sizes
     output_df['chip.ref_fa'] = ref_fa
     output_df['chip.bowtie2_idx_tar'] = bowtie2
+    output_df['chip.bwa_idx_tar'] = bwa_index
 
     # Determine pipeline types and bwa related properties for Mint
     pipeline_types = []
@@ -659,6 +668,7 @@ def main():
         'chip.genome_tsv',
         'chip.ref_fa',
         'chip.bowtie2_idx_tar',
+        'chip.bwa_idx_tar',
         'chip.chrsz',
         'chip.blacklist',
         'chip.blacklist2',
