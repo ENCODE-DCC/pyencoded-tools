@@ -142,7 +142,7 @@ def exp_type(exp):
             assert exp['control_type']
             return {
                 'EXPERIMENT_TYPE': 'ChIP-Seq Input',
-                'EXPERIMENT_TARGET_TF': 'NA',
+                'EXPERIMENT_TARGET_HISTONE': 'NA',
             }
         else:
             target_obj = conn.get(target_id)
