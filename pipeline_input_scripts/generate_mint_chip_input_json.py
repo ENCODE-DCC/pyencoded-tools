@@ -91,8 +91,7 @@ def build_file_report_query(experiment_list, server, file_format):
         '&field=run_type' + \
         '&field=mapped_run_type' + \
         '&field=read_length' + \
-        '&field=cropped_read_length' + \
-        '&field=cropped_read_length_tolerance' + \
+        '&field=mapped_read_length' + \
         '&field=status' + \
         '&field=s3_uri' + \
         '&field=href' + \
@@ -164,7 +163,6 @@ def get_data_from_portal(infile_df, server, keypair, link_prefix, link_src):
     chunked_dataset_accessions = [datasets_to_retrieve[x:x+100] for x in range(0, len(datasets_to_retrieve), 100)]
     for chunk in chunked_dataset_accessions:
         for file_format in ['fastq', 'bam']:
-            print(build_file_report_query(chunk, server, file_format))
             file_report = requests.get(
                 build_file_report_query(chunk, server, file_format),
                 auth=keypair,
@@ -292,8 +290,6 @@ def main():
     genome_tsv = []
     chrom_sizes = []
     ref_fa = []
-    bowtie2 = []
-    # Only (human) Mint-ChIP-seq should have bwa_idx_tar value.
     bwa_index = []
     for assay, replicates in zip(experiment_input_df.get('assay_title'), experiment_input_df.get('replicates')):
         organism = set()
@@ -307,13 +303,7 @@ def main():
             if assay in ['Mint-ChIP-seq', 'Control Mint-ChIP-seq']:
                 blacklist.append('https://www.encodeproject.org/files/ENCFF356LFX/@@download/ENCFF356LFX.bed.gz')
                 blacklist2.append('https://www.encodeproject.org/files/ENCFF023CZC/@@download/ENCFF023CZC.bed.gz')
-                bowtie2.append(None)
                 bwa_index.append('https://www.encodeproject.org/files/ENCFF643CGH/@@download/ENCFF643CGH.tar.gz')
-            elif assay in ['Histone ChIP-seq', 'TF ChIP-seq', 'Control ChIP-seq']:
-                blacklist.append('https://www.encodeproject.org/files/ENCFF356LFX/@@download/ENCFF356LFX.bed.gz')
-                blacklist2.append(None)
-                bowtie2.append('https://www.encodeproject.org/files/ENCFF110MCL/@@download/ENCFF110MCL.tar.gz')
-                bwa_index.append(None)
         elif ''.join(organism) == 'Mus musculus':
             genome_tsv.append('https://storage.googleapis.com/encode-pipeline-genome-data/genome_tsv/v3/mm10.tsv')
             chrom_sizes.append('https://www.encodeproject.org/files/mm10_no_alt.chrom.sizes/@@download/mm10_no_alt.chrom.sizes.tsv')
@@ -321,19 +311,12 @@ def main():
             if assay in ['Mint-ChIP-seq', 'Control Mint-ChIP-seq']:
                 blacklist.append(None)
                 blacklist2.append(None)
-                bowtie2.append(None)
-                bwa_index.append(None)
-            elif assay in ['Histone ChIP-seq', 'TF ChIP-seq', 'Control ChIP-seq']:
-                blacklist.append('https://www.encodeproject.org/files/ENCFF547MET/@@download/ENCFF547MET.bed.gz')
-                blacklist2.append(None)
-                bowtie2.append('https://www.encodeproject.org/files/ENCFF309GLL/@@download/ENCFF309GLL.tar.gz')
                 bwa_index.append(None)
     output_df['chip.blacklist'] = blacklist
     output_df['chip.blacklist2'] = blacklist2
     output_df['chip.genome_tsv'] = genome_tsv
     output_df['chip.chrsz'] = chrom_sizes
     output_df['chip.ref_fa'] = ref_fa
-    output_df['chip.bowtie2_idx_tar'] = bowtie2
     output_df['chip.bwa_idx_tar'] = bwa_index
 
     # Determine pipeline types and bwa related properties for Mint
@@ -342,26 +325,11 @@ def main():
     use_bwa_mem_for_pes = []
     bwa_mem_read_len_limits = []
     for assay, ctl_type in zip(experiment_input_df.get('assay_title'), experiment_input_df.get('control_type')):
-        if pd.notna(ctl_type) and assay == 'Control ChIP-seq':
-            pipeline_types.append('control')
-            aligners.append('')
-            use_bwa_mem_for_pes.append('')
-            bwa_mem_read_len_limits.append('')
-        elif pd.notna(ctl_type) and assay == 'Control Mint-ChIP-seq':
+        if pd.notna(ctl_type) and assay == 'Control Mint-ChIP-seq':
             pipeline_types.append('control')
             aligners.append('bwa')
             use_bwa_mem_for_pes.append(True)
             bwa_mem_read_len_limits.append(0)
-        elif assay == 'TF ChIP-seq':
-            pipeline_types.append('tf')
-            aligners.append('')
-            use_bwa_mem_for_pes.append('')
-            bwa_mem_read_len_limits.append('')
-        elif assay == 'Histone ChIP-seq':
-            pipeline_types.append('histone')
-            aligners.append('')
-            use_bwa_mem_for_pes.append('')
-            bwa_mem_read_len_limits.append('')
         elif assay == 'Mint-ChIP-seq':
             pipeline_types.append('histone')
             aligners.append('bwa')
@@ -563,15 +531,11 @@ def main():
                             (file_input_df['biorep_scalar'] == rep_num) &
                             (file_input_df['file_format'] == 'bam') &
                             (file_input_df['mapped_run_type'] == final_run_type) &
-                            (file_input_df['cropped_read_length'] <= combined_minimum_read_length + 2) &
-                            (file_input_df['cropped_read_length'] >= combined_minimum_read_length - 2)
+                            (file_input_df['mapped_read_length'] <= combined_minimum_read_length + 2) &
+                            (file_input_df['mapped_read_length'] >= combined_minimum_read_length - 2)
                         ]
                         if not ctl_search.empty:
-                            if ctl_search['cropped_read_length_tolerance'].values[0] == 2:
-                                ctl_nodup_temp_collector.append(link_prefix + ctl_search.index.values[0])
-                            else:
-                                print(f'ERROR: Tolerance of control bam {ctl_search["@id"].values[0]} is not 2 bp.')
-                                ctl_nodup_temp_collector.append(None)
+                            ctl_nodup_temp_collector.append(link_prefix + ctl_search.index.values[0])
                             matching_bam_found = True
                     # If the experiment has multiple controls that should be used,
                     # we expect each control to have at least one matching bam. Otherwise, treat it as an error.
@@ -624,10 +588,9 @@ def main():
             output_df['number_of_replicates'],
             output_df['assay_title']
     ):
-        description_strings.append('{}_{}_{}_{}rep_{}_{}'.format(
+        description_strings.append('{}_{}_no_crop_{}rep_{}_{}'.format(
             accession,
             ('PE' if is_paired_end else 'SE'),
-            (f'{crop_length}_crop' if 'Mint' not in assay else 'no_crop'),
             num_reps,
             pipeline_type,
             ('alignonly' if align_only else 'peakcall')
@@ -640,9 +603,6 @@ def main():
         (output_df['chip.align_only'] == False)].get('chip.title').tolist()
     for expt in ERROR_controls_not_align_only:
         print(f'ERROR: {expt} is a control but was not align_only.')
-
-    # Assign parameters that are identical for all runs.
-    output_df['chip.crop_length_tol'] = 2
 
     # Remove any experiments with errors from the table.
     output_df.drop(
@@ -665,11 +625,8 @@ def main():
         'chip.pipeline_type',
         'chip.align_only',
         'chip.paired_end',
-        'chip.crop_length',
-        'chip.crop_length_tol',
         'chip.genome_tsv',
         'chip.ref_fa',
-        'chip.bowtie2_idx_tar',
         'chip.bwa_idx_tar',
         'chip.chrsz',
         'chip.blacklist',
@@ -702,10 +659,6 @@ def main():
         for prop in list(output_dict[experiment]):
             if output_dict[experiment][prop] in (None, [], '') or (type(output_dict[experiment][prop]) == list and None in output_dict[experiment][prop]):
                 output_dict[experiment].pop(prop)
-        # Drop crop_length and crop_length_tol for Mint-ChIP only.
-        if output_dict[experiment]['assay_title'] in ['Mint-ChIP-seq', 'Control Mint-ChIP-seq']:
-            output_dict[experiment].pop('chip.crop_length')
-            output_dict[experiment].pop('chip.crop_length_tol')
         output_dict[experiment].pop('custom_message')
         output_dict[experiment].pop('assay_title')
 
