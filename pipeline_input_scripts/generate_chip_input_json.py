@@ -164,7 +164,6 @@ def get_data_from_portal(infile_df, server, keypair, link_prefix, link_src):
     chunked_dataset_accessions = [datasets_to_retrieve[x:x+100] for x in range(0, len(datasets_to_retrieve), 100)]
     for chunk in chunked_dataset_accessions:
         for file_format in ['fastq', 'bam']:
-            print(build_file_report_query(chunk, server, file_format))
             file_report = requests.get(
                 build_file_report_query(chunk, server, file_format),
                 auth=keypair,
@@ -178,7 +177,6 @@ def get_data_from_portal(infile_df, server, keypair, link_prefix, link_src):
         if field not in file_input_df:
             file_input_df[field] = None
     file_input_df['biorep_scalar'] = [x[0] for x in file_input_df['biological_replicates']]
-    print(file_input_df.to_string())
 
     return experiment_input_df, wildtype_ctl_ids, file_input_df
 

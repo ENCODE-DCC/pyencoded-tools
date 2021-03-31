@@ -176,7 +176,6 @@ def get_data_from_portal(infile_df, server, keypair, link_prefix, link_src):
         if field not in file_input_df:
             file_input_df[field] = None
     file_input_df['biorep_scalar'] = [x[0] for x in file_input_df['biological_replicates']]
-    print(file_input_df.to_string())
 
     return experiment_input_df, wildtype_ctl_ids, file_input_df
 
@@ -387,6 +386,9 @@ def main():
                     and file_input_df.loc[link].at['status'] in allowed_statuses \
                     and file_input_df.loc[link].at['replicate.status'] in allowed_statuses:
                 if file_input_df.loc[link].at['paired_end'] == '1':
+                    # Collect read length. Only consider read 1 for Mint
+                    experiment_read_lengths.append(file_input_df.loc[link].at['read_length'])
+
                     pair = file_input_df.loc[link].at['paired_with']
                     for rep_num in fastqs_by_rep_R1:
                         if file_input_df.loc[link].at['biorep_scalar'] == rep_num:
@@ -402,8 +404,7 @@ def main():
                         if file_input_df.loc[link].at['biorep_scalar'] == rep_num:
                             fastqs_by_rep_R1[rep_num].append(link_prefix + link)
 
-                # Collect read_lengths and run_types
-                experiment_read_lengths.append(file_input_df.loc[link].at['read_length'])
+                # Collect run_types
                 run_types.add(file_input_df.loc[link].at['run_type'])
 
         # Record error if no fastqs for found for any replicate.
@@ -498,7 +499,8 @@ def main():
                     # Collect read_lengths in the control(s)
                     control_read_lengths.extend(file_input_df[
                             (file_input_df['dataset'] == control['@id']) &
-                            (file_input_df['file_format'] == 'fastq')
+                            (file_input_df['file_format'] == 'fastq') &
+                            (file_input_df['paired_end'] == '1')
                             ].get('read_length').tolist())
 
                 # Determine endedness based on the run types of the control(s) and experiment.
