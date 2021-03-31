@@ -8,7 +8,7 @@
 # I added ATAC-seq, RRBS following existing data format
 # Missing: microRNA counts, transcription profiling by array assay
 
-# IHEC aslo requires format forllowing
+# IHEC also requires format following
 # https://www.ebi.ac.uk/ena/submit/read-xml-format-1-5, see SRA.experiment.xsd
 
 
@@ -412,13 +412,15 @@ def samples_xml(ref_epi_obj):
         sample_attribute_dict = {
             'BIOMATERIAL_PROVIDER': biosampleObj['source'].get('description'),
             'DISEASE': biosampleObj.get('health_status', 'NA'),
-            'DISEASE_ONTOLOGY_CURIE': 'https://ncit.nci.nih.gov/ncitbrowser/pages/multiple_search.jsf?nav_type=terminologies',  # noqa: E501
+            'DISEASE_ONTOLOGY_CURIE': 'ncim:C115222', # unknown health status
+            'DISEASE_ONTOLOGY_URI': 'https://nciterms.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115222',
             'TREATMENT': 'NA',
             'BIOLOGICAL_REPLICATES':
                 list(biosample_replicates_map[biosample_id]) or 'NA',
         }
         if 'HEALTHY' in sample_attribute_dict['DISEASE'].capitalize():
-            sample_attribute_dict['DISEASE_ONTOLOGY_CURIE'] = 'https://ncit.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115935'  # noqa: E501
+            sample_attribute_dict['DISEASE_ONTOLOGY_CURIE'] = 'ncim:C115935' # identifier for healthy
+            sample_attribute_dict['DISEASE_ONTOLOGY_URI'] = 'https://nciterms.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115935'
         if biosampleObj.get('treatments'):
             sample_attribute_dict['TREATMENT'] = biosampleObj['summary']
 
@@ -463,6 +465,9 @@ def samples_xml(ref_epi_obj):
 def cellLineXML(biosampleObj):
     return {
         'SAMPLE_ONTOLOGY_CURIE': biosampleObj['biosample_ontology']['term_id'].lower(),
+        'SAMPLE_ONTOLOGY_URI': 'http://purl.obolibrary.org/obo/{}'.format(
+            biosampleObj['biosample_ontology']['term_id'].replace(':', '_')
+        ),
         'BIOMATERIAL_TYPE': 'Cell Line',
         'LINE': biosampleObj['biosample_ontology']['term_name'],
         'PASSAGE': str(biosampleObj.get("passage_number", "unknown")),
@@ -488,7 +493,8 @@ def donor(biosampleObj):
         'DONOR_SEX': biosampleObj['sex'].capitalize(),
         'DONOR_ETHNICITY': donorObj.get('ethnicity', 'NA'),
         'DONOR_HEALTH_STATUS': biosampleObj.get('health_status', 'NA'),
-        'DONOR_HEALTH_STATUS_ONTOLOGY_CURIE': 'https://ncit.nci.nih.gov/ncitbrowser/pages/multiple_search.jsf?nav_type=terminologies',  # noqa: E501
+        'DONOR_HEALTH_STATUS_ONTOLOGY_CURIE': 'ncim:C115222',  # unknown health status
+        'DONOR_HEALTH_STATUS_ONTOLOGY_URI': 'https://nciterms.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115222'
     }
     # Use calculated age on biosample because sample_collection_age may not
     # match listed donor age
@@ -503,7 +509,8 @@ def donor(biosampleObj):
         'age_units', 'year'
     )
     if 'HEALTHY' in sample_attribute_dict['DONOR_HEALTH_STATUS'].capitalize():
-        sample_attribute_dict['DONOR_HEALTH_STATUS_ONTOLOGY_CURIE'] = 'https://ncit.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115935'  # noqa: E501
+        sample_attribute_dict['DONOR_HEALTH_STATUS_ONTOLOGY_CURIE'] = 'ncim:C115935' # identifier for healthy
+        sample_attribute_dict['DONOR_HEALTH_STATUS_ONTOLOGY_URI'] = 'https://nciterms.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115935'
 
     return sample_attribute_dict
 
@@ -511,6 +518,9 @@ def donor(biosampleObj):
 def tissueXML(biosampleObj):
     sample_attribute_dict = {
         'SAMPLE_ONTOLOGY_CURIE': biosampleObj['biosample_ontology']['term_id'].lower(),
+        'SAMPLE_ONTOLOGY_URI': 'http://purl.obolibrary.org/obo/{}'.format(
+            biosampleObj['biosample_ontology']['term_id'].replace(':', '_')
+        ),
         'BIOMATERIAL_TYPE': 'Primary Tissue',
         'TISSUE_TYPE': biosampleObj['biosample_ontology']['term_name'],
         'TISSUE_DEPOT': biosampleObj['biosample_ontology']['term_name'],
@@ -523,6 +533,9 @@ def tissueXML(biosampleObj):
 def primaryCellCultureXML(biosampleObj):
     sample_attribute_dict = {
         'SAMPLE_ONTOLOGY_CURIE': biosampleObj['biosample_ontology']['term_id'].lower(),
+        'SAMPLE_ONTOLOGY_URI': 'http://purl.obolibrary.org/obo/{}'.format(
+            biosampleObj['biosample_ontology']['term_id'].replace(':', '_')
+        ),
         'BIOMATERIAL_TYPE': 'Primary Cell Culture',
         'CELL_TYPE': biosampleObj['biosample_ontology']['term_name'],
         'MARKERS': 'unknown',
