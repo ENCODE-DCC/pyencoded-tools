@@ -110,10 +110,10 @@ def exp_xml(ref_epi_obj):
             ET.SubElement(exp_attrib_xml, 'VALUE').text = expType[tag]
         exp_attrib_xml = ET.SubElement(exp_attribs_xml, 'EXPERIMENT_ATTRIBUTE')
         ET.SubElement(exp_attrib_xml, 'TAG').text = 'EXPERIMENT_ONTOLOGY_CURIE'
-        ET.SubElement(exp_attrib_xml, 'VALUE').text = exp_ontology_uri(expObj)
+        ET.SubElement(exp_attrib_xml, 'VALUE').text = exp_assay_ontology(expObj)
         exp_attrib_xml = ET.SubElement(exp_attribs_xml, 'EXPERIMENT_ATTRIBUTE')
         ET.SubElement(exp_attrib_xml, 'TAG').text = 'MOLECULE_ONTOLOGY_CURIE'
-        ET.SubElement(exp_attrib_xml, 'VALUE').text = molecule['uri']
+        ET.SubElement(exp_attrib_xml, 'VALUE').text = molecule['identifier']
         exp_attrib_xml = ET.SubElement(exp_attribs_xml, 'EXPERIMENT_ATTRIBUTE')
         ET.SubElement(exp_attrib_xml, 'TAG').text = 'MOLECULE'
         ET.SubElement(exp_attrib_xml, 'VALUE').text = molecule['molecule']
@@ -279,7 +279,7 @@ def exp_library_layout_platform_xml_map(exp):
     return file_spec
 
 
-def exp_ontology_uri(exp):
+def exp_assay_ontology(exp):
     assay_id = exp.get('assay_term_id')
     if not assay_id:
         return 'none'
@@ -289,16 +289,16 @@ def exp_ontology_uri(exp):
 def exp_molecule(exp):
     molecule_none = {
         "molecule": "none",
-        "uri": "none"
+        "identifier": "none"
     }
     molecule_DNA = {
         "molecule": "genomic DNA",
-        "uri": "so:0000991"
+        "identifier": "so:0000991"
     }
 
     molecule_other = {
         "molecule": "",
-        "uri": ""
+        "identifier": ""
     }
 
     assay = exp.get("assay_term_name", 'none')
@@ -336,10 +336,10 @@ def exp_molecule(exp):
     if (molecule_conv != "none"):
         molecule = molecule_conv
 
-    molecule_uri = molecule_id.lower()
+    molecule_identifier = molecule_id.lower()
 
     molecule_other["molecule"] = molecule
-    molecule_other["uri"] = molecule_uri
+    molecule_other["identifier"] = molecule_identifier
     return molecule_other
 
 
@@ -419,8 +419,8 @@ def samples_xml(ref_epi_obj):
                 list(biosample_replicates_map[biosample_id]) or 'NA',
         }
         if 'HEALTHY' in sample_attribute_dict['DISEASE'].capitalize():
-            sample_attribute_dict['DISEASE_ONTOLOGY_CURIE'] = 'ncim:C115935' # identifier for healthy
-            sample_attribute_dict['DISEASE_ONTOLOGY_URI'] = 'https://nciterms.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115935'
+            sample_attribute_dict['DISEASE_ONTOLOGY_CURIE'] = 'ncim:C0549184' # None (no diseases as specified by their schema)
+            sample_attribute_dict['DISEASE_ONTOLOGY_URI'] = 'https://ncim.nci.nih.gov/ncimbrowser/pages/concept_details.jsf?dictionary=NCI%20Metathesaurus&code=C0549184'
         if biosampleObj.get('treatments'):
             sample_attribute_dict['TREATMENT'] = biosampleObj['summary']
 
@@ -509,8 +509,8 @@ def donor(biosampleObj):
         'age_units', 'year'
     )
     if 'HEALTHY' in sample_attribute_dict['DONOR_HEALTH_STATUS'].capitalize():
-        sample_attribute_dict['DONOR_HEALTH_STATUS_ONTOLOGY_CURIE'] = 'ncim:C115935' # identifier for healthy
-        sample_attribute_dict['DONOR_HEALTH_STATUS_ONTOLOGY_URI'] = 'https://nciterms.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115935'
+        sample_attribute_dict['DONOR_HEALTH_STATUS_ONTOLOGY_CURIE'] = 'ncim:C0549184' # suggested None term
+        sample_attribute_dict['DONOR_HEALTH_STATUS_ONTOLOGY_URI'] = 'https://ncim.nci.nih.gov/ncimbrowser/pages/concept_details.jsf?dictionary=NCI%20Metathesaurus&code=C0549184'
 
     return sample_attribute_dict
 
