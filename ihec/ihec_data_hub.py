@@ -8,7 +8,7 @@
 # I added ATAC-seq, RRBS following existing data format
 # Missing: microRNA counts, transcription profiling by array assay
 
-# IHEC aslo requires format forllowing
+# IHEC also requires format forllowing
 # https://www.ebi.ac.uk/ena/submit/read-xml-format-1-5, see SRA.experiment.xsd
 
 
@@ -20,7 +20,7 @@ import sys
 
 import requests
 
-BASE_URL = 'https://encd-5532-ihec-hub-yunhailuo.demo.encodedcc.org/{}'
+BASE_URL = 'https://encodeproject.org/{}'
 
 PROJECT_PROPS = {
     'ENCODE': {
