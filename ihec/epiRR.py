@@ -21,18 +21,16 @@ from encode_utils.connection import Connection
 conn = Connection('prod')
 
 
-def exp_xml(rr_obj):
+def exp_xml(ref_epi_obj):
     exp_set_xml = ET.Element('EXPERIMENT_SET')
     for expObj in sorted(
-        rr_obj['related_datasets'], key=lambda e: e['accession']
+        ref_epi_obj['related_datasets'], key=lambda e: e['accession']
     ):
-        exp_status = expObj.get('status')
-        # if exp_status!='released' and exp_status!='archived':
-        if exp_status != 'released':
+        if expObj.get('status') != 'released':
             print(
                 '****** In experiment.xml, '
                 'skipping experiment {} due to status: {}'.format(
-                    expObj.get('accession'), exp_status
+                    expObj.get('accession'), expObj.get('status')
                 )
             )
             continue
@@ -66,13 +64,29 @@ def exp_xml(rr_obj):
         ET.SubElement(design_xml, 'DESIGN_DESCRIPTION').text = expObj.get(
             'description', 'none'
         )
-        ET.SubElement(
-            design_xml,
-            'SAMPLE_DESCRIPTOR',
-            accession=exp_biosample_accession(expObj) or 'none',
-            refcenter='ENCODE',
-            refname=expObj.get('biosample_summary', 'none')
+        exp_biosamples = sorted(
+            [
+                rep['library']['biosample']
+                for rep in expObj.get('replicates', [])
+                if 'library' in rep and 'biosample' in rep['library']
+            ],
+            key=lambda b: b['accession']
         )
+        exp_biosamples = exp_biosamples or {
+            'accession': 'none',
+            'summary': 'none'
+        }
+        for biosample in exp_biosamples:
+            ET.SubElement(
+                design_xml,
+                'SAMPLE_DESCRIPTOR',
+                accession=biosample['accession'],
+                refcenter='ENCODE',
+                refname=biosample['summary']
+            )
+            # SRA schema cannot do multiple sampler per experiment unless you
+            # claim they are POOL biosamples
+            break
         lib_descriptor_xml = ET.SubElement(design_xml, 'LIBRARY_DESCRIPTOR')
         ET.SubElement(
             lib_descriptor_xml, 'LIBRARY_STRATEGY'
@@ -95,10 +109,10 @@ def exp_xml(rr_obj):
             ET.SubElement(exp_attrib_xml, 'TAG').text = tag
             ET.SubElement(exp_attrib_xml, 'VALUE').text = expType[tag]
         exp_attrib_xml = ET.SubElement(exp_attribs_xml, 'EXPERIMENT_ATTRIBUTE')
-        ET.SubElement(exp_attrib_xml, 'TAG').text = 'EXPERIMENT_ONTOLOGY_URI'
+        ET.SubElement(exp_attrib_xml, 'TAG').text = 'EXPERIMENT_ONTOLOGY_CURIE'
         ET.SubElement(exp_attrib_xml, 'VALUE').text = exp_ontology_uri(expObj)
         exp_attrib_xml = ET.SubElement(exp_attribs_xml, 'EXPERIMENT_ATTRIBUTE')
-        ET.SubElement(exp_attrib_xml, 'TAG').text = 'MOLECULE_ONTOLOGY_URI'
+        ET.SubElement(exp_attrib_xml, 'TAG').text = 'MOLECULE_ONTOLOGY_CURIE'
         ET.SubElement(exp_attrib_xml, 'VALUE').text = molecule['uri']
         exp_attrib_xml = ET.SubElement(exp_attribs_xml, 'EXPERIMENT_ATTRIBUTE')
         ET.SubElement(exp_attrib_xml, 'TAG').text = 'MOLECULE'
@@ -108,7 +122,7 @@ def exp_xml(rr_obj):
         os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
             'ENCODE',
-            rr_obj.get('accession') + '_experiment.xml'
+            ref_epi_obj.get('accession') + '_experiment.xml'
         )
     )
 
@@ -126,7 +140,10 @@ def exp_type(exp):
         target_id = exp.get('target', {}).get('uuid')
         if not target_id:
             assert exp['control_type']
-            return {'EXPERIMENT_TYPE': 'ChIP-Seq Input'}
+            return {
+                'EXPERIMENT_TYPE': 'ChIP-Seq Input',
+                'EXPERIMENT_TARGET_TF': 'NA',
+            }
         else:
             target_obj = conn.get(target_id)
             target_label = target_obj['label']
@@ -158,8 +175,6 @@ def exp_type(exp):
         assay = 'RNA-Seq'
         if exp['assay_title'] == 'total RNA-seq':
             assay = 'total-RNA-Seq'
-        elif exp['assay_title'] == 'polyA plus RNA-seq':
-            assay = 'mRNA-Seq'
         return {'EXPERIMENT_TYPE': assay}
 
     # Process other assays
@@ -169,6 +184,7 @@ def exp_type(exp):
         'microRNA-seq': 'smRNA-Seq',
         'MeDIP-seq': 'DNA Methylation',
         'MRE-seq': 'DNA Methylation',
+        'polyA plus RNA-seq': 'mRNA-Seq',
         'RRBS': 'DNA Methylation',
         'whole-genome shotgun bisulfite sequencing': 'DNA Methylation'
     }
@@ -186,6 +202,7 @@ def exp_library_strategy(exp):
         'microRNA-seq': 'miRNA-Seq',
         'microRNA counts': 'miRNA-Seq',
         'MRE-seq': 'MRE-Seq',
+        'polyA plus RNA-seq': 'RNA-Seq',
         'RNA-seq': 'RNA-Seq',
         'RRBS': 'Bisulfite-Seq',
         'whole-genome shotgun bisulfite sequencing': 'Bisulfite-Seq',
@@ -350,23 +367,31 @@ def exp_biosample_accession(exp):
         return None
 
 
-def samples_xml(rr_obj):
+def samples_xml(ref_epi_obj):
     # Get list of biosamples in the reference epigenome data set
-    biosample_set = set()
-    for expObj in rr_obj['related_datasets']:
-        exp_status = expObj.get('status')
-        if exp_status != 'released':
+    biosample_replicates_map = {}
+    for expObj in ref_epi_obj['related_datasets']:
+        if expObj.get('status') != 'released':
             continue
         expType = exp_type(expObj)
         if not expType:
             continue
 
-        biosample = exp_biosample_accession(expObj)
-        if biosample:
-            biosample_set.add(biosample)
+        exp_biosamples = sorted(
+            rep['library']['biosample']['accession']
+            for rep in expObj.get('replicates', [])
+            if 'library' in rep and 'biosample' in rep['library']
+        )
+        if not exp_biosamples:
+            continue
+        biosample_replicates_map.setdefault(exp_biosamples[0], set())
+        if len(exp_biosamples) > 1:
+            biosample_replicates_map[exp_biosamples[0]] |= set(
+                exp_biosamples[1:]
+            )
 
     sample_set_xml = ET.Element('SAMPLE_SET')
-    for biosample_id in sorted(biosample_set):
+    for biosample_id in sorted(biosample_replicates_map):
         biosampleObj = conn.get(biosample_id)
 
         sample_xml = ET.SubElement(
@@ -389,25 +414,18 @@ def samples_xml(rr_obj):
         ).text = organism.get('name')
 
         sample_attribute_dict = {
-            'SAMPLE_ONTOLOGY_URI': 'http://purl.obolibrary.org/obo/{}'.format(
-                biosampleObj['biosample_ontology']['term_id']
-            )
+            'BIOMATERIAL_PROVIDER': biosampleObj['source'].get('description'),
+            'DISEASE': biosampleObj.get('health_status', 'NA'),
+            'DISEASE_ONTOLOGY_CURIE': 'https://ncit.nci.nih.gov/ncitbrowser/pages/multiple_search.jsf?nav_type=terminologies',  # noqa: E501
+            'TREATMENT': 'NA',
+            'BIOLOGICAL_REPLICATES':
+                list(biosample_replicates_map[biosample_id]) or 'NA',
         }
-        donor = biosampleObj.get('donor')
-        disease = donor.get('health_status', 'Healthy').capitalize()
-        if donor['organism']['name'] != 'human':
-            disease = biosampleObj.get(
-                'model_organism_health_status', 'Healthy'
-            ).capitalize()
-        if disease == 'Healthy':
-            disease_ontology_uri = 'https://ncit.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115935'  # noqa: E501
-        else:
-            disease_ontology_uri = 'https://ncit.nci.nih.gov/ncitbrowser/pages/multiple_search.jsf?nav_type=terminologies'  # noqa: E501
-        sample_attribute_dict['DISEASE_ONTOLOGY_URI'] = disease_ontology_uri
-        sample_attribute_dict['DISEASE'] = disease
-        sample_attribute_dict[
-            'BIOMATERIAL_PROVIDER'
-        ] = biosampleObj['source'].get('description')
+        if 'HEALTHY' in sample_attribute_dict['DISEASE'].capitalize():
+            sample_attribute_dict['DISEASE_ONTOLOGY_CURIE'] = 'https://ncit.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115935'  # noqa: E501
+        if biosampleObj.get('treatments'):
+            sample_attribute_dict['TREATMENT'] = biosampleObj['summary']
+
         btype = biosampleObj['biosample_ontology']['classification']
         if btype in ['tissue', 'whole organism']:
             sample_attribute_dict.update(tissueXML(biosampleObj))
@@ -423,23 +441,34 @@ def samples_xml(rr_obj):
             sample_xml, 'SAMPLE_ATTRIBUTES'
         )
         for (tag, value) in sample_attribute_dict.items():
-            sample_attribute_xml = ET.SubElement(
-                sample_attributes_xml, 'SAMPLE_ATTRIBUTE'
-            )
-            ET.SubElement(sample_attribute_xml, 'TAG').text = tag
-            ET.SubElement(sample_attribute_xml, 'VALUE').text = value
+            if isinstance(value, list):
+                for v in value:
+                    sample_attribute_xml = ET.SubElement(
+                        sample_attributes_xml, 'SAMPLE_ATTRIBUTE'
+                    )
+                    ET.SubElement(sample_attribute_xml, 'TAG').text = tag
+                    ET.SubElement(sample_attribute_xml, 'VALUE').text = v
+            else:
+                sample_attribute_xml = ET.SubElement(
+                    sample_attributes_xml, 'SAMPLE_ATTRIBUTE'
+                )
+                ET.SubElement(sample_attribute_xml, 'TAG').text = tag
+                ET.SubElement(sample_attribute_xml, 'VALUE').text = value
 
     ET.ElementTree(sample_set_xml).write(
         os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
             'ENCODE',
-            rr_obj.get('accession') + '_samples.xml'
+            ref_epi_obj.get('accession') + '_samples.xml'
         )
     )
 
 
 def cellLineXML(biosampleObj):
     return {
+        'SAMPLE_ONTOLOGY_CURIE': 'https://www.ebi.ac.uk/efo/{}'.format(
+            biosampleObj['biosample_ontology']['term_id'].replace(':', '_')
+        ),
         'BIOMATERIAL_TYPE': 'Cell Line',
         'LINE': biosampleObj['biosample_ontology']['term_name'],
         'PASSAGE': str(biosampleObj.get("passage_number", "unknown")),
@@ -459,75 +488,40 @@ def donor(biosampleObj):
     if not donorId:
         return {}
     donorObj = conn.get(donorId)
-    sample_attribute_dict = {'DONOR_ID': donorObj['accession']}
-
-    # mouse donor
-    if 'mouse' in donorId:
-        age = biosampleObj.get('model_organism_age', 'NA')
-        # IHEC only allows integer age, otherwise, validator fails.
-        if age != 'NA':
-            age = str(int(float(age)))
-        sample_attribute_dict['DONOR_AGE'] = age
-        sample_attribute_dict['DONOR_AGE_UNIT'] = biosampleObj.get(
-            'model_organism_age_units', 'year'
-        )
-        sample_attribute_dict['DONOR_LIFE_STAGE'] = biosampleObj.get(
-            'mouse_life_stage', 'unknown'
-        )
-        disease = biosampleObj.get(
-            'model_organism_health_status', 'Healthy'
-        ).capitalize()
-        if disease == 'Healthy':
-            disease_ontology_uri = 'https://ncit.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115935'  # noqa: E501
-        else:
-            disease_ontology_uri = 'https://ncit.nci.nih.gov/ncitbrowser/pages/multiple_search.jsf?nav_type=terminologies'  # noqa: E501
-        sample_attribute_dict[
-            'DONOR_HEALTH_STATUS_ONTOLOGY_URI'
-        ] = disease_ontology_uri
-        sample_attribute_dict[
-            'DONOR_HEALTH_STATUS'
-        ] = disease
-        sample_attribute_dict['DONOR_SEX'] = biosampleObj.get(
-            'model_organism_sex', 'unknown'
-        ).capitalize()
-        sample_attribute_dict['DONOR_ETHNICITY'] = 'NA'
-
-        # return donorInfo
-        return sample_attribute_dict
-
-    # human donor
-    age = donorObj.get('model_organism_age', 'NA')
+    sample_attribute_dict = {
+        'DONOR_ID': donorObj['accession'],
+        'DONOR_LIFE_STAGE': biosampleObj['life_stage'],
+        'DONOR_SEX': biosampleObj['sex'].capitalize(),
+        'DONOR_ETHNICITY': donorObj.get('ethnicity', 'NA'),
+        'DONOR_HEALTH_STATUS': biosampleObj.get('health_status', 'NA'),
+        'DONOR_HEALTH_STATUS_ONTOLOGY_CURIE': 'https://ncit.nci.nih.gov/ncitbrowser/pages/multiple_search.jsf?nav_type=terminologies',  # noqa: E501
+    }
+    # Use calculated age on biosample because sample_collection_age may not
+    # match listed donor age
+    age = biosampleObj['age']
     # IHEC only allows integer age, otherwise, validator fails.
-    if age != 'NA':
+    if age != 'unknown':
         age = str(int(float(age)))
-    sample_attribute_dict['DONOR_AGE'] = age
-    sample_attribute_dict['DONOR_AGE_UNIT'] = donorObj.get('age_units', 'year')
-    sample_attribute_dict['DONOR_LIFE_STAGE'] = donorObj.get(
-        'life_stage', 'unknown'
-    )
-    disease = donorObj.get('health_status', 'Healthy').capitalize()
-    if disease == 'Healthy':
-        disease_ontology_uri = 'https://ncit.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115935'  # noqa: E501
     else:
-        disease_ontology_uri = 'https://ncit.nci.nih.gov/ncitbrowser/pages/multiple_search.jsf?nav_type=terminologies'  # noqa: E501
-    sample_attribute_dict[
-        'DONOR_HEALTH_STATUS_ONTOLOGY_URI'
-    ] = disease_ontology_uri
-    sample_attribute_dict['DONOR_HEALTH_STATUS'] = disease
-    sample_attribute_dict['DONOR_SEX'] = donorObj.get(
-        'sex', 'unknown'
-    ).capitalize()
-    sample_attribute_dict['DONOR_ETHNICITY'] = donorObj.get(
-        'ethnicity', 'NA'
+        age = 'NA'
+    sample_attribute_dict['DONOR_AGE'] = age
+    sample_attribute_dict['DONOR_AGE_UNIT'] = biosampleObj.get(
+        'age_units', 'year'
     )
+    if 'HEALTHY' in sample_attribute_dict['DONOR_HEALTH_STATUS'].capitalize():
+        sample_attribute_dict['DONOR_HEALTH_STATUS_ONTOLOGY_CURIE'] = 'https://ncit.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115935'  # noqa: E501
+
     return sample_attribute_dict
 
 
 def tissueXML(biosampleObj):
     sample_attribute_dict = {
+        'SAMPLE_ONTOLOGY_CURIE': 'http://purl.obolibrary.org/obo/{}'.format(
+            biosampleObj['biosample_ontology']['term_id'].replace(':', '_')
+        ),
         'BIOMATERIAL_TYPE': 'Primary Tissue',
         'TISSUE_TYPE': biosampleObj['biosample_ontology']['term_name'],
-        'TISSUE_DEPOT': biosampleObj['source'].get('description', 'unknown'),
+        'TISSUE_DEPOT': biosampleObj['biosample_ontology']['term_name'],
         'COLLECTION_METHOD': 'unknown',
     }
     sample_attribute_dict.update(donor(biosampleObj))
@@ -536,6 +530,9 @@ def tissueXML(biosampleObj):
 
 def primaryCellCultureXML(biosampleObj):
     sample_attribute_dict = {
+        'SAMPLE_ONTOLOGY_CURIE': 'http://purl.obolibrary.org/obo/{}'.format(
+            biosampleObj['biosample_ontology']['term_id'].replace(':', '_')
+        ),
         'BIOMATERIAL_TYPE': 'Primary Cell Culture',
         'CELL_TYPE': biosampleObj['biosample_ontology']['term_name'],
         'MARKERS': 'unknown',
@@ -546,25 +543,32 @@ def primaryCellCultureXML(biosampleObj):
     if originated_from_uuid:
         origin_sample = conn.get(originated_from_uuid)
         sample_attribute_dict[
-            'ORIGIN_SAMPLE_ONTOLOGY_URI'
+            'ORIGIN_SAMPLE_ONTOLOGY_CURIE'
         ] = 'http://purl.obolibrary.org/obo/{}'.format(
             origin_sample['biosample_ontology']['term_id']
         )
         sample_attribute_dict[
             'ORIGIN_SAMPLE'
         ] = origin_sample['biosample_ontology']['term_name']
+    else:
+        sample_attribute_dict[
+            'ORIGIN_SAMPLE_ONTOLOGY_CURIE'
+        ] = sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE']
+        sample_attribute_dict[
+            'ORIGIN_SAMPLE'
+        ] = sample_attribute_dict['CELL_TYPE']
     sample_attribute_dict.update(donor(biosampleObj))
 
     return sample_attribute_dict
 
 
-def ihec_json(rr_obj):
-    localName = rr_obj['accession']
-    project = 'ENCODE'
+def ihec_json(ref_epi_obj):
+    localName = ref_epi_obj['accession']
+    project = ref_epi_obj['award']['project']
     ihec_json = {}
-    if rr_obj.get('award').get('rfa') == 'Roadmap':
+    if project == 'Roadmap':
         project = 'NIH Roadmap Epigenomics'
-        aliases = rr_obj.get('aliases', [])
+        aliases = ref_epi_obj.get('aliases', [])
         for alias in aliases:
             if ('roadmap-' not in alias):
                 continue
@@ -574,27 +578,27 @@ def ihec_json(rr_obj):
     ihec_json = {
         'project': project,
         'local_name': localName,
-        'description': rr_obj.get('description'),
+        'description': ref_epi_obj.get('description'),
         'raw_data': [
             {'archive': 'ENCODE', 'primary_id': expObj['accession']}
-            for expObj in rr_obj['related_datasets']
+            for expObj in ref_epi_obj['related_datasets']
             if expObj.get('status') == 'released' and exp_type(expObj)
         ],
     }
 
     # find if there is ihec accession #
-    for xref in rr_obj.get('dbxrefs', []):
-        if 'IHEC:' not in xref:
+    for dbxref in ref_epi_obj.get('dbxrefs', []):
+        if not dbxref.startswith('IHEC:'):
             continue
-        acc = xref.replace('IHEC:', '').split('.')[0]
+        acc = dbxref[5:]
+        if 'IHEC' in acc:
+            ihec_json['accession'] = acc
         break
-    if 'IHEC' in acc:
-        ihec_json['accession'] = acc
 
     encode_path = os.path.join(
         os.path.dirname(os.path.realpath(__file__)),
         'ENCODE',
-        '{}.refepi.json'.format(rr_obj['accession'])
+        '{}.refepi.json'.format(ref_epi_obj['accession'])
     )
     with open(encode_path, 'w') as f:
         json.dump(ihec_json, f, indent=4, sort_keys=True)
@@ -633,27 +637,31 @@ def main():
         ]
 
     for epiRR_Acc in accessions:
-        rr_obj = conn.get('reference-epigenomes/{}'.format(epiRR_Acc))
+        ref_epi_obj = conn.get('reference-epigenomes/{}'.format(epiRR_Acc))
 
         # Write the files
-        exp_xml(rr_obj)
-        samples_xml(rr_obj)
-        ihec_json(rr_obj)
+        exp_xml(ref_epi_obj)
+        samples_xml(ref_epi_obj)
+        ihec_json(ref_epi_obj)
 
         # Validate
         os.system(
-            'python __main__.py -sample ENCODE/'
-            + epiRR_Acc
-            + '_samples.xml -out:ENCODE/'
-            + epiRR_Acc
-            + '_samples.validated.xml -overwrite-outfile'
+            'python -m version_metadata'
+            ' -jsonlog:ENCODE/{epiRR_Acc}_samples.log.json'
+            ' -overwrite-outfile'
+            ' -out:ENCODE/{epiRR_Acc}_samples.validated.xml'
+            ' -sample ENCODE/{epiRR_Acc}_samples.xml'.format(
+                epiRR_Acc=epiRR_Acc
+            )
         )
         os.system(
-            'python __main__.py -experiment ENCODE/'
-            + epiRR_Acc
-            + '_experiment.xml -out:ENCODE/'
-            + epiRR_Acc
-            + '_experiment.validated.xml -overwrite-outfile'
+            'python -m version_metadata'
+            ' -jsonlog:ENCODE/{epiRR_Acc}_experiment.log.json'
+            ' -overwrite-outfile'
+            ' -out:ENCODE/{epiRR_Acc}_experiment.validated.xml'
+            ' -experiment ENCODE/{epiRR_Acc}_experiment.xml'.format(
+                epiRR_Acc=epiRR_Acc
+            )
         )
 
     print('Done!')

@@ -1,3 +1,19 @@
+# A script for helping update ENCODE reference epigenomes on the portal
+
+The `RefEpi_update.py` is designed to help collect relevant info for wranglers to check and decide how to update ENCODE reference epigenomes on the portal. There are three functions:
+
+* `./RefEpi_updater.py create`
+
+  This script looks for released core (H3K27me3, H3K36me3, H3K4me1, H3K4me3, H3K27ac, H3K9me3) reference epigenome experiments which don't belong to any current reference epigenomes. If find, it will list them out with relevant info so that wranglers can create new referenc epigenomes based on that. You do want to run `update` to check if there are other experiments to be added to these new reference epigenomes.
+
+* `./RefEpi_updater.py update`
+
+  This script will go through all released reference epigenome relevant experiments and output a big table with one row describing experiments currently in each reference epigenomes and the next row below it describing candidate experiments which can be put into corresponding reference epigenomes. wranglers need to go through this table carefully to decide what should be updated. After updates if any, you do want to run `find-controls` to update controls in reference epigenomes. For example, when a ChIP experiment is replaced, its control in the same reference epigenome also needs to be updated.
+
+* `./RefEpi_updater.py find-controls`
+
+  This script will go through every existing reference epigenome on the ENCODE portal, find out needed controls in each reference epigenome and compare this control set to controls currently in that reference epigenome. If any differences are found, it will output a new list of "related_datasets" with controls updated for that reference epigenome.
+
 # Scripts for submitting reference epigenomes to IHEC
 
 In general, a submission to IHEC contains two parts: EpiRR and IHEC data hub. For us, ENCODE, one prerequisite (step 0) is to make sure all our reference epigenomes are up to date on the production portal.
