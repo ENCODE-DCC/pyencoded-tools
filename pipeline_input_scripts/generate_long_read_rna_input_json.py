@@ -63,7 +63,7 @@ def build_file_report_query(experiment_list, server):
         '&field=dataset' + \
         '&field=file_format' + \
         '&field=biological_replicates' + \
-        '&field=replicate_libraries' + \
+        '&field=replicate.library.accession' + \
         '&field=status' + \
         '&field=s3_uri' + \
         '&field=href' + \
@@ -261,7 +261,7 @@ def main():
                 for rep_num in fastqs_by_rep_R1:
                     if file_input_df.loc[link].at['biorep_scalar'] == rep_num:
                         fastqs_by_rep_R1[rep_num].append(link_prefix + link)
-                        libs_by_rep_R1[rep_num].append(file_input_df.loc[link].at['replicate_libraries'][0][11:22])
+                        libs_by_rep_R1[rep_num].append(file_input_df.loc[link].at['replicate.library.accession'])
 
         # Record error if no fastqs for found for any replicate.
         if all(val == [] for val in fastqs_by_rep_R1.values()):
