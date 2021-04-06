@@ -73,6 +73,7 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
     print('Number of original files: {}'.format(
         len(experiment['original_files'])
     ))
+
     analysisObj = experiment.get('analysis_objects', [])
     latest = get_latest_analysis(analysisObj)
     print('Number of analyses: {}'.format(len(analysisObj)))
@@ -86,19 +87,98 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
         for rep in experiment['replicates']
     })
     file_output_map = {}
-    expected_file_output_count = {
-        'transcriptome alignments': rep_count,
-        'alignments': rep_count,
-        'transcript quantifications': rep_count * 2,
-        'minus strand signal of unique reads': rep_count,
-        'plus strand signal of unique reads': rep_count,
-        'minus strand signal of all reads': rep_count,
-        'plus strand signal of all reads': rep_count,
-        'gene quantifications': rep_count,
-    }
+    replicateObj = experiment.get('replicates', [])
+    strandSpecificity = []
+    libraries = []
+    avgFragLength = False
+    for rep in replicateObj:
+        libraries.append(rep['library']['accession'])
+        try:
+            strandSpecificity.append(rep['library']['strand_specificity'])
+        except:
+            strandSpecificity.append('unstranded')
+        try:
+            if rep['library']['average_fragment_size']:
+                avgFragLength = True
+        except:
+            continue
+
+    if len(set(libraries)) != rep_count:
+        rep_count = len(set(libraries))
+
+    runType_allFiles = []
+    runType = None
+    fileObj = experiment.get('files', [])
+    for f in fileObj:
+        if 'reads' in f['output_type']:
+            try:
+                runType_allFiles.append(f['run_type']) 
+            except:
+                continue
+
+    if len(set(runType_allFiles)) > 1:
+        print('Multiple run types')
+        bad_reason.append('Multiple run types')
+    else:
+        for item in runType_allFiles:
+            runType = item
+
+    stranded = False
+    # determine strand information
+    if len(set(strandSpecificity)) == 1:
+        if 'unstranded' not in set(strandSpecificity):
+            stranded = True
+    else:
+        print('Lacking or differing strand information')
+        bad_reason.append('Differing strand information')
+    
+    if stranded:
+        expected_file_output_count = {
+            'transcriptome alignments': rep_count,
+            'alignments': rep_count,
+            'transcript quantifications': rep_count * 2,
+            'minus strand signal of unique reads': rep_count,
+            'plus strand signal of unique reads': rep_count,
+            'minus strand signal of all reads': rep_count,
+            'plus strand signal of all reads': rep_count,
+            'gene quantifications': rep_count
+        }
+
+        if runType == 'single-ended' and not avgFragLength:
+            expected_file_output_count = {
+                'transcriptome alignments': rep_count,
+                'alignments': rep_count,
+                'transcript quantifications': rep_count,
+                'minus strand signal of unique reads': rep_count,
+                'plus strand signal of unique reads': rep_count,
+                'minus strand signal of all reads': rep_count,
+                'plus strand signal of all reads': rep_count,
+                'gene quantifications': rep_count
+            }
+
+    else:
+        expected_file_output_count = {
+            'transcriptome alignments': rep_count,
+            'alignments': rep_count,
+            'transcript quantifications': rep_count * 2,
+            'signal of unique reads': rep_count,
+            'signal of all reads': rep_count,
+            'gene quantifications': rep_count,
+        }
+
+        if runType == 'single-ended' and not avgFragLength:
+            expected_file_output_count = {
+                'transcriptome alignments': rep_count,
+                'alignments': rep_count,
+                'transcript quantifications': rep_count,
+                'signal of unique reads': rep_count,
+                'signal of all reads': rep_count,
+                'gene quantifications': rep_count,
+            }
+
 
     for analysis in analysisObj:
-
+        
         # archive all other released analyses
         if analysis['status'] in ['released'] and analysis['accession'] != latest:
             archiveAnalyses[exp_acc].append(analysis['accession'])
@@ -111,6 +191,8 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
         if sorted(analysis['pipelines']) == ENCODE4_BULK_RNA_PIPELINES and analysis['accession'] != latest:
             skipped_ENC4_analyses_count += 1
             continue 
+
+        print('Analysis object {} being checked'.format(analysis['accession']))
 
         if analysis.get('assembly') not in ['GRCh38', 'mm10']:
             print('Wrong assembly')
@@ -128,19 +210,20 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
             print('Has {}'.format(str(file_output_map)))
             print('Expect {}'.format(str(expected_file_output_count)))
         
-        if skipped_ENC4_analyses_count > 0:
-            print('Skipped {} old ENCODE4 uniform analyses'.format(
-                skipped_ENC4_analyses_count
+    
+    if skipped_ENC4_analyses_count > 0:
+        print('Skipped {} old ENCODE4 uniform analyses'.format(
+            skipped_ENC4_analyses_count
         ))
-        if skipped_analyses_count == len(analysisObj):
-            print('No ENCODE4 analysis found')
-            bad_reason.append('No ENCODE4 analysis found')
-        elif skipped_analyses_count:
-            print('Skipped {} non-ENCODE4 uniform analyses'.format(
-                skipped_analyses_count
-            ))
+    if skipped_analyses_count == len(analysisObj):
+        print('No ENCODE4 analysis found')
+        bad_reason.append('No ENCODE4 analysis found')
+    if skipped_analyses_count:
+        print('Skipped {} non-ENCODE4 uniform analyses'.format(
+            skipped_analyses_count
+        ))
     print('')
-    return bad_reason, serious_audits
+    return bad_reason, serious_audits, archiveAnalyses
 
 
 def get_parser():
@@ -166,8 +249,9 @@ def main():
     args = parser.parse_args()
     summary = {}
     GoodExperiments = {}
+    patchAnalyses = {}
     for exp_acc in args.exp_accs:
-        bad_reason, serious_audits = check_encode4_bulk_rna_pipeline(
+        bad_reason, serious_audits, archiveAnalyses = check_encode4_bulk_rna_pipeline(
             exp_acc.strip()
         )
         status = ', '.join(bad_reason) or 'Good'
@@ -181,23 +265,38 @@ def main():
             )
 
         summary[exp_acc.strip()] = status
+        patchAnalyses[exp_acc.strip()] = archiveAnalyses[exp_acc.strip()]
+     
+    if args.ticket:
+        analysisArchive_filename = '%s_analysisStatusPatch.txt' % (args.ticket).strip()
+        release_filename = '%s_releasedPatch.txt' % (args.ticket).strip()
+        problem_filename = '%s_internalStatusPatch.txt' % (args.ticket).strip()
+        
+    else:
+        analysisArchive_filename = 'analysisStatusPatch.txt'
+        release_filename = 'releasedPatch.txt'
+        problem_filename = 'internalStatusPatch.txt'
+
+    releasedFiles = open(release_filename, 'w+')
+    problemFiles = open(problem_filename, 'w+')
+    analysisPatch = open(analysisArchive_filename, 'w+')
+    analysisWriter = csv.writer(analysisPatch, delimiter='\t')
+    analysisWriter.writerow(['record_id', 'status'])
+    problemWriter = csv.writer(problemFiles, delimiter='\t')
+    problemWriter.writerow(['record_id', 'internal_status'])   
 
     for exp_acc in summary:
         print('{}: {}'.format(exp_acc, summary[exp_acc]))
+        print('Older analyses for {} found: {}'.format(exp_acc, patchAnalyses[exp_acc]))
+        print('')
+        
+        try:
+            for analysis in patchAnalyses[exp_acc.strip()]:
+                analysisWriter.writerow([analysis, 'archived'])
+        except KeyError:
+            continue
 
     if GoodExperiments:
-        if args.ticket:
-            release_filename = '%s_releasedPatch.txt' % (args.ticket).strip()
-            problem_filename = '%s_internalstatusPatch.txt' % (args.ticket).strip()
-        else:
-            release_filename = 'releasedPatch.txt'
-            problem_filename = 'internalstatusPatch.txt'
-
-        releasedFiles = open(release_filename, 'w+')
-        problemFiles = open(problem_filename, 'w+')
-        problemWriter = csv.writer(problemFiles, delimiter='\t')
-        problemWriter.writerow(['record_id', 'internal_status'])
-
         for key in GoodExperiments:
             if GoodExperiments[key]:
                 problemWriter.writerow([key, 'post-pipeline review'])
@@ -205,6 +304,7 @@ def main():
                 releasedFiles.write(key)
                 releasedFiles.write('\n')
                 problemWriter.writerow([key, 'release ready'])
+                
 
 
 if __name__ == '__main__':
