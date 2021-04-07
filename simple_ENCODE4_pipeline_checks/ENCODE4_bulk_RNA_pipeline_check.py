@@ -197,7 +197,7 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
         if analysis.get('assembly') not in ['GRCh38', 'mm10']:
             print('Wrong assembly')
             bad_reason.append('Wrong assembly')
-        if analysis.get('genome_annotation') not in ['V29', 'V21']:
+        if analysis.get('genome_annotation') not in ['V29', 'V21', 'M21']:
             print('Wrong genome annotation')
             bad_reason.append('Wrong genome annotation')
         for fid in analysis['files']:
