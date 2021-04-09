@@ -79,7 +79,7 @@ class ExperimentPage:
     accession_column_relative_xpath = '..//td[1]//span//div//span//a'
     information_button_relative_xpath = '..//td[1]//span//button//i'
     file_graph_tab_xpath = '//div[@class="tab-nav"]//li[2]'
-    file_table_tab_xpath = '//*[@id="content"]/div/div[@class="done"]/div/div[2]/div[2]/div[1]/ul/li[3]/a'
+    file_table_tab_xpath = '//a[text()="File details"]'
     assembly_selector_xpath = '//*[@id="tables"]/div/div[1]/div[1]/select[@class="form-control--select"]'
     file_graph_id = 'pipeline-graph'
     incl_deprecated_files_button_name = 'filterIncArchive'
