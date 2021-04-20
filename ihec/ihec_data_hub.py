@@ -8,7 +8,7 @@
 # I added ATAC-seq, RRBS following existing data format
 # Missing: microRNA counts, transcription profiling by array assay
 
-# IHEC aslo requires format forllowing
+# IHEC also requires format forllowing
 # https://www.ebi.ac.uk/ena/submit/read-xml-format-1-5, see SRA.experiment.xsd
 
 
@@ -19,6 +19,79 @@ import logging
 import sys
 
 import requests
+
+BASE_URL = 'https://encodeproject.org/{}'
+
+PROJECT_PROPS = {
+    'ENCODE': {
+        "description": "ENCODE reference epigenome",
+        "description_url": "https://www.encodeproject.org/search/?type=ReferenceEpigenome&award.project=ENCODE",  # noqa: E501
+        "email": "encode-help@lists.stanford.edu",
+        "name": "ENCODE reference epigenome",
+        "publishing_group": "ENCODE",
+    },
+    'Roadmap': {
+        "description": "NIH Roadmap reference epigenome",
+        "description_url": "https://www.encodeproject.org/search/?type=ReferenceEpigenome&award.project=Roadmap",  # noqa: E501
+        "email": "encode-help@lists.stanford.edu",
+        "name": "NIH Roadmap reference epigenome",
+        "publishing_group": "NIH Roadmap",
+    },
+}
+ASSEMBLY_PROPS = {
+    'hg38': {"assembly": "hg38", "taxon_id": 9606},
+    'hg19': {"assembly": "hg19", "taxon_id": 9606},
+    'mm10': {"assembly": "mm10", "taxon_id": 10090},
+}
+# David from IHEC Data Hub asked us to submit just one hub JSON
+# per project per assembly
+merged_hubs = {
+    ('ENCODE', 'hg38'): {
+        'hub_description': {
+            "date": date.today().strftime('%Y-%m-%d'),
+            **PROJECT_PROPS['ENCODE'],
+            **ASSEMBLY_PROPS['hg38']
+        },
+        'samples': {},
+        'datasets': {}
+    },
+    ('ENCODE', 'hg19'): {
+        'hub_description': {
+            "date": date.today().strftime('%Y-%m-%d'),
+            **PROJECT_PROPS['ENCODE'],
+            **ASSEMBLY_PROPS['hg19']
+        },
+        'samples': {},
+        'datasets': {}
+    },
+    ('ENCODE', 'mm10'): {
+        'hub_description': {
+            "date": date.today().strftime('%Y-%m-%d'),
+            **PROJECT_PROPS['ENCODE'],
+            **ASSEMBLY_PROPS['mm10']
+        },
+        'samples': {},
+        'datasets': {}
+    },
+    ('Roadmap', 'hg38'): {
+        'hub_description': {
+            "date": date.today().strftime('%Y-%m-%d'),
+            **PROJECT_PROPS['Roadmap'],
+            **ASSEMBLY_PROPS['hg38']
+        },
+        'samples': {},
+        'datasets': {}
+    },
+    ('Roadmap', 'hg19'): {
+        'hub_description': {
+            "date": date.today().strftime('%Y-%m-%d'),
+            **PROJECT_PROPS['Roadmap'],
+            **ASSEMBLY_PROPS['hg19']
+        },
+        'samples': {},
+        'datasets': {}
+    },
+}
 
 
 def main():
@@ -39,7 +112,6 @@ def main():
     )
     args = parser.parse_args()
 
-    base_url = 'https://encd-2401-ihec-hub-yunhailuo.demo.encodedcc.org/{}'
     if not args.all:
         ref_epi_ids = [
             '/reference-epigenomes/{}/'.format(acc)
@@ -48,7 +120,7 @@ def main():
     else:
         ref_epi_ids = [
             exp['@id'] for exp in requests.get(
-                base_url.format(
+                BASE_URL.format(
                     '/search/'
                     '?type=ReferenceEpigenome'
                     '&status=released'
@@ -65,53 +137,7 @@ def main():
         format='[%(asctime)s] %(name)s:%(levelname)s: %(message)s',
     )
     total = len(ref_epi_ids)
-    hub_url = base_url.format('/batch_hub/{}/{}/ihec.json')
-    # David from IHEC Data Hub asked us to submit just one hub JSON per
-    # assembly
-    merged_hubs = {
-        'hg19': {
-            'hub_description': {
-                "assembly": "hg19",
-                "date": date.today().strftime('%Y-%m-%d'),
-                "description": "ENCODE reference epigenome",
-                "description_url": "https://www.encodeproject.org/search/?type=ReferenceEpigenome",  # noqa: E501
-                "email": "encode-help@lists.stanford.edu",
-                "name": "ENCODE reference epigenome",
-                "publishing_group": "ENCODE",
-                "taxon_id": 9606
-            },
-            'samples': {},
-            'datasets': {}
-        },
-        'hg38': {
-            'hub_description': {
-                "assembly": "hg38",
-                "date": date.today().strftime('%Y-%m-%d'),
-                "description": "ENCODE reference epigenome",
-                "description_url": "https://www.encodeproject.org/search/?type=ReferenceEpigenome",  # noqa: E501
-                "email": "encode-help@lists.stanford.edu",
-                "name": "ENCODE reference epigenome",
-                "publishing_group": "ENCODE",
-                "taxon_id": 9606
-            },
-            'samples': {},
-            'datasets': {}
-        },
-        'mm10': {
-            'hub_description': {
-                "assembly": "mm10",
-                "date": date.today().strftime('%Y-%m-%d'),
-                "description": "ENCODE reference epigenome",
-                "description_url": "https://www.encodeproject.org/search/?type=ReferenceEpigenome",  # noqa: E501
-                "email": "encode-help@lists.stanford.edu",
-                "name": "ENCODE reference epigenome",
-                "publishing_group": "ENCODE",
-                "taxon_id": 10090
-            },
-            'samples': {},
-            'datasets': {}
-        }
-    }
+    hub_url = BASE_URL.format('/batch_hub/{}/{}/ihec.json')
 
     for i in range(total):
         ref_epi_id = ref_epi_ids[i]
@@ -119,8 +145,9 @@ def main():
             'Generate [{}/{}] hub for {}'.format(i+1, total, ref_epi_id)
         )
         ref_epi = requests.get(
-            base_url.format(ref_epi_id) + '?format=json'
+            BASE_URL.format(ref_epi_id) + '?format=json'
         ).json()
+        project = ref_epi['award']['project']
         exps = ',,'.join(
             'accession={}'.format(exp['accession'])
             for exp in ref_epi['related_datasets']
@@ -135,6 +162,7 @@ def main():
             break
 
         for assembly in assemblies:
+            hub_key = (project, assembly)
             logging.info(
                 'Get {} hub from: {}'.format(
                     assembly, hub_url.format(exps, assembly)
@@ -142,12 +170,12 @@ def main():
             )
             hub = requests.get(hub_url.format(exps, assembly)).json()
             logging.info(
-                'Checking and registering data hub for {} {}'.format(
-                    ref_epi_id, assembly
+                'Checking and registering data hub for {} {} {}'.format(
+                    ref_epi_id, project, assembly
                 )
             )
             for dataset_key in hub['datasets']:
-                if dataset_key in merged_hubs[assembly]['datasets']:
+                if dataset_key in merged_hubs[hub_key]['datasets']:
                     logging.error(
                         'Dataset {} from reference epigenome {} is found in '
                         'more than one reference epigenomes.'.format(
@@ -155,11 +183,11 @@ def main():
                         )
                     )
                 else:
-                    merged_hubs[assembly]['datasets'][dataset_key] = hub[
+                    merged_hubs[hub_key]['datasets'][dataset_key] = hub[
                         'datasets'
                     ][dataset_key]
             for sample_key in hub['samples']:
-                if sample_key in merged_hubs[assembly]['samples']:
+                if sample_key in merged_hubs[hub_key]['samples']:
                     logging.error(
                         'Sample {} from reference epigenome {} is found in '
                         'more than one reference epigenomes.'.format(
@@ -167,17 +195,19 @@ def main():
                         )
                     )
                 else:
-                    merged_hubs[assembly]['samples'][sample_key] = hub[
+                    merged_hubs[hub_key]['samples'][sample_key] = hub[
                         'samples'
                     ][sample_key]
 
-    output_fname = 'ENCODE_IHEC_Data_Hub_{}.json'
-    for assembly in merged_hubs:
-        if not merged_hubs[assembly]['datasets']:
+    output_fname = '{}_IHEC_Data_Hub_{}.json'
+    for project, assembly in merged_hubs:
+        if not merged_hubs[(project, assembly)]['datasets']:
             continue
-        logging.info('Saving {}'.format(output_fname.format(assembly)))
-        with open(output_fname.format(assembly), 'w') as fo:
-            json.dump(merged_hubs[assembly], fo)
+        logging.info(
+            'Saving {}'.format(output_fname.format(project, assembly))
+        )
+        with open(output_fname.format(project, assembly), 'w') as fo:
+            json.dump(merged_hubs[(project, assembly)], fo)
 
 
 if __name__ == "__main__":
