@@ -60,6 +60,8 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
     bad_reason = []
     archiveAnalyses = {}
     archiveAnalyses[exp_acc] = []
+    preferred_default_file_format = []
+    preferred_default_output_type = set()
     serious_audits = {
         'ERROR': len(experiment['audit'].get('ERROR', [])),
         'NOT_COMPLIANT': len(experiment['audit'].get('NOT_COMPLIANT', [])),
@@ -132,50 +134,45 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
         print('Lacking or differing strand information')
         bad_reason.append('Differing strand information')
     
+    expected_file_output_count = {
+        'transcriptome alignments': rep_count,
+        'alignments': rep_count,
+        'gene quantifications': rep_count,
+        'transcript quantifications': rep_count * 2,
+    }
+
     if stranded:
-        expected_file_output_count = {
-            'transcriptome alignments': rep_count,
-            'alignments': rep_count,
-            'transcript quantifications': rep_count * 2,
+        expected_file_output_count.update({
             'minus strand signal of unique reads': rep_count,
             'plus strand signal of unique reads': rep_count,
             'minus strand signal of all reads': rep_count,
             'plus strand signal of all reads': rep_count,
-            'gene quantifications': rep_count
-        }
+        })
+
+        expected_preferred_default_file_format = ['bigWig', 'bigWig']
+        expected_preferred_default_output_type = [
+            'plus strand signal of unique reads', 
+            'minus strand signal of unique reads'
+        ]
 
         if runType == 'single-ended' and not avgFragLength:
-            expected_file_output_count = {
-                'transcriptome alignments': rep_count,
-                'alignments': rep_count,
-                'transcript quantifications': rep_count,
-                'minus strand signal of unique reads': rep_count,
-                'plus strand signal of unique reads': rep_count,
-                'minus strand signal of all reads': rep_count,
-                'plus strand signal of all reads': rep_count,
-                'gene quantifications': rep_count
-            }
+            expected_file_output_count.update({
+                    'transcript quantifications': rep_count,
+            })      
 
     else:
-        expected_file_output_count = {
-            'transcriptome alignments': rep_count,
-            'alignments': rep_count,
-            'transcript quantifications': rep_count * 2,
+        expected_file_output_count.update({
             'signal of unique reads': rep_count,
             'signal of all reads': rep_count,
-            'gene quantifications': rep_count,
-        }
+        })
+
+        expected_preferred_default_file_format = ['bigWig']
+        expected_preferred_default_output_type = ['signal of unique reads']
 
         if runType == 'single-ended' and not avgFragLength:
-            expected_file_output_count = {
-                'transcriptome alignments': rep_count,
-                'alignments': rep_count,
+            expected_file_output_count.update({
                 'transcript quantifications': rep_count,
-                'signal of unique reads': rep_count,
-                'signal of all reads': rep_count,
-                'gene quantifications': rep_count,
-            }
-
+            })  
 
     for analysis in analysisObj:
         
@@ -204,6 +201,45 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
             f_obj = requests.get(BASE_URL.format(fid), auth=AUTH).json()
             file_output_map.setdefault(f_obj['output_type'], 0)
             file_output_map[f_obj['output_type']] += 1
+            if f_obj.get('preferred_default'):
+                preferred_default_file_format.append(f_obj['file_format'])
+                preferred_default_output_type.add(f_obj['output_type'])
+        if sorted(
+                preferred_default_file_format
+            ) != sorted(expected_preferred_default_file_format):
+                msg = 'Wrong preferred default file format'
+                if rep_count == 1:
+                    msg += '; unreplicated experiment'
+                print(msg)
+                bad_reason.append(msg)
+
+        if stranded:
+            if (
+                len(preferred_default_output_type) != 2
+                or list(
+                    preferred_default_output_type
+                )[0] not in expected_preferred_default_output_type
+                or list(
+                    preferred_default_output_type
+                )[1] not in expected_preferred_default_output_type
+            ):
+                msg = 'Wrong preferred default file output type'
+                if rep_count == 1:
+                    msg += '; unreplicated experiment'
+                print(msg)
+                bad_reason.append(msg)
+        else:
+            if (
+                len(preferred_default_output_type) != 1
+                or list(
+                    preferred_default_output_type
+                )[0] not in expected_preferred_default_output_type
+            ):
+                msg = 'Wrong preferred default file output type'
+                if rep_count == 1:
+                    msg += '; unreplicated experiment'
+                print(msg)
+                bad_reason.append(msg)
         if file_output_map != expected_file_output_count:
             print('Wrong file output type map')
             bad_reason.append('Wrong file output type map')
@@ -287,7 +323,8 @@ def main():
 
     for exp_acc in summary:
         print('{}: {}'.format(exp_acc, summary[exp_acc]))
-        print('Older analyses for {} found: {}'.format(exp_acc, patchAnalyses[exp_acc]))
+        if patchAnalyses[exp_acc]:
+            print('Older released analyses for {} found: {}'.format(exp_acc, patchAnalyses[exp_acc]))
         print('')
         
         try:
