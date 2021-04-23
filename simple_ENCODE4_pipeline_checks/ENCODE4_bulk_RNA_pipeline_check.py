@@ -45,8 +45,12 @@ def get_latest_analysis(analyses):
         if not latest:
             latest = acc
 
-        if analyses_dict[acc]['date'] > analyses_dict[latest]['date']:
+        if 'ENCODE4' in analyses_dict[acc]['pipeline_rfas']:
             latest = acc
+
+        if analyses_dict[acc]['date'] > analyses_dict[latest]['date'] and 'ENCODE4' in analyses_dict[acc]['pipeline_rfas']:
+            latest = acc
+            return latest
 
     return latest
 
@@ -181,7 +185,7 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
             archiveAnalyses[exp_acc].append(analysis['accession'])
 
         analysisStatus = ["released", "in progress", "archived"]
-        if sorted(analysis['pipelines']) != ENCODE4_BULK_RNA_PIPELINES and analysis['status'] in analysisStatus:
+        if sorted(analysis['pipelines']) != ENCODE4_BULK_RNA_PIPELINES:
             skipped_analyses_count += 1
             continue
 
