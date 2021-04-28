@@ -17,6 +17,7 @@ ENCODE4_CHIP_PIPELINES = [
     '/pipelines/ENCPL809GEM/',
 ]
 
+
 def get_latest_analysis(analyses):
 
     # preprocessing
@@ -49,7 +50,9 @@ def get_latest_analysis(analyses):
             latest = acc
 
         if analyses_dict[acc]['date'] > analyses_dict[latest]['date']:
-            latest = acc
+                latest = acc
+                if 'ENCODE4' in analyses_dict[acc]['pipeline_rfas']:
+                    latest = acc
 
     return latest
 
@@ -179,7 +182,7 @@ def check_encode4_chip_pipeline(exp_acc):
             archiveAnalyses[exp_acc].append(analysis['accession'])
 
         analysisStatus = ["released", "in progress", "archived"]
-        if sorted(analysis['pipelines']) != ENCODE4_CHIP_PIPELINES and analysis['status'] in analysisStatus:
+        if sorted(analysis['pipelines']) != ENCODE4_CHIP_PIPELINES:
             skipped_analyses_count += 1
             continue
 
@@ -187,7 +190,6 @@ def check_encode4_chip_pipeline(exp_acc):
             skipped_ENC4_analyses_count += 1
             continue 
 
-  
         if analysis.get('assembly') not in ['GRCh38', 'mm10']:
             print('Wrong assembly')
             bad_reason.append('Wrong assembly')
@@ -297,28 +299,37 @@ def main():
         summary[exp_acc.strip()] = status
         patchAnalyses[exp_acc.strip()] = archiveAnalyses[exp_acc.strip()]
 
+    if args.ticket:
+        analysisArchive_filename = '%s_analysisStatusPatch.txt' % (args.ticket).strip()
+        release_filename = '%s_releasedPatch.txt' % (args.ticket).strip()
+        problem_filename = '%s_internalStatusPatch.txt' % (args.ticket).strip()
+        
+    else:
+        analysisArchive_filename = 'analysisStatusPatch.txt'
+        release_filename = 'releasedPatch.txt'
+        problem_filename = 'internalStatusPatch.txt'
+
+    releasedFiles = open(release_filename, 'w+')
+    problemFiles = open(problem_filename, 'w+')
+    analysisPatch = open(analysisArchive_filename, 'w+')
+    analysisWriter = csv.writer(analysisPatch, delimiter='\t')
+    analysisWriter.writerow(['record_id', 'status'])
+    problemWriter = csv.writer(problemFiles, delimiter='\t')
+    problemWriter.writerow(['record_id', 'internal_status'])   
+
     for exp_acc in summary:
         print('{}: {}'.format(exp_acc, summary[exp_acc]))
+        if patchAnalyses[exp_acc]:
+            print('Older released analyses for {} found: {}'.format(exp_acc, patchAnalyses[exp_acc]))
+        print('')
+        
+        try:
+            for analysis in patchAnalyses[exp_acc.strip()]:
+                analysisWriter.writerow([analysis, 'archived'])
+        except KeyError:
+            continue
 
-   
     if GoodExperiments:
-        if args.ticket:
-            analysisArchive_filename = '%s_analysisStatusPatch.txt' % (args.ticket).strip()
-            release_filename = '%s_releasedPatch.txt' % (args.ticket).strip()
-            problem_filename = '%s_internalStatusPatch.txt' % (args.ticket).strip()
-        else:
-            analysisArchive_filename = 'analysisStatusPatch.txt'
-            release_filename = 'releasedPatch.txt'
-            problem_filename = 'internalStatusPatch.txt'
-
-        releasedFiles = open(release_filename, 'w+')
-        problemFiles = open(problem_filename, 'w+')
-        analysisPatch = open(analysisArchive_filename, 'w+')
-        analysisWriter = csv.writer(analysisPatch, delimiter='\t')
-        analysisWriter.writerow(['record_id', 'status'])
-        problemWriter = csv.writer(problemFiles, delimiter='\t')
-        problemWriter.writerow(['record_id', 'internal_status'])
-
         for key in GoodExperiments:
             if GoodExperiments[key]:
                 problemWriter.writerow([key, 'post-pipeline review'])
@@ -326,11 +337,6 @@ def main():
                 releasedFiles.write(key)
                 releasedFiles.write('\n')
                 problemWriter.writerow([key, 'release ready'])
-                try:
-                    for analysis in patchAnalyses[key]:
-                        analysisWriter.writerow([analysis, 'archived'])
-                except KeyError:
-                    continue
 
 
 if __name__ == '__main__':
