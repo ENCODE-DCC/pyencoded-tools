@@ -16,9 +16,14 @@ import argparse
 import json
 import os
 import xml.etree.ElementTree as ET
+import boto3
 
 from encode_utils.connection import Connection
 conn = Connection('prod')
+
+s3 = boto3.resource('s3')
+ont_obj = s3.Object('encoded-build', 'ontology/ontology-2021-04-05.json')
+ont_json = json.load(ont_obj.get()['Body'])
 
 
 def exp_xml(ref_epi_obj):
@@ -558,6 +563,22 @@ def primaryCellCultureXML(biosampleObj):
         ] = 'http://purl.obolibrary.org/obo/{}'.format(
             origin_sample['biosample_ontology']['term_id'].replace(':', '_')
         )
+    elif originated_from_uuid is None:
+        term_id = biosampleObj['biosample_ontology']['term_id']
+        term_obj = ont_json[term_id]
+        part_of = term_obj['part_of']
+        if len(part_of) > 0:
+            origin_id = part_of[0]
+            sample_attribute_dict[
+                'ORIGIN_SAMPLE_ONTOLOGY_CURIE'
+            ] = origin_id.lower()
+            sample_attribute_dict[
+                'ORIGIN_SAMPLE_ONTOLOGY_URI'
+            ] = 'http://purl.obolibrary.org/obo/{}'.format(origin_id.lower().replace(':', '_'))
+            origin_obj = ont_json[origin_id]
+            sample_attribute_dict[
+                'ORIGIN_SAMPLE'
+            ] = origin_obj['name']
     else:
         sample_attribute_dict[
             'ORIGIN_SAMPLE_ONTOLOGY_CURIE'
