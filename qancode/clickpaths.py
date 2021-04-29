@@ -99,8 +99,8 @@ class OpenUCSCGenomeBrowserFromExperiment:
         # Forces driver to scroll to the Assembly selector.
         # Forced scrolling is necessary for the Edge webdriver, otherwise it's unable to interact with the selector.
         try:
-            self.driver.execute_script("arguments[0].scrollIntoView(false);", selector_elem);
-            self.driver.execute_script("window.scrollBy(0,100)","");
+            self.driver.execute_script("arguments[0].scrollIntoView(false);", selector_elem)
+            self.driver.execute_script("window.scrollBy(0,100)","")
             selector.select_by_visible_text(selected_assembly.text)
         except Exception as e:
             print(e)
