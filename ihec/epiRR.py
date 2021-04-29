@@ -129,6 +129,8 @@ def exp_xml(ref_epi_obj):
 
 def exp_type(exp):
     assay = exp.get('assay_term_name')
+    exp_acc = exp.get('accession')
+    expt = conn.get('experiments/{}'.format(exp_acc))
     # Process ChIP-seq
     # IHEC wants 'one of ('ChIP-Seq Input', 'Histone H3K4me1',
     # 'Histone H3K4me3', 'Histone H3K9me3', 'Histone H3K9ac',
@@ -137,7 +139,7 @@ def exp_type(exp):
     # histones, 'ChIP-Seq Input: Transcription factor <TF name>' for everything
     # else
     if assay == 'ChIP-seq':
-        target_id = exp.get('target', {}).get('uuid')
+        target_id = expt.get('target', {}).get('uuid')
         if not target_id:
             assert exp['control_type']
             return {
@@ -491,7 +493,7 @@ def donor(biosampleObj):
         'DONOR_ID': donorObj['accession'],
         'DONOR_LIFE_STAGE': biosampleObj['life_stage'],
         'DONOR_SEX': biosampleObj['sex'].capitalize(),
-        'DONOR_ETHNICITY': donorObj.get('ethnicity', 'NA'),
+        'DONOR_ETHNICITY': ','.join(donorObj.get('ethnicity', 'NA')),
         'DONOR_HEALTH_STATUS': biosampleObj.get('health_status', 'NA'),
         'DONOR_HEALTH_STATUS_ONTOLOGY_CURIE': 'ncim:C115222',  # unknown health status
         'DONOR_HEALTH_STATUS_ONTOLOGY_URI': 'https://nciterms.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115222'
@@ -551,6 +553,11 @@ def primaryCellCultureXML(biosampleObj):
         sample_attribute_dict[
             'ORIGIN_SAMPLE'
         ] = origin_sample['biosample_ontology']['term_name']
+        sample_attribute_dict[
+            'ORIGIN_SAMPLE_ONTOLOGY_URI'
+        ] = 'http://purl.obolibrary.org/obo/{}'.format(
+            origin_sample['biosample_ontology']['term_id'].replace(':', '_')
+        )
     else:
         sample_attribute_dict[
             'ORIGIN_SAMPLE_ONTOLOGY_CURIE'
@@ -558,6 +565,9 @@ def primaryCellCultureXML(biosampleObj):
         sample_attribute_dict[
             'ORIGIN_SAMPLE'
         ] = sample_attribute_dict['CELL_TYPE']
+        sample_attribute_dict[
+            'ORIGIN_SAMPLE_ONTOLOGY_URI'
+        ] = sample_attribute_dict['SAMPLE_ONTOLOGY_URI']
     sample_attribute_dict.update(donor(biosampleObj))
 
     return sample_attribute_dict
