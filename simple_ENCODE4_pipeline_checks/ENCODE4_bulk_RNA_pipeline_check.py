@@ -45,10 +45,10 @@ def get_latest_analysis(analyses):
         if not latest:
             latest = acc
 
-        if analyses_dict[acc]['date'] > analyses_dict[latest]['date']:
-                latest = acc
-                if 'ENCODE4' in analyses_dict[acc]['pipeline_rfas']:
-                    latest = acc
+        if 'ENCODE4' in analyses_dict[acc]['pipeline_rfas']:
+            latest = acc
+            if 'in progress' in analyses_dict[acc]['status']:
+                latest = acc 
 
     return latest
 
