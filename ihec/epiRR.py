@@ -434,12 +434,9 @@ def samples_xml(ref_epi_obj):
         btype = biosampleObj['biosample_ontology']['classification']
         if btype in ['tissue', 'whole organism']:
             sample_attribute_dict.update(tissueXML(biosampleObj))
-        if btype in ['primary cell', 'stem cell']:
+        if btype in ['primary cell', 'in vitro differentiated cells']:
             sample_attribute_dict.update(primaryCellCultureXML(biosampleObj))
-        if btype in [
-            'cell line', 'in vitro differentiated cells',
-            'induced pluripotent stem cell line'
-        ]:
+        if btype == 'cell line':
             sample_attribute_dict.update(cellLineXML(biosampleObj))
 
         sample_attributes_xml = ET.SubElement(
@@ -498,7 +495,6 @@ def donor(biosampleObj):
         'DONOR_ID': donorObj['accession'],
         'DONOR_LIFE_STAGE': biosampleObj['life_stage'],
         'DONOR_SEX': biosampleObj['sex'].capitalize(),
-        'DONOR_ETHNICITY': ','.join(donorObj.get('ethnicity', 'NA')),
         'DONOR_HEALTH_STATUS': biosampleObj.get('health_status', 'NA'),
         'DONOR_HEALTH_STATUS_ONTOLOGY_CURIE': 'ncim:C115222',  # unknown health status
         'DONOR_HEALTH_STATUS_ONTOLOGY_URI': 'https://nciterms.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115222'
@@ -515,6 +511,12 @@ def donor(biosampleObj):
     sample_attribute_dict['DONOR_AGE_UNIT'] = biosampleObj.get(
         'age_units', 'year'
     )
+
+    ethnicity = donorObj.get('ethnicity', 'NA')
+    if 'NA' not in ethnicity:
+        ethnicity = ', '.join(ethnicity)
+    sample_attribute_dict['DONOR_ETHNICITY'] = ethnicity
+
     if 'HEALTHY' in sample_attribute_dict['DONOR_HEALTH_STATUS'].capitalize():
         sample_attribute_dict['DONOR_HEALTH_STATUS_ONTOLOGY_CURIE'] = 'ncim:C0549184' # suggested None term
         sample_attribute_dict['DONOR_HEALTH_STATUS_ONTOLOGY_URI'] = 'https://ncim.nci.nih.gov/ncimbrowser/pages/concept_details.jsf?dictionary=NCI%20Metathesaurus&code=C0549184'
@@ -550,45 +552,37 @@ def primaryCellCultureXML(biosampleObj):
         'PASSAGE_IF_EXPANDED': str(biosampleObj.get('passage_number', 'NA')),
     }
     originated_from_uuid = biosampleObj.get('originated_from', {}).get('uuid')
+    term_id = biosampleObj['biosample_ontology']['term_id']
+    term_obj = ont_json[term_id]
+    part_of = term_obj['part_of']
+    if len(part_of) > 0:
+        origin_id = part_of[0]
     if originated_from_uuid:
         origin_sample = conn.get(originated_from_uuid)
-        sample_attribute_dict[
-            'ORIGIN_SAMPLE_ONTOLOGY_CURIE'
-        ] = origin_sample['biosample_ontology']['term_id'].lower()
-        sample_attribute_dict[
-            'ORIGIN_SAMPLE'
-        ] = origin_sample['biosample_ontology']['term_name']
-        sample_attribute_dict[
-            'ORIGIN_SAMPLE_ONTOLOGY_URI'
-        ] = 'http://purl.obolibrary.org/obo/{}'.format(
-            origin_sample['biosample_ontology']['term_id'].replace(':', '_')
-        )
-    elif originated_from_uuid is None:
-        term_id = biosampleObj['biosample_ontology']['term_id']
-        term_obj = ont_json[term_id]
-        part_of = term_obj['part_of']
-        if len(part_of) > 0:
-            origin_id = part_of[0]
-            sample_attribute_dict[
-                'ORIGIN_SAMPLE_ONTOLOGY_CURIE'
-            ] = origin_id.lower()
-            sample_attribute_dict[
-                'ORIGIN_SAMPLE_ONTOLOGY_URI'
-            ] = 'http://purl.obolibrary.org/obo/{}'.format(origin_id.lower().replace(':', '_'))
+        origin_sample_id = origin_sample['biosample_ontology']['term_id']
+        if origin_sample_id.startswith('UBERON'):
+            sample_attribute_dict['ORIGIN_SAMPLE_ONTOLOGY_CURIE'] = origin_sample_id.lower()
+            sample_attribute_dict['ORIGIN_SAMPLE'] = origin_sample['biosample_ontology']['term_name']
+            sample_attribute_dict['ORIGIN_SAMPLE_ONTOLOGY_URI'] = 'http://purl.obolibrary.org/obo/{}'.format(origin_sample_id.replace(':', '_'))
+        elif len(part_of) > 0:
+            sample_attribute_dict['ORIGIN_SAMPLE_ONTOLOGY_CURIE'] = origin_id.lower()
+            sample_attribute_dict['ORIGIN_SAMPLE_ONTOLOGY_URI'] = 'http://purl.obolibrary.org/obo/{}'.format(origin_id.replace(':', '_'))
             origin_obj = ont_json[origin_id]
-            sample_attribute_dict[
-                'ORIGIN_SAMPLE'
-            ] = origin_obj['name']
+            sample_attribute_dict['ORIGIN_SAMPLE'] = origin_obj['name']
+        else:
+            sample_attribute_dict['ORIGIN_SAMPLE_ONTOLOGY_CURIE'] = sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE']
+            sample_attribute_dict['ORIGIN_SAMPLE'] = sample_attribute_dict['CELL_TYPE']
+            sample_attribute_dict['ORIGIN_SAMPLE_ONTOLOGY_URI'] = sample_attribute_dict['SAMPLE_ONTOLOGY_URI']
     else:
-        sample_attribute_dict[
-            'ORIGIN_SAMPLE_ONTOLOGY_CURIE'
-        ] = sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE']
-        sample_attribute_dict[
-            'ORIGIN_SAMPLE'
-        ] = sample_attribute_dict['CELL_TYPE']
-        sample_attribute_dict[
-            'ORIGIN_SAMPLE_ONTOLOGY_URI'
-        ] = sample_attribute_dict['SAMPLE_ONTOLOGY_URI']
+        if len(part_of) > 0:
+            sample_attribute_dict['ORIGIN_SAMPLE_ONTOLOGY_CURIE'] = origin_id.lower()
+            sample_attribute_dict['ORIGIN_SAMPLE_ONTOLOGY_URI'] = 'http://purl.obolibrary.org/obo/{}'.format(origin_id.replace(':', '_'))
+            origin_obj = ont_json[origin_id]
+            sample_attribute_dict['ORIGIN_SAMPLE'] = origin_obj['name']
+        else:
+            sample_attribute_dict['ORIGIN_SAMPLE_ONTOLOGY_CURIE'] = sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE']
+            sample_attribute_dict['ORIGIN_SAMPLE'] = sample_attribute_dict['CELL_TYPE']
+            sample_attribute_dict['ORIGIN_SAMPLE_ONTOLOGY_URI'] = sample_attribute_dict['SAMPLE_ONTOLOGY_URI']
     sample_attribute_dict.update(donor(biosampleObj))
 
     return sample_attribute_dict
