@@ -47,7 +47,7 @@ def get_latest_analysis(analyses):
 
         if 'ENCODE4' in analyses_dict[acc]['pipeline_rfas']:
             latest = acc
-            if 'in progress' in analyses_dict[acc]['status']:
+            if ('in progress' in analyses_dict[acc]['status']) or (analyses_dict[acc]['date'] > analyses_dict[latest]['date']):
                 latest = acc 
 
     return latest
