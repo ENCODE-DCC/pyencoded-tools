@@ -49,10 +49,10 @@ def get_latest_analysis(analyses):
         if not latest:
             latest = acc
 
-        if analyses_dict[acc]['date'] > analyses_dict[latest]['date']:
-                latest = acc
-                if 'ENCODE4' in analyses_dict[acc]['pipeline_rfas']:
-                    latest = acc
+        if 'ENCODE4' in analyses_dict[acc]['pipeline_rfas']:
+            latest = acc
+            if ('in progress' in analyses_dict[acc]['status']) or (analyses_dict[acc]['date'] > analyses_dict[latest]['date']):
+                latest = acc 
 
     return latest
 
@@ -189,6 +189,8 @@ def check_encode4_chip_pipeline(exp_acc):
         if sorted(analysis['pipelines']) == ENCODE4_CHIP_PIPELINES and analysis['accession'] != latest:
             skipped_ENC4_analyses_count += 1
             continue 
+
+        print('Analysis object {} being checked'.format(analysis['accession']))
 
         if analysis.get('assembly') not in ['GRCh38', 'mm10']:
             print('Wrong assembly')
