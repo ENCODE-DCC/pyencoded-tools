@@ -342,7 +342,7 @@ def check_encode4_chip_pipeline(exp_acc):
             skipped_analyses_count
         ))
     print('')
-    return bad_reason, serious_audits, archiveAnalyses
+    return bad_reason, serious_analysis_audits, archiveAnalyses
 
 
 def get_parser():
