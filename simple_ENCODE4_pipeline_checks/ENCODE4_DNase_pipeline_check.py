@@ -31,7 +31,7 @@ def check_encode4_dnase_pipeline(exp_acc):
     print('Number of original files: {}'.format(
         len(experiment['original_files'])
     ))
-    analysisObj = experiment.get('analysis_objects', [])
+    analysisObj = experiment.get('analyses', [])
     print('Number of analyses: {}'.format(len(analysisObj)))
     print('File count in analyses: {}'.format(list(
         len(analysis['files']) for analysis in analysisObj

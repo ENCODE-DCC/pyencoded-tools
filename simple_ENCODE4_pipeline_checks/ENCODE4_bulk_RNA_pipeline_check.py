@@ -78,7 +78,7 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
         len(experiment['original_files'])
     ))
 
-    analysisObj = experiment.get('analysis_objects', [])
+    analysisObj = experiment.get('analyses', [])
     latest = get_latest_analysis(analysisObj)
     print('Number of analyses: {}'.format(len(analysisObj)))
     print('File count in analyses: {}'.format(list(

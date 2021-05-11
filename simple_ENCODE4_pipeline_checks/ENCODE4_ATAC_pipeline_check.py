@@ -51,10 +51,10 @@ def get_latest_analysis(analyses):
         if not latest:
             latest = acc
 
-        if analyses_dict[acc]['date'] > analyses_dict[latest]['date']:
-                latest = acc
-                if 'ENCODE4' in analyses_dict[acc]['pipeline_rfas']:
-                    latest = acc
+        if 'ENCODE4' in analyses_dict[acc]['pipeline_rfas']:
+            latest = acc
+            if ('in progress' in analyses_dict[acc]['status']) or (analyses_dict[acc]['date'] > analyses_dict[latest]['date']):
+                latest = acc 
 
     return latest
 
@@ -80,7 +80,7 @@ def check_encode4_atac_pipeline(exp_acc):
     print('Number of original files: {}'.format(
         len(experiment['original_files'])
     ))
-    analysisObj = experiment.get('analysis_objects', [])
+    analysisObj = experiment.get('analyses', [])
     latest = get_latest_analysis(analysisObj)
     print('Number of analyses: {}'.format(len(analysisObj)))
     print('File count in analyses: {}'.format(list(
@@ -127,7 +127,7 @@ def check_encode4_atac_pipeline(exp_acc):
             continue 
 
         print('Analysis object {} was checked'.format(analysis['accession']))
-        if analysis.get('assembly') != 'GRCh38':
+        if analysis.get('assembly') not in ['GRCh38', 'mm10']:
             print('Wrong assembly')
             bad_reason.append('Wrong assembly')
         if analysis.get('genome_annotation'):
