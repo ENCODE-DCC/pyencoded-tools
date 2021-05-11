@@ -7,6 +7,9 @@ import sys
 import csv
 import requests
 import datetime
+from itertools import chain
+from pkg_resources import parse_version
+import datetime
 
 AUTH = (os.environ.get("DCC_API_KEY"), os.environ.get("DCC_SECRET_KEY"))
 BASE_URL = 'https://www.encodeproject.org/{}/?format=json'
@@ -17,6 +20,11 @@ ENCODE4_CHIP_PIPELINES = [
     '/pipelines/ENCPL809GEM/',
 ]
 
+def convert_date_string(date_string):
+    if ":" == date_string[-3]:
+        date_string = date_string[:-3]+date_string[-2:]
+    return date_string
+
 
 def get_latest_analysis(analyses):
 
@@ -24,37 +32,100 @@ def get_latest_analysis(analyses):
     if not analyses:
         return None
 
-    analyses_dict = {}
-    for a in analyses:
-        analysis = requests.get(BASE_URL.format(a['accession']), auth=AUTH).json()
-        date_created = analysis['date_created'].split('T')[0]
-        date_obj = datetime.datetime.strptime(date_created, '%Y-%m-%d')
-        analyses_dict[analysis['accession']] = {
-            'date': date_obj,
-            'pipeline_rfas': analysis['pipeline_award_rfas'],
-            'pipeline_labs': analysis['pipeline_labs'],
-            'status': analysis['status'],
-            'assembly': analysis['assembly']
-        }
 
-    latest = None
-    assembly_latest = False
+    award_rfa_order = list(reversed([
+        "ENCODE4",
+        "ENCODE3",
+        "ENCODE2",
+        "ENCODE2-Mouse",
+        "ENCODE",
+        "GGR",
+        "ENCORE",
+        "Roadmap",
+        "modENCODE",
+        "modERN",
+        "community"
+    ]))
+    assembly_order = list(reversed( [
+        "GRCh38",
+        "GRCh38-minimal",
+        "hg19",
+        "GRCm39",
+        "mm10",
+        "mm10-minimal",
+        "mm9",
+        "dm6",
+        "dm3",
+        "ce11",
+        "ce10",
+        "J02459.1"] + ["mixed"]
+    ))
+    genome_annotation_order = list(reversed(
+        [
+        "V33",
+        "V30",
+        "V29",
+        "V24",
+        "V22",
+        "V19",
+        "V10",
+        "V7",
+        "V3c",
+        "miRBase V21",
+        "M26",
+        "M21",
+        "M14",
+        "M7",
+        "M4",
+        "M3",
+        "M2",
+        "ENSEMBL V65",
+        "WS245",
+        "WS235",
+        "None"] + ['mixed']
+    ))
+    analysis_ranking = {}
 
-    for acc in analyses_dict.keys():
+    for analysis in analyses:
         
-        archivedFiles = False
-        encode_rfa = False
-        assembly_latest = False
-        
-        if not latest:
-            latest = acc
-
-        if 'ENCODE4' in analyses_dict[acc]['pipeline_rfas']:
-            latest = acc
-            if ('in progress' in analyses_dict[acc]['status']) or (analyses_dict[acc]['date'] > analyses_dict[latest]['date']):
-                latest = acc 
-
-    return latest
+        # True ranked higher than False.
+        lab_rank = '/labs/encode-processing-pipeline/' in analysis.get('pipeline_labs', [])
+        # Get max index or zero if field doesn't exist.
+        pipeline_award_rfa_rank = max(chain(
+            (award_rfa_order.index(rfa)
+            for rfa in analysis.get('pipeline_award_rfa', [])), [0])
+        )
+        # Get max index or zero if field doesn't exist. 
+        assembly_rank = 0
+        if analysis.get('assembly', '') in assembly_order:
+            assembly_rank = assembly_order.index(analysis.get('assembly', ''))
+        genome_annotation_rank = 0
+        if analysis.get('genome_annotation', '') in genome_annotation_order:
+            genome_annotation_rank = genome_annotation_order.index(analysis.get('genome_annotation', ''))
+        # We reverse sort order at the end so later version numbers will rank higher.
+        pipeline_version_rank = parse_version(analysis.get('pipeline_version', ''))
+        # We reverse sort order at the end so later dates rank higher.
+        date_rank = datetime.datetime.strptime(
+            convert_date_string(
+                analysis['date_created']
+            ),
+            "%Y-%m-%dT%H:%M:%S.%f%z"
+        )
+        # Store all the ranking numbers for an analysis in a tuple that can be sorted.
+        analysis_ranking[
+            (
+                lab_rank,
+                pipeline_award_rfa_rank,
+                assembly_rank,
+                genome_annotation_rank,
+                pipeline_version_rank,
+                date_rank,
+            )
+        ] = analysis['@id']
+    
+    if analysis_ranking:
+        # We want highest version, date, etc. so reverse sort order. Access value from top item.
+        return (sorted(analysis_ranking.items(), reverse=True)[0][1])
 
 
 def check_encode4_chip_pipeline(exp_acc):
@@ -81,16 +152,30 @@ def check_encode4_chip_pipeline(exp_acc):
         'NOT_COMPLIANT': len(experiment['audit'].get('NOT_COMPLIANT', [])),
     }
     if serious_audits['ERROR']:
-        print('Has {} ERROR audits'.format(serious_audits['ERROR']))
+        print('The EXPERIMENT has {} ERROR audits'.format(serious_audits['ERROR']))
     if serious_audits['NOT_COMPLIANT']:
-        print('Has {} NOT_COMPLIANT audits'.format(
+        print('The EXPERIMENT has {} NOT_COMPLIANT audits'.format(
             serious_audits['NOT_COMPLIANT']
         ))
     print('Number of original files: {}'.format(
         len(experiment['original_files'])
     ))
     analysisObj = experiment.get('analyses', [])
-    latest = get_latest_analysis(analysisObj)
+    latest = get_latest_analysis(analysisObj).split('/')[2]
+
+    latest_analysis_object =  requests.get(BASE_URL.format(latest), auth=AUTH).json()
+
+    serious_analysis_audits = {
+            'ERROR': len(latest_analysis_object['audit'].get('ERROR', [])),
+            'NOT_COMPLIANT': len(latest_analysis_object['audit'].get('NOT_COMPLIANT', [])),
+        }
+    if serious_analysis_audits['ERROR']:
+        print('The latest analysis {} has {} ERROR audits'.format(latest, serious_analysis_audits['ERROR']))
+    if serious_analysis_audits['NOT_COMPLIANT']:
+        print('The latest analysis {} has {} NOT_COMPLIANT audits'.format(latest,
+            serious_analysis_audits['NOT_COMPLIANT']
+        ))
+    
 
     print('Number of analyses: {}'.format(len(analysisObj)))
     print('File count in analyses: {}'.format(list(
