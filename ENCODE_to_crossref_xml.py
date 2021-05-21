@@ -92,8 +92,12 @@ def main():
     for ind in infile_df.index:
         title = infile_df['Accession'][ind]
         institute = infile_df['lab.institute_name'][ind]
-        name = infile_df['lab.name'][ind][0].upper()
-        surname = infile_df['lab.name'][ind].split('-')[-1].capitalize()
+        name = infile_df['lab.name'][ind]
+        if name == 'encode-awg':
+            organization = 'ENCODE AWG'
+        else:
+            first_name = name[0].upper()
+            surname = name.split('-')[-1].capitalize()
 
         if exptType in ['experiments', 'functional-characterization-experiments', 'transgenic-enhancer-experiments']:
             biosample = infile_df['Biosample summary'][ind]
@@ -124,13 +128,17 @@ def main():
         dataset_Elem = ET.Element("dataset", {"dataset_type":"record"})
 
         contributors_Elem = ET.SubElement(dataset_Elem,"contributors")
-        person_name_Elem = ET.SubElement(contributors_Elem,"person_name", {"contributor_role":"author", "sequence": "first"})
-        given_name_Elem = ET.SubElement(person_name_Elem,"given_name")
-        given_name_Elem.text = name
-        surname_Elem = ET.SubElement(person_name_Elem,"surname")
-        surname_Elem.text = surname
-        affiliation_Elem = ET.SubElement(person_name_Elem,"affiliation")
-        affiliation_Elem.text = institute
+        if name == 'encode-awg':
+            organization_Elem = ET.SubElement(contributors_Elem,"organization", {"contributor_role":"author", "sequence": "first"})
+            organization_Elem.text = organization
+        else:
+            person_name_Elem = ET.SubElement(contributors_Elem,"person_name", {"contributor_role":"author", "sequence": "first"})
+            given_name_Elem = ET.SubElement(person_name_Elem,"given_name")
+            given_name_Elem.text = first_name
+            surname_Elem = ET.SubElement(person_name_Elem,"surname")
+            surname_Elem.text = surname
+            affiliation_Elem = ET.SubElement(person_name_Elem,"affiliation")
+            affiliation_Elem.text = institute
 
         dtitles_Elem = ET.SubElement(dataset_Elem,"titles")
         dtitle_Elem = ET.SubElement(dtitles_Elem,"title")
