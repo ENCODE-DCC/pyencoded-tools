@@ -110,11 +110,12 @@ def main():
         elif exptType == 'annotations':
             annotation_type = infile_df['Annotation type'][ind]
             biosample = infile_df['Biosample term name'][ind]
+            classification = infile_df['biosample_ontology.classification'][ind]
             expt_description = infile_df['Description'][ind]
             if annotation_type == 'other' and isinstance(expt_description, str):
                 description = expt_description
             elif isinstance(biosample, str) and isinstance(expt_description, str):
-                description = annotation_type + ' of ' +  biosample + ', ' + expt_description
+                description = annotation_type + ' of ' +  biosample + ' ' + classification + ', ' + expt_description
             elif not isinstance(biosample, str) and isinstance(expt_description, str):
                 description = annotation_type + ' , ' + expt_description
             else:
