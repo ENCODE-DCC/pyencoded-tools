@@ -13,7 +13,7 @@ def get_parser():
     parser.add_argument("-i", "--infile", required=True, help="""Tab delimited file with appropriate metadata""", action="store")
     parser.add_argument("-o", "--outfile", required=True, help="""Output XML file in CrossRef Schema""", action="store")
     parser.add_argument("-p", "--patchfile", required=True, help="""Output tsv file to patch datsets with""", action="store")
-    parser.add_argument("-d", "--dataset", default="experiments", choices={"annotations", "experiments", "functional-characterization-experiments", "transgenic-enhancer-experiments"}, help="""What type of dataset to create DOIs for""")
+    parser.add_argument("-d", "--dataset", default="experiments", choices={"annotations", "experiments", "functional-characterization-experiments", "transgenic-enhancer-experiments", "reference-epigenomes"}, help="""What type of dataset to create DOIs for""")
     return parser
 
 
@@ -95,31 +95,42 @@ def main():
         name = infile_df['lab.name'][ind]
         if name == 'encode-awg':
             organization = 'ENCODE AWG'
+        elif name == 'encode-consortium':
+            organization = 'ENCODE Consortium'
         else:
             first_name = name[0].upper()
             surname = name.split('-')[-1].capitalize()
 
+        # Grab biosample, target, assay information for the object if relevant
         if exptType in ['experiments', 'functional-characterization-experiments', 'transgenic-enhancer-experiments']:
             biosample = infile_df['Biosample summary'][ind]
             assay = infile_df['Assay title'][ind]
+            target = infile_df['Target of assay'][ind]
+        elif exptType in ['annotations', 'reference-epigenomes']:
+            biosample = infile_df['Biosample term name'][ind]
+            classification = infile_df['biosample_ontology.classification'][ind]
+
+        # Construct the description
+        if exptType in ['experiments', 'functional-characterization-experiments', 'transgenic-enhancer-experiments']:
             if isinstance(biosample, str):
                 description = assay + ' of ' + biosample
             else: 
                 description = assay
-            target = infile_df['Target of assay'][ind]
         elif exptType == 'annotations':
-            annotation_type = infile_df['Annotation type'][ind]
-            biosample = infile_df['Biosample term name'][ind]
-            classification = infile_df['biosample_ontology.classification'][ind]
+            annotation_type = infile_df['Annotation type'][ind].capitalize()
             expt_description = infile_df['Description'][ind]
             if annotation_type == 'other' and isinstance(expt_description, str):
                 description = expt_description
             elif isinstance(biosample, str) and isinstance(expt_description, str):
-                description = annotation_type + ' of ' +  biosample + ' ' + classification + ', ' + expt_description
+                description = annotation_type + ' of ' + organism + ' ' + biosample + ' ' + classification + ', ' + expt_description
             elif not isinstance(biosample, str) and isinstance(expt_description, str):
-                description = annotation_type + ' , ' + expt_description
+                description = annotation_type + ', ' + expt_description
             else:
                 description = annotation_type
+        elif exptType == 'reference-epigenomes':
+            organism = infile_df['Organism'][ind]
+            description = 'Reference epigenome of ' + organism + ' ' + biosample + ' ' + classification
+
         year = infile_df['Date released'][ind][0:4]
         month = infile_df['Date released'][ind][5:7]
         day = infile_df['Date released'][ind][8:]
@@ -129,7 +140,7 @@ def main():
         dataset_Elem = ET.Element("dataset", {"dataset_type":"record"})
 
         contributors_Elem = ET.SubElement(dataset_Elem,"contributors")
-        if name == 'encode-awg':
+        if name in ['encode-awg', 'encode-consortium']:
             organization_Elem = ET.SubElement(contributors_Elem,"organization", {"contributor_role":"author", "sequence": "first"})
             organization_Elem.text = organization
         else:
