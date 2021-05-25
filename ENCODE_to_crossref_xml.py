@@ -13,7 +13,7 @@ def get_parser():
     parser.add_argument("-i", "--infile", required=True, help="""Tab delimited file with appropriate metadata""", action="store")
     parser.add_argument("-o", "--outfile", required=True, help="""Output XML file in CrossRef Schema""", action="store")
     parser.add_argument("-p", "--patchfile", required=True, help="""Output tsv file to patch datsets with""", action="store")
-    parser.add_argument("-d", "--dataset", default="experiments", choices={"annotations", "experiments", "functional-characterization-experiments", "transgenic-enhancer-experiments", "reference-epigenomes"}, help="""What type of dataset to create DOIs for""")
+    parser.add_argument("-d", "--dataset", default="experiments", choices={"annotations", "experiments", "functional-characterization-experiments", "transgenic-enhancer-experiments", "reference-epigenomes", "organism-development-series", "treatment-time-series", "treatment-concentration-series", "replication-timing-series", "gene-silencing-series"}, help="""What type of dataset to create DOIs for""")
     return parser
 
 
@@ -40,6 +40,9 @@ def writeToFile(x, out_file):
     ET.register_namespace("","http://www.crossref.org/schema/4.4.2")
     newTree = ET.ElementTree(xmlFromString)
     newTree.write(out_file,encoding="UTF-8")
+
+def metadataDisplay(property):
+    return property.replace(',', ', ', property.count(','))
 
 
 def main():
@@ -106,9 +109,19 @@ def main():
             biosample = infile_df['Biosample summary'][ind]
             assay = infile_df['Assay title'][ind]
             target = infile_df['Target of assay'][ind]
-        elif exptType in ['annotations', 'reference-epigenomes']:
+        elif exptType in ['annotations', 'reference-epigenomes', 'organism-development-series', 'replication-timing-series', 'treatment-time-series', 'treatment-concentration-series', 'gene-silencing-series']:
             biosample = infile_df['Biosample term name'][ind]
+            if ',' in biosample:
+                biosample = biosample.replace(',', ', ', biosample.count(','))
             classification = infile_df['biosample_ontology.classification'][ind]
+            if exptType in ['reference-epigenomes', 'organism-development-series', 'replication-timing-series', 'treatment-time-series', 'treatment-concentration-series', 'gene-silencing-series']:
+                organism = infile_df['Organism'][ind]
+                if exptType in ['organism-development-series', 'replication-timing-series', 'treatment-time-series', 'treatment-concentration-series', 'gene-silencing-series']:
+                    assay = infile_df['Assay name'][ind]
+                    if exptType in ['treatment-time-series', 'treatment-concentration-series']:
+                        treatment = infile_df['Biosample treatment'][ind]
+                        if isinstance(treatment, str):
+                            treatment_display = metadataDisplay(treatment)
 
         # Construct the description
         if exptType in ['experiments', 'functional-characterization-experiments', 'transgenic-enhancer-experiments']:
@@ -122,20 +135,55 @@ def main():
             if annotation_type == 'other' and isinstance(expt_description, str):
                 description = expt_description
             elif isinstance(biosample, str) and isinstance(expt_description, str):
-                description = annotation_type + ' of ' + organism + ' ' + biosample + ' ' + classification + ', ' + expt_description
+                description = f'{annotation_type} of {organism} {biosample} {classification}, {expt_description}'
             elif not isinstance(biosample, str) and isinstance(expt_description, str):
-                description = annotation_type + ', ' + expt_description
+                description = f'{annotation_type}, {expt_description}'
             else:
                 description = annotation_type
         elif exptType == 'reference-epigenomes':
-            organism = infile_df['Organism'][ind]
-            description = 'Reference epigenome of ' + organism + ' ' + biosample + ' ' + classification
+            description = f'Reference epigenome of {organism} {biosample} {classification}'
+        elif exptType == 'organism-development-series':
+            age = infile_df['Biosample age'][ind]
+            age_display = metadataDisplay(age)
+            life_stage = infile_df['Life stage'][ind]
+            stage_display = metadataDisplay(life_stage)
+            if organism == 'Caenorhabditis elegans':
+                description = f'{assay} of {organism} post-synchronization ({age_display})'
+            else:
+                description = f'{assay} of {stage_display} ({age_display}) {organism} {biosample} {classification}'
+        elif exptType == 'treatment-time-series':
+            duration = infile_df['Biosample treatment duration'][ind]
+            duration_units = infile_df['Biosample treatment duration units'][ind]
+            if isinstance(treatment, str):
+                duration_display = metadataDisplay(duration)
+                if ',' in classification:
+                    description = f'{assay} of {organism} {biosample} treated with {treatment_display} for {duration_display} {duration_units}s'
+                else:
+                    description = f'{assay} of {organism} {biosample} {classification} treated with {treatment_display} for {duration_display} {duration_units}s'
+            else:
+                description = f'{assay} of {organism} {biosample} {classification}'
+        elif exptType == 'treatment-concentration-series':
+            amount = infile_df['Biosample treatment amount'][ind]
+            amount_display = metadataDisplay(amount)
+            amount_units = infile_df['Biosample treatment amount units'][ind]
+            description = f'{assay} of {organism} {biosample} {classification} treated with {treatment_display} at {amount_display} {amount_units}'
+        elif exptType == 'replication-timing-series':
+            phase = infile_df['Cell cycle phase'][ind]
+            phase_display = metadataDisplay(phase)
+            description = f'{assay} of {organism} {biosample} {classification} during cell cycle phases {phase_display}'
+        elif exptType == 'gene-silencing-series':
+            target = infile_df['Target'][ind]
+            description = f'{assay} targeting {target} of {organism} {biosample} {classification}'
+
 
         year = infile_df['Date released'][ind][0:4]
         month = infile_df['Date released'][ind][5:7]
         day = infile_df['Date released'][ind][8:]
-        doi = '10.17989/' + infile_df['Accession'][ind]
-        resource = (f'https://www.encodeproject.org/{exptType}/') + infile_df['Accession'][ind] + '/'
+        accession = infile_df['Accession'][ind]
+        #doi = '10.17989/' + infile_df['Accession'][ind]
+        doi = f'10.17989/{accession}'
+        #resource = (f'https://www.encodeproject.org/{exptType}/') + infile_df['Accession'][ind] + '/'
+        resource = f'https://www.encodeproject.org/{exptType}/{accession}/'
 
         dataset_Elem = ET.Element("dataset", {"dataset_type":"record"})
 
@@ -168,7 +216,7 @@ def main():
         datasetDescription_Elem = ET.SubElement(dataset_Elem,"description",{"language":"en"})
         if exptType in ['experiments', 'functional-characterization-experiments', 'transgenic-enhancer-experiments']:
             if isinstance(target, str):
-                datasetDescription_Elem.text = target + ' ' + description
+                datasetDescription_Elem.text = f'{target} {description}'
             else:
                 datasetDescription_Elem.text = description
         else:
