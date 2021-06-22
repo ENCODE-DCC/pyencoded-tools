@@ -44,6 +44,9 @@ def writeToFile(x, out_file):
 def metadataDisplay(property):
     return property.replace(',', ', ', property.count(','))
 
+def checkString(property):
+    return isinstance(property, str)
+
 
 def main():
     parser = get_parser()
@@ -111,8 +114,8 @@ def main():
             target = infile_df['Target of assay'][ind]
         elif exptType in ['annotations', 'reference-epigenomes', 'organism-development-series', 'replication-timing-series', 'treatment-time-series', 'treatment-concentration-series', 'gene-silencing-series']:
             biosample = infile_df['Biosample term name'][ind]
-            if isinstance(biosample, str) and ',' in biosample:
-                biosample = biosample.replace(',', ', ', biosample.count(','))
+            if checkString(biosample) and ',' in biosample:
+                biosample = metadataDisplay(biosample)
             classification = infile_df['biosample_ontology.classification'][ind]
             if exptType in ['reference-epigenomes', 'organism-development-series', 'replication-timing-series', 'treatment-time-series', 'treatment-concentration-series', 'gene-silencing-series']:
                 organism = infile_df['Organism'][ind]
@@ -121,23 +124,23 @@ def main():
                     assay = infile_df['Assay name'][ind]
                     if exptType in ['treatment-time-series', 'treatment-concentration-series']:
                         treatment = infile_df['Biosample treatment'][ind]
-                        if isinstance(treatment, str):
+                        if checkString(treatment):
                             treatment_display = metadataDisplay(treatment)
 
         # Construct the description
         if exptType in ['experiments', 'functional-characterization-experiments', 'transgenic-enhancer-experiments']:
-            if isinstance(biosample, str):
+            if checkString(biosample):
                 description = assay + ' of ' + biosample
             else: 
                 description = assay
         elif exptType == 'annotations':
             annotation_type = infile_df['Annotation type'][ind].capitalize()
             expt_description = infile_df['Description'][ind]
-            if annotation_type == 'Other' and isinstance(expt_description, str):
+            if annotation_type == 'Other' and checkString(expt_description):
                 description = expt_description
-            elif isinstance(biosample, str) and isinstance(expt_description, str):
+            elif checkString(biosample) and checkString(expt_description):
                 description = f'{annotation_type} of {biosample} {classification}, {expt_description}'
-            elif not isinstance(biosample, str) and isinstance(expt_description, str):
+            elif not checkString(biosample) and checkString(expt_description):
                 description = f'{annotation_type}, {expt_description}'
             else:
                 description = annotation_type
@@ -150,12 +153,12 @@ def main():
             series_type = 'Organism development series'
             stage_display = metadataDisplay(life_stage)
             if organism == 'Caenorhabditis elegans':
-                if isinstance(target, str):
+                if checkString(target):
                     description = f'{series_type} {target} {assay} of {organism} post-synchronization ({age_display})'
                 else:
                     description = f'{series_type} {assay} of {organism} post-synchronization ({age_display})'
             else:
-                if isinstance(target, str):
+                if checkString(target):
                     description = f'{series_type} {target} {assay} of {stage_display} ({age_display}) {organism} {biosample} {classification}'
                 else:
                     description = f'{series_type} {assay} of {stage_display} ({age_display}) {organism} {biosample} {classification}'
@@ -163,20 +166,20 @@ def main():
             duration = infile_df['Biosample treatment duration'][ind]
             duration_units = infile_df['Biosample treatment duration units'][ind]
             series_type = 'Treatment time series'
-            if isinstance(treatment, str):
+            if checkString(treatment):
                 duration_display = metadataDisplay(duration)
                 if ',' in classification:
-                    if isinstance(target, str):
+                    if checkString(target):
                         description = f'{series_type} {target} {assay} of {organism} {biosample} treated with {treatment_display} for {duration_display} {duration_units}s'
                     else:
                         description = f'{series_type} {assay} of {organism} {biosample} treated with {treatment_display} for {duration_display} {duration_units}s'
                 else:
-                    if isinstance(target, str):
+                    if checkString(target):
                         description = f'{series_type} {target} {assay} of {organism} {biosample} {classification} treated with {treatment_display} for {duration_display} {duration_units}s'
                     else:
                         description = f'{series_type} {assay} of {organism} {biosample} {classification} treated with {treatment_display} for {duration_display} {duration_units}s'
             else:
-                if isinstance(target, str):
+                if checkString(target):
                     description = f'{series_type} {target} {assay} of {organism} {biosample} {classification}'
                 else:
                     description = f'{series_type} {assay} of {organism} {biosample} {classification}'
@@ -184,14 +187,14 @@ def main():
             amount = infile_df['Biosample treatment amount'][ind]
             amount_display = metadataDisplay(amount)
             amount_units = infile_df['Biosample treatment amount units'][ind]
-            if isinstance(target, str):
+            if checkString(target):
                 description = f'Treatment concentration series {target} {assay} of {organism} {biosample} {classification} treated with {treatment_display} at {amount_display} {amount_units}'
             else:
                 description = f'Treatment concentration series {assay} of {organism} {biosample} {classification} treated with {treatment_display} at {amount_display} {amount_units}'
         elif exptType == 'replication-timing-series':
             phase = infile_df['Cell cycle phase'][ind]
             phase_display = metadataDisplay(phase)
-            if isinstance(target, str):
+            if checkString(target):
                 description = f'Replication timing series {target} {assay} of {organism} {biosample} {classification} during cell cycle phases {phase_display}'
             else:
                 description = f'Replication timing series {assay} of {organism} {biosample} {classification} during cell cycle phases {phase_display}'
@@ -236,7 +239,7 @@ def main():
 
         datasetDescription_Elem = ET.SubElement(dataset_Elem,"description",{"language":"en"})
         if exptType in ['experiments', 'functional-characterization-experiments', 'transgenic-enhancer-experiments']:
-            if isinstance(target, str):
+            if checkString(target):
                 datasetDescription_Elem.text = f'{target} {description}'
             else:
                 datasetDescription_Elem.text = description
