@@ -83,6 +83,7 @@ class ExperimentPage:
     assembly_selector_xpath = '//*[@id="tables"]/div/div[1]/div[1]/select[@class="form-control--select"]'
     file_graph_id = 'pipeline-graph'
     incl_deprecated_files_button_name = 'filterIncArchive'
+    walkme_corner_widget = '#walkme-player'
 
 
 class FilePage:
