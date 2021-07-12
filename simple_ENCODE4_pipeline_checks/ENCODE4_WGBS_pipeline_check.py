@@ -19,7 +19,10 @@ PREFERRED_DEFAULT_TYPE_FORMAT = {
     ('plus strand methylation state at CpG', 'bigWig'): 1,
     ('minus strand methylation state at CpG', 'bigWig'): 1,
 }
-CURRENT_PIPEINE_VERSION = '1.1.5'
+CURRENT_PIPELINE_VERSION = [
+    '1.1.5',
+    '1.1.6'
+]
 
 
 def get_latest_analysis(analyses):
@@ -118,11 +121,11 @@ def check_encode4_wgbs_pipeline(exp_acc):
             continue 
 
         print('Analysis object {} was checked'.format(analysis['accession']))
-        if analysis.get('pipeline_version') != CURRENT_PIPEINE_VERSION:
+        if analysis.get('pipeline_version') not in CURRENT_PIPELINE_VERSION:
             msg = (
                 'Unexpected pipeline version:'
                 f' got {analysis.get("pipeline_version")}'
-                f' but expected {CURRENT_PIPEINE_VERSION}'
+                f' but expected {CURRENT_PIPELINE_VERSION}'
             )
             print(msg)
             bad_reason.append(msg)
