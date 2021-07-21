@@ -406,6 +406,12 @@ class SeleniumTask(metaclass=ABCMeta):
         walkme_covid_banner_button.click()
 
 
+    def _get_rid_of_walkme_widget(self):
+        walkme_widget = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable(
+            (By.CSS_SELECTOR, ExperimentPage.walkme_corner_widget)))
+        self.driver.execute_script("arguments[0].style.visibility='hidden'", walkme_widget)
+
+
     def _expand_facets(self):
         expand_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
             (By.CLASS_NAME, SearchPageList.facet_expander_button)))
@@ -605,6 +611,10 @@ class GetScreenShot(SeleniumTask):
         self._try_perform_click_path()
         try:
             self._expand_document_details()
+        except:
+            pass
+        try:
+            self._get_rid_of_walkme_widget()
         except:
             pass
         if 'https://www.encodeproject.org' not in self.driver.current_url:

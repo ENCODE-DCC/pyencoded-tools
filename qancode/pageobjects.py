@@ -72,7 +72,7 @@ class ExperimentPage:
     done_panel_class = 'done'
     title_tag_name = 'h4'
     graph_close_button_css = 'div > div:nth-child(2) > div.file-gallery-graph-header.collapsing-title > button'
-    sort_by_accession_xpath = '//*[@id="tables"]/div/div[2]/div[2]/div/table[2]/thead/tr[2]/th[2]'
+    sort_by_accession_xpath = '//*[@id="tables"]/div/div[2]/div[2]/div/table[2]/thead/tr[2]/th[1]/div'
     all_buttons_tag_name = 'button'
     download_graph_png_button_xpath = '//*[contains(text(), "Download Graph")]'
     file_type_column_xpath = '//div[@class="file-gallery-counts"]//..//table[@class="table table-sortable"]//tr//td[2]'
@@ -83,6 +83,7 @@ class ExperimentPage:
     assembly_selector_xpath = '//*[@id="tables"]/div/div[1]/div[1]/select[@class="form-control--select"]'
     file_graph_id = 'pipeline-graph'
     incl_deprecated_files_button_name = 'filterIncArchive'
+    walkme_corner_widget = '#walkme-player'
 
 
 class FilePage:

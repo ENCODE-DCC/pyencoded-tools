@@ -96,11 +96,15 @@ class OpenUCSCGenomeBrowserFromExperiment:
         selected_assembly = self.driver.find_element_by_xpath(
             '//*[@id="tables"]/div/div[1]/div[1]/select/option[starts-with(text(), "{0}")]'.format(self.assembly))
 
+        # Hide Walkme widget, which frequently interferes with buttons on the File details tab
+        walkme_widget = self.driver.wait.until(EC.element_to_be_clickable(
+            (By.CSS_SELECTOR, ExperimentPage.walkme_corner_widget)))
+        self.driver.execute_script("arguments[0].style.visibility='hidden'", walkme_widget)
+
         # Forces driver to scroll to the Assembly selector.
         # Forced scrolling is necessary for the Edge webdriver, otherwise it's unable to interact with the selector.
         try:
             self.driver.execute_script("arguments[0].scrollIntoView(false);", selector_elem)
-            self.driver.execute_script("window.scrollBy(0,100)","")
             selector.select_by_visible_text(selected_assembly.text)
         except Exception as e:
             print(e)
