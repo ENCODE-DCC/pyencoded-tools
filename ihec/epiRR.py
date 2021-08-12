@@ -429,9 +429,9 @@ def samples_xml(ref_epi_obj):
         btype = biosampleObj['biosample_ontology']['classification']
         if btype in ['tissue', 'whole organism']:
             sample_attribute_dict.update(tissueXML(biosampleObj))
-        if btype == 'primary cell':
+        if btype == ['primary cell', 'in vitro differentiated cells']:
             sample_attribute_dict.update(primaryCellCultureXML(biosampleObj))
-        if btype in ['cell line', 'in vitro differentiated cells']:
+        if btype == 'cell line':
             sample_attribute_dict.update(cellLineXML(biosampleObj))
 
         sample_attributes_xml = ET.SubElement(
