@@ -429,7 +429,7 @@ def samples_xml(ref_epi_obj):
         btype = biosampleObj['biosample_ontology']['classification']
         if btype in ['tissue', 'whole organism']:
             sample_attribute_dict.update(tissueXML(biosampleObj))
-        if btype == ['primary cell', 'in vitro differentiated cells']:
+        if btype in ['primary cell', 'in vitro differentiated cells']:
             sample_attribute_dict.update(primaryCellCultureXML(biosampleObj))
         if btype == 'cell line':
             sample_attribute_dict.update(cellLineXML(biosampleObj))
@@ -531,6 +531,11 @@ def tissueXML(biosampleObj):
         'COLLECTION_METHOD': 'unknown',
     }
     sample_attribute_dict.update(donor(biosampleObj))
+    # Handle tissue NTR (germinal matrix)
+    if sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] == 'ntr:0001407':
+        sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] = 'uberon:0004022'
+        sample_attribute_dict['SAMPLE_ONTOLOGY_URI'] = 'http://purl.obolibrary.org/obo/UBERON_0004022'
+
     return sample_attribute_dict
 
 
@@ -555,6 +560,17 @@ def primaryCellCultureXML(biosampleObj):
             sample_attribute_dict['ORIGIN_SAMPLE'] = origin_sample['biosample_ontology']['term_name']
             sample_attribute_dict['ORIGIN_SAMPLE_ONTOLOGY_URI'] = 'http://purl.obolibrary.org/obo/{}'.format(origin_sample_id.replace(':', '_'))
     sample_attribute_dict.update(donor(biosampleObj))
+
+    # Handle some NTR terms
+    if sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] == 'ntr:0000427': # neurosphere
+        sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] = 'cl:0000047'
+        sample_attribute_dict['SAMPLE_ONTOLOGY_URI'] = 'http://purl.obolibrary.org/obo/CL_0000047'
+    elif sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] == 'ntr:0003830': # mid-neurogenesis radial glial cells
+        sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] = 'cl:0000681'
+        sample_attribute_dict['SAMPLE_ONTOLOGY_URI'] = 'http://purl.obolibrary.org/obo/CL_0000681'
+    elif sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] == 'ntr:0000856': # mesendoderm
+        sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] = 'cl:0000222'
+        sample_attribute_dict['SAMPLE_ONTOLOGY_URI'] = 'http://purl.obolibrary.org/obo/CL_0000222'
 
     return sample_attribute_dict
 
