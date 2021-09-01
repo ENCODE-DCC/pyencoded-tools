@@ -41,6 +41,7 @@ class SearchPageList:
     facet_box_class = 'facets'
     facet_class = 'facet'
     facet_expander_button = 'facet__expander--header'
+    facet_group_expander_button = 'facet-group-title'
     category_title_class = 'facet-term__text'
     number_class = 'facet-term__count'
     category_title_class_radio = 'facet__radio-label'

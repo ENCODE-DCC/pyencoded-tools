@@ -413,24 +413,41 @@ class SeleniumTask(metaclass=ABCMeta):
 
 
     def _expand_facets(self):
-        expand_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
-            (By.CLASS_NAME, SearchPageList.facet_expander_button)))
+        try:
+            expand_facet_groups_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
+                    (By.CLASS_NAME, SearchPageList.facet_group_expander_button)))
+            self._click_facet_expanders(expand_facet_groups_buttons)
+        except Exception:
+            pass
+
+        try:
+            expand_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
+                (By.CLASS_NAME, SearchPageList.facet_expander_button)))
+        except Exception:
+            expand_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
+                (By.CLASS_NAME, 'facet-expander')))
+
+        self._click_facet_expanders(expand_buttons)
+
+    def _click_facet_expanders(self, expand_buttons):
         for button in expand_buttons:
-            if button.get_attribute('aria-pressed') == 'false':
+            if button.get_attribute('aria-pressed') == 'false' or \
+                    button.get_attribute('aria-expanded') == 'false':
                 try:
                     button.click()
-                    assert button.get_attribute('aria-pressed') == 'true'
+                    assert button.get_attribute('aria-pressed') == 'true' or \
+                        button.get_attribute('aria-expanded') == 'true'
                 except:
                     try:
-                         self.driver.execute_script('arguments[0].scrollIntoView(true);', button)
-                         button.click()
+                        self.driver.execute_script('arguments[0].scrollIntoView(true);', button)
+                        button.click()
                     except:
                         try:
                             self.driver.execute_script('window.scrollBy(0,-100);', button)
                             button.click()
                         except:
                             pass
-
+        return
 
     @abstractmethod
     def get_data(self):
