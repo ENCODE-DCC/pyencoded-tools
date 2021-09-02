@@ -245,7 +245,6 @@ def main():
             continue
 
     if GoodExperiments:
-        print(GoodExperiments)
         for key in GoodExperiments:
             if GoodExperiments[key]:
                 problemWriter.writerow([key, 'post-pipeline review'])
