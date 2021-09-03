@@ -129,6 +129,8 @@ def exp_xml(ref_epi_obj):
 
 def exp_type(exp):
     assay = exp.get('assay_term_name')
+    exp_acc = exp.get('accession')
+    expt = conn.get('experiments/{}'.format(exp_acc))
     # Process ChIP-seq
     # IHEC wants 'one of ('ChIP-Seq Input', 'Histone H3K4me1',
     # 'Histone H3K4me3', 'Histone H3K9me3', 'Histone H3K9ac',
@@ -137,7 +139,7 @@ def exp_type(exp):
     # histones, 'ChIP-Seq Input: Transcription factor <TF name>' for everything
     # else
     if assay == 'ChIP-seq':
-        target_id = exp.get('target', {}).get('uuid')
+        target_id = expt.get('target', {}).get('uuid')
         if not target_id:
             assert exp['control_type']
             return {
@@ -427,12 +429,9 @@ def samples_xml(ref_epi_obj):
         btype = biosampleObj['biosample_ontology']['classification']
         if btype in ['tissue', 'whole organism']:
             sample_attribute_dict.update(tissueXML(biosampleObj))
-        if btype in ['primary cell', 'stem cell']:
+        if btype in ['primary cell', 'in vitro differentiated cells']:
             sample_attribute_dict.update(primaryCellCultureXML(biosampleObj))
-        if btype in [
-            'cell line', 'in vitro differentiated cells',
-            'induced pluripotent stem cell line'
-        ]:
+        if btype == 'cell line':
             sample_attribute_dict.update(cellLineXML(biosampleObj))
 
         sample_attributes_xml = ET.SubElement(
@@ -491,7 +490,6 @@ def donor(biosampleObj):
         'DONOR_ID': donorObj['accession'],
         'DONOR_LIFE_STAGE': biosampleObj['life_stage'],
         'DONOR_SEX': biosampleObj['sex'].capitalize(),
-        'DONOR_ETHNICITY': donorObj.get('ethnicity', 'NA'),
         'DONOR_HEALTH_STATUS': biosampleObj.get('health_status', 'NA'),
         'DONOR_HEALTH_STATUS_ONTOLOGY_CURIE': 'ncim:C115222',  # unknown health status
         'DONOR_HEALTH_STATUS_ONTOLOGY_URI': 'https://nciterms.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C115222'
@@ -508,6 +506,12 @@ def donor(biosampleObj):
     sample_attribute_dict['DONOR_AGE_UNIT'] = biosampleObj.get(
         'age_units', 'year'
     )
+
+    ethnicity = donorObj.get('ethnicity', 'NA')
+    if 'NA' not in ethnicity:
+        ethnicity = ', '.join(ethnicity)
+    sample_attribute_dict['DONOR_ETHNICITY'] = ethnicity
+
     if 'HEALTHY' in sample_attribute_dict['DONOR_HEALTH_STATUS'].capitalize():
         sample_attribute_dict['DONOR_HEALTH_STATUS_ONTOLOGY_CURIE'] = 'ncim:C0549184' # suggested None term
         sample_attribute_dict['DONOR_HEALTH_STATUS_ONTOLOGY_URI'] = 'https://ncim.nci.nih.gov/ncimbrowser/pages/concept_details.jsf?dictionary=NCI%20Metathesaurus&code=C0549184'
@@ -527,6 +531,11 @@ def tissueXML(biosampleObj):
         'COLLECTION_METHOD': 'unknown',
     }
     sample_attribute_dict.update(donor(biosampleObj))
+    # Handle tissue NTR (germinal matrix)
+    if sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] == 'ntr:0001407':
+        sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] = 'uberon:0004022'
+        sample_attribute_dict['SAMPLE_ONTOLOGY_URI'] = 'http://purl.obolibrary.org/obo/UBERON_0004022'
+
     return sample_attribute_dict
 
 
@@ -545,20 +554,23 @@ def primaryCellCultureXML(biosampleObj):
     originated_from_uuid = biosampleObj.get('originated_from', {}).get('uuid')
     if originated_from_uuid:
         origin_sample = conn.get(originated_from_uuid)
-        sample_attribute_dict[
-            'ORIGIN_SAMPLE_ONTOLOGY_CURIE'
-        ] = origin_sample['biosample_ontology']['term_id'].lower()
-        sample_attribute_dict[
-            'ORIGIN_SAMPLE'
-        ] = origin_sample['biosample_ontology']['term_name']
-    else:
-        sample_attribute_dict[
-            'ORIGIN_SAMPLE_ONTOLOGY_CURIE'
-        ] = sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE']
-        sample_attribute_dict[
-            'ORIGIN_SAMPLE'
-        ] = sample_attribute_dict['CELL_TYPE']
+        origin_sample_id = origin_sample['biosample_ontology']['term_id']
+        if origin_sample_id.startswith('UBERON'):
+            sample_attribute_dict['ORIGIN_SAMPLE_ONTOLOGY_CURIE'] = origin_sample_id.lower()
+            sample_attribute_dict['ORIGIN_SAMPLE'] = origin_sample['biosample_ontology']['term_name']
+            sample_attribute_dict['ORIGIN_SAMPLE_ONTOLOGY_URI'] = 'http://purl.obolibrary.org/obo/{}'.format(origin_sample_id.replace(':', '_'))
     sample_attribute_dict.update(donor(biosampleObj))
+
+    # Handle some NTR terms
+    if sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] == 'ntr:0000427': # neurosphere
+        sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] = 'cl:0000047'
+        sample_attribute_dict['SAMPLE_ONTOLOGY_URI'] = 'http://purl.obolibrary.org/obo/CL_0000047'
+    elif sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] == 'ntr:0003830': # mid-neurogenesis radial glial cells
+        sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] = 'cl:0000681'
+        sample_attribute_dict['SAMPLE_ONTOLOGY_URI'] = 'http://purl.obolibrary.org/obo/CL_0000681'
+    elif sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] == 'ntr:0000856': # mesendoderm
+        sample_attribute_dict['SAMPLE_ONTOLOGY_CURIE'] = 'cl:0000222'
+        sample_attribute_dict['SAMPLE_ONTOLOGY_URI'] = 'http://purl.obolibrary.org/obo/CL_0000222'
 
     return sample_attribute_dict
 
