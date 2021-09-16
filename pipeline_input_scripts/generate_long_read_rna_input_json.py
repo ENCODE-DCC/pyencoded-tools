@@ -223,10 +223,14 @@ def main():
             if 'platform' in file:
                 platform_id = file['platform']['@id']
                 break
-
         if platform_id in ['/platforms/OBI:0002633/', '/platforms/OBI:0002632/', '/platforms/OBI:0002012/']:
             platforms.append('pacbio')
-        elif platform_id in ['/platforms/NTR:0000448/', '/platforms/NTR:0000449/','/platforms/NTR:0000450/',' /platforms/NTR:0000451/']:
+        elif platform_id in [
+            '/platforms/NTR:0000451/',  # Nanopore SmidgION
+            '/platforms/OBI:0002750/',  # Nanopore MinION
+            '/platforms/OBI:0002751/',  # Nanopore GridIONx5
+            '/platforms/OBI:0002752/',  # Nanopore PromethION
+        ]:
             platforms.append('nanopore')
     output_df['long_read_rna_pipeline.input_type'] = platforms
 
