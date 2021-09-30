@@ -5,6 +5,7 @@ import argparse
 
 import encode_utils.connection as euc
 
+
 import requests
 import urllib.parse
 import sys
@@ -17,12 +18,14 @@ import os
 import re
 from time import sleep
 
+
 # and treatment duration & amount & duration_units & amount_units? just
 # treaments - match whole list - but can't query that way easily
 # figure out how to handle life_stages - if anything other than unknown
 # present, use that (and query also unknown) - what if 2 non-unknown present?
 
 CONN = euc.Connection('prod', dry_run=True)
+
 
 keypair = (os.environ.get('DCC_API_KEY'), os.environ.get('DCC_SECRET_KEY'))
 
@@ -116,6 +119,7 @@ human_adds = [
     ('field', 'replicates.library.biosample.treatments'),
     ('field', 'replicates.library.biosample.donor'),
     ('field', 'replicates.library.biosample.donor.life_stage'),
+
     ('field', 'replicates.library.biosample.age'),
     ('field', 'replicates.library.biosample.age_units'),
     ('field', 'replicates.library.biosample.applied_modifications'),
@@ -123,14 +127,74 @@ human_adds = [
 ]
 ##################################
 
+def write_output(organism, file, combination, sets):
+    url = "https://www.encodeproject.org/biosample-types/" + combination[0] + "/"
+    btype_obj = encoded_get(url, keypair, frame='object')
 
-def create_SEs():
+    str_to_parse = str(sets[combination])
+    list_of_file_accessions = list(set(re.findall(r'ENCFF[0-9A-Z]{6}',str_to_parse)))
+
+    age_display = f'{combination[2]} {combination[3]}' if (combination[2]!='' and combination[3]!='') else 'no age'
+
+    age_display_alias_formatted = 'no age'
+    if age_display != 'no age':
+        age_display_alias_formatted = f'{combination[1]}_{combination[2]}'
+
+    assay_list = []
+    target_list = []
+    for k in sets[combination]:
+        if k in ['DNase-seq', 'ATAC-seq']:
+            assay_list.append(k)
+        else:
+            assay_list.append('ChIP-seq')
+            target_list.append(f'/targets/{k}-{organism}/')
+
+    sorted_files_dictionary = {k: sets[combination][k] for k in sorted(sets[combination])}
+
+    if organism == 'human':
+        output_string = (
+            f'{combination[7]}_{combination[0]}\t' # old alias
+            f'{combination[7]}_{combination[0]}_{age_display}_{combination[4]}_{combination[5]}_{combination[6]}\t' # new alias
+            f'/biosample-types/{combination[0]}/\t' # biosample_ontology
+            f'{",".join(sorted(list_of_file_accessions))}\t' # related_files
+            f'{combination[1]}\t' # life stage
+            f'{combination[2]}\t' # age (relevant_timepoint)
+            f'{combination[3]}\t' # age unit (relevant_timepoint_units)
+            f'{",".join(set(assay_list))}\t' # assay_term_name
+            f'{",".join(set(target_list))}\t' # targets
+            f'Donor {combination[7]}: {combination[8]}\t'
+            f'{sorted_files_dictionary}\n'
+        )
+    elif organism == 'mouse':
+        output_string = (
+            f'{combination[5]}_{age_display_alias_formatted}_{combination[0]}\t' # old alias
+            f'{combination[5]}_{age_display_alias_formatted}_{combination[0]}_{combination[3]}_{combination[4]}\t' # new alias
+            f'/biosample-types/{combination[0]}/\t' # biosample_ontology
+            f'{",".join(list_of_file_accessions)}\t' # related_files
+            f'{combination[1]}\t' # age (relevant_timepoint)
+            f'{combination[2]}\t' # age unit (relevant_timepoint_units)
+            f'{",".join(assay_list)}\t' # assay_term_name
+            f'{",".join(target_list)}\t' # targets
+            f'Strain {combination[5]}: {combination[6]}\t' # description
+            f'{sorted_files_dictionary}\n')
+
+    file.write(output_string)
+    print(output_string)
+    print('-----------------------')
+
+
+
+def create_SEs(args):
+
 
     url = "https://www.encodeproject.org/search/?type=Experiment&analyses.pipeline_award_rfas=ENCODE4&assay_term_name=ATAC-seq&assay_term_name=ChIP-seq&assay_term_name=DNase-seq&field=accession&field=analyses&field=assay_term_name&field=biosample_summary&field=bio_replicate_count&field=biosample_ontology&field=replicates.library.biosample.donor&field=replicates.library.biosample.donor.life_stage&field=replicates.library.biosample.age&field=replicates.library.biosample.age_units&field=replicates.library.biosample.subcellular_fraction_term_name&field=replicates.library.biosample.treatments&field=target&internal_status%21=pipeline+error&control_type!=*&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&status=released&limit=all"
     exs =  encoded_get(url, keypair, frame='object')['@graph']
     print (len(exs))
 
-        
+    mouse_url = "https://www.encodeproject.org/search/?type=Experiment&analyses.pipeline_award_rfas=ENCODE4&assay_term_name=ATAC-seq&assay_term_name=ChIP-seq&assay_term_name=DNase-seq&field=accession&field=status&field=analyses&field=assay_term_name&field=biosample_summary&field=bio_replicate_count&field=biosample_ontology&field=replicates.library.biosample.donor&field=replicates.library.biosample.donor.life_stage&field=replicates.library.biosample.age&field=replicates.library.biosample.age_units&field=replicates.library.biosample.subcellular_fraction_term_name&field=replicates.library.biosample.treatments&field=target&internal_status%21=pipeline+error&control_type%21=%2A&status=released&replicates.library.biosample.donor.organism.scientific_name=Mus+musculus&limit=all"
+    mouse_exs =  encoded_get(mouse_url, keypair, frame='object')['@graph']
+    print (len(mouse_exs))
+
     files_url = "https://www.encodeproject.org/search/?type=File&output_type=fold+change+over+control&output_type=read-depth+normalized+signal&status=released&limit=all"
     fils =  encoded_get(files_url, keypair, frame='object')['@graph']
     print (len(fils))
@@ -149,28 +213,36 @@ def create_SEs():
 
     print ("finished")
 
-    '''
+
     mouse_exp_param = (exp_param + chip_param + other_param + mouse_adds).copy()
-    results = CONN.search(list(mouse_exp_param))
     mouse_sets = {}
-    for obj in results:
+
+    for obj in mouse_exs:
         assay = obj['assay_term_name']
         accession = obj['accession']
         target = obj.get('target', {}).get('label', 'none')
         biosample = obj['biosample_ontology']['name']
+        biosample_summary = obj['biosample_summary']
         reps = obj['bio_replicate_count']
         one_bio_obj = obj['replicates'][0]['library']['biosample']
         donor = obj['replicates'][0]['library']['biosample']['donor']['accession']
-        age = one_bio_obj.get('age_display', 'unknown')
+
+        age = ''
+        age_units = ''
+        if 'age' in obj['replicates'][0]['library']['biosample'] and 'age_units' in obj['replicates'][0]['library']['biosample']:
+            age = obj['replicates'][0]['library']['biosample']['age']
+            age_units = obj['replicates'][0]['library']['biosample']['age_units']
+
         files = []
         if 'analyses' in obj:
             for analysis in obj['analyses']:
                 if analysis['status'] == 'released' and 'pipeline_award_rfas' in analysis:
                     if len(analysis['pipeline_award_rfas']) == 1 and 'ENCODE4' in analysis['pipeline_award_rfas']:
                         for file in analysis['files']:
-                            # file_obj = CONN.get(file)
+
                             file_obj = file_ids.get(file, None)
-                            if file_obj['status'] == 'released':
+
+                            if file_obj is not None and file_obj['status'] == 'released':
                                 if assay in ['ChIP-seq', 'ATAC-seq']:
                                     if file_obj['output_type'] == 'fold change over control' and file_obj['file_format'] == 'bigWig':
                                         if reps > 1:
@@ -190,7 +262,9 @@ def create_SEs():
         fraction = one_bio_obj.get(
             'subcellular_fraction_term_name', 'no fraction'
         )
-        combination = (biosample, age, treatment, fraction, donor, biosample_summary)
+
+        combination = (biosample, age, age_units, treatment, fraction, donor, biosample_summary)
+
         mouse_sets.setdefault(combination, {})
         if target in ['H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3', 'CTCF', 'POLR2A', 'EP300']:
             mouse_sets[combination].setdefault(target, [])
@@ -205,73 +279,33 @@ def create_SEs():
                 for file in files:
                     mouse_sets[combination][assay].append(file)
 
-    f_mouse = open('/Users/jennifer/wrn30_output_new_feb15_mouse.txt','w')
+    f_mouse = open(args.mouse,'w')
     for combination in mouse_sets:
         if all (k in mouse_sets[combination] for k in ('H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3')):
-            btype_obj = CONN.get('/biosample-types/{}/'.format(combination[0]))
+            write_output('mouse', f_mouse, combination, mouse_sets)
 
-            str_to_parse = str(human_sets[combination])
-            list_of_file_accessions = list(set(re.findall(r'ENCFF[0-9A-Z]{6}',str_to_parse)))
+    f_mouse.close()
 
-            age_display = f'{combination[2]} {combination[3]}' if (combination[2]!='' and combination[3]!='') else 'no age'
-
-            f_mouse.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
-                f'{combination[7]}_{combination[0]}', # old alias
-                f'{combination[7]}_{combination[0]}_{age_display}_{combination[4]}_{combination[5]}_{combination[6]}', # new alias
-                f'/biosample-types/{combination[0]}/', # biosample_ontology
-                f'{",".join(list_of_file_accessions)}', # related_files
-                f'{",".join(combination[1])}', # life stage
-                f'{combination[2]}', # age (relevant_timepoint)
-                f'{combination[3]}', # age unit (relevant_timepoint_units)
-                # '; '.join([
-                #     ",".join(combination[1]),
-                #     btype_obj['term_name'],
-                #     btype_obj['classification'],
-                #     age_display,
-                #     combination[4],
-                #     # 'treated',
-                #     combination[5],
-                #     # 'fraction',
-                #     combination[6],
-                #     # 'gm',
-                #     combination[7],
-                #     # 'donor'
-                # ]),
-                f'Strain {combination[7]}: {combination[8]}',
-                human_sets[combination]
-                ))
-
-
-            print(
-                ' '.join([
-                    str(combination[1]),
-                    btype_obj['term_name'],
-                    btype_obj['classification'],
-                    combination[2],
-                    'treated',
-                    combination[3],
-                    'fraction',
-                    combination[4],
-                    'donor'
-                ])
-            )
-            print(combination[0])
-            print(mouse_sets[combination])
-            print('-----------------------')
-    '''
     ##################################
     human_exp_param = (exp_param + chip_param + other_param + human_adds).copy()
-    # results = CONN.search(list(human_exp_param))
     human_sets = {}
+    mixed_donor_sets = {}
+
+    # Look up the term_name to be used with the description for the mixed donor sets
+    biosample_name_to_term_name = {}
+
     counter = 0
     for obj in exs:
         counter += 1
         assay = obj['assay_term_name']
         accession = obj['accession']
         biosample_summary = obj['biosample_summary']
+
         target = obj.get('target', {}).get('label', 'none')
         if target in ['H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3', 'CTCF', 'POLR2A', 'EP300', 'none']:
             biosample = obj['biosample_ontology']['name']
+            biosample_name_to_term_name[biosample] = biosample_term_name = obj['biosample_ontology']['term_name']
+
             reps = obj['bio_replicate_count']           
             one_bio_obj = obj['replicates'][0]['library']['biosample']
             age = ''
@@ -338,6 +372,7 @@ def create_SEs():
                     )
                 )
             )
+            life_stage = ','.join(life_stage)
 
             treatment = 'no treatment'
             if len(one_bio_obj['treatments']) > 0:
@@ -346,14 +381,27 @@ def create_SEs():
                 'subcellular_fraction_term_name', 'no fraction'
             )
 
+            # Create two different combination "keys" based on the same experiment,
+            # one which is unique donor, and another which is non-unique donor.
+            # These will be stored in different dictionaries.
             combination = (biosample, life_stage, age, age_units, treatment, fraction, GM_accessions, donor, biosample_summary)
+            non_donor_specific_combination = (biosample, ('mixed_LS'), 'mixed_age', 'mixed_age_units', treatment, fraction, GM_accessions, 'mixed_donor', 'Homo sapiens ' + biosample_term_name)
             human_sets.setdefault(combination, {})
+            mixed_donor_sets.setdefault(non_donor_specific_combination, {})
+
             if target in ['H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3', 'CTCF', 'POLR2A', 'EP300']:
                 human_sets[combination].setdefault(target, [])
                 human_sets[combination][target].append(accession)
                 if len(files) == 1:
                     for file in files:
                         human_sets[combination][target].append(file)
+
+                mixed_donor_sets[non_donor_specific_combination].setdefault(target, [])
+                mixed_donor_sets[non_donor_specific_combination][target].append(accession)
+                if len(files) == 1:
+                    for file in files:
+                        mixed_donor_sets[non_donor_specific_combination][target].append(file)
+
             if assay in ['DNase-seq', 'ATAC-seq']:
                 human_sets[combination].setdefault(assay, [])
                 human_sets[combination][assay].append(accession)
@@ -361,82 +409,31 @@ def create_SEs():
                     for file in files:
                         human_sets[combination][assay].append(file)
 
-    f = open('/Users/jennifer/wrn30_output_new_feb15.txt','w')
+                mixed_donor_sets[non_donor_specific_combination].setdefault(assay, [])
+                mixed_donor_sets[non_donor_specific_combination][assay].append(accession)
+                if len(files) == 1:
+                    for file in files:
+                        mixed_donor_sets[non_donor_specific_combination][assay].append(file)
+
+    f = open(args.human,'w')
+
     for combination in human_sets.keys():
+
         if all (k in human_sets[combination] for k in ('H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3')):
-            url = "https://www.encodeproject.org/biosample-types/" + combination[0] + "/"
-            btype_obj = encoded_get(url, keypair, frame='object')
 
-            str_to_parse = str(human_sets[combination])
-            list_of_file_accessions = list(set(re.findall(r'ENCFF[0-9A-Z]{6}',str_to_parse)))
+            # If there is a complete set with the unique donor tuple, then we
+            # should delete the non-unique donor tuple from the other group of
+            # sets, since we don't need to have both a unique and non-unique
+            # Segway run on the same biosample type.
+            mixed_donor_key = (combination[0], ('mixed_LS'), 'mixed_age', 'mixed_age_units', combination[4], combination[5], combination[6], 'mixed_donor', 'Homo sapiens ' + biosample_name_to_term_name[combination[0]])
+            mixed_donor_sets.pop(mixed_donor_key, None)
 
-            age_display = f'{combination[2]} {combination[3]}' if (combination[2]!='' and combination[3]!='') else 'no age'
+            write_output('human', f, combination, human_sets)
 
-            f.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
-                f'{combination[7]}_{combination[0]}', # old alias
-                f'{combination[7]}_{combination[0]}_{age_display}_{combination[4]}_{combination[5]}_{combination[6]}', # new alias
-                f'/biosample-types/{combination[0]}/', # biosample_ontology
-                f'{",".join(list_of_file_accessions)}', # related_files
-                f'{",".join(combination[1])}', # life stage
-                f'{combination[2]}', # age (relevant_timepoint)
-                f'{combination[3]}', # age unit (relevant_timepoint_units)
-                # '; '.join([
-                #     ",".join(combination[1]),
-                #     btype_obj['term_name'],
-                #     btype_obj['classification'],
-                #     age_display,
-                #     combination[4],
-                #     # 'treated',
-                #     combination[5],
-                #     # 'fraction',
-                #     combination[6],
-                #     # 'gm',
-                #     combination[7],
-                #     # 'donor'
-                # ]),
-                f'Donor {combination[7]}: {combination[8]}',
-                human_sets[combination]
-                ))
-            
+    for combination in mixed_donor_sets.keys():
+        if all (k in mixed_donor_sets[combination] for k in ('H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3')):
+            write_output('human', f, combination, mixed_donor_sets)
 
-            print(f"{' '.join([str(combination[1]),btype_obj['term_name'],btype_obj['classification'],age_display,combination[4],'treated',combination[5], 'fraction',combination[6],'gm',combination[7],'donor'])}")
-            # print('{}\t{}\t{}\t{}\t{}\t'.format(
-            #     ' '.join([
-            #         str(combination[1]),
-            #         btype_obj['term_name'],
-            #         btype_obj['classification'],
-            #         combination[2],
-            #         'treated',
-            #         combination[3],
-            #         'fraction',
-            #         combination[4],
-            #         'gm',
-            #         combination[5],
-            #         'donor'
-            #     ]),
-            #     f'{combination[5]}_{combination[0]}',
-            #     f'{combination[5]}_{combination[0]}_{combination[2]}_{combination[3]}_{combination[4]}',
-            #     combination[0],
-            #     human_sets[combination]
-            #     ))
-            # print(
-            #     ' '.join([
-            #         str(combination[1]),
-            #         btype_obj['term_name'],
-            #         btype_obj['classification'],
-            #         combination[2],
-            #         'treated',
-            #         combination[3],
-            #         'fraction',
-            #         combination[4],
-            #         'gm',
-            #         combination[5],
-            #         'donor'
-            #     ])
-            # )
-            # print(combination[0])
-            # print(human_sets[combination])
-            print('-----------------------')
     f.close()
 
 
@@ -448,14 +445,19 @@ def get_parser():
     subparsers = parser.add_subparsers()
     parser_create = subparsers.add_parser('create', help='Create')
     parser_create.set_defaults(func=create_SEs)
+    parser_create.add_argument('--mouse', action='store', default='segway_mouse_sets.txt',
+                        help="""Path to output file for mouse.""")
+    parser_create.add_argument('--human', action='store', default='segway_human_sets.txt',
+                        help="""Path to output file for human.""")
     return parser
 
 
 def main():
     parser = get_parser()
     args = parser.parse_args()
+
     try:
-        func = args.func()
+        func = args.func(args)
     except AttributeError:
         parser.error("too few arguments")
         func(args)
