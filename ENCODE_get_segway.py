@@ -22,18 +22,17 @@ exp_param = [
     ('award.project', 'ENCODE'),
     ('field', 'accession'),
     ('field', 'assay_term_name'),
-    ('field', 'target')
+    ('field', 'target'),
+    ('field', 'biosample_ontology')
 ]
 
 chip_param = [
-    ('assay_term_name', 'ChIP-seq'),
-    ('field', 'biosample_ontology')
+    ('assay_term_name', 'ChIP-seq')
 ]
 
 other_param = [
     ('assay_term_name', 'DNase-seq'),
-    ('assay_term_name', 'ATAC-seq'),
-    ('field', 'biosample_ontology')
+    ('assay_term_name', 'ATAC-seq')
 ]
 
 mouse_adds = [
