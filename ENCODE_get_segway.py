@@ -94,7 +94,7 @@ def create_SEs():
                                             if 'href' in file_obj:
                                                 files.append(file_obj['href'])
                                 else:
-                                    if file_obj['output_type'] == 'read-depth normalized signal' and file_obj['file_format'] == 'bigWig' and file_obj['preferred_default'] == True:
+                                    if file_obj['output_type'] == 'read-depth normalized signal' and file_obj['file_format'] == 'bigWig' and 'preferred_default' in file_obj:
                                         if 'href' in file_obj:
                                             files.append(file_obj['href'])
         treatment = 'no treatment'
