@@ -4,11 +4,11 @@ The `RefEpi_update.py` is designed to help collect relevant info for wranglers t
 
 * `./RefEpi_updater.py create`
 
-  This script looks for released core (H3K27me3, H3K36me3, H3K4me1, H3K4me3, H3K27ac, H3K9me3) reference epigenome experiments which don't belong to any current reference epigenomes. If find, it will list them out with relevant info so that wranglers can create new referenc epigenomes based on that. You do want to run `update` to check if there are other experiments to be added to these new reference epigenomes.
+  This script looks for released core (H3K27me3, H3K36me3, H3K4me1, H3K4me3, H3K27ac, H3K9me3) reference epigenome experiments which don't belong to any current reference epigenomes. If found, it will list them out with relevant info so that wranglers can create new referenc epigenomes based on that. You do want to run `update` to check if there are other experiments to be added to these new reference epigenomes.
 
 * `./RefEpi_updater.py update`
 
-  This script will go through all released reference epigenome relevant experiments and output a big table with one row describing experiments currently in each reference epigenomes and the next row below it describing candidate experiments which can be put into corresponding reference epigenomes. wranglers need to go through this table carefully to decide what should be updated. After updates if any, you do want to run `find-controls` to update controls in reference epigenomes. For example, when a ChIP experiment is replaced, its control in the same reference epigenome also needs to be updated.
+  This script will go through all released reference epigenome relevant experiments and output a big table with one row describing experiments currently in each reference epigenomes and the next row below it describing candidate experiments which can be put into corresponding reference epigenomes. Wranglers need to go through this table carefully to decide what should be updated. After updates if any, you do want to run `find-controls` to update controls in reference epigenomes. For example, when a ChIP experiment is replaced, its control in the same reference epigenome also needs to be updated.
 
 * `./RefEpi_updater.py find-controls`
 
@@ -19,7 +19,7 @@ The `RefEpi_update.py` is designed to help collect relevant info for wranglers t
 In general, a submission to IHEC contains two parts: EpiRR and IHEC data hub. For us, ENCODE, one prerequisite (step 0) is to make sure all our reference epigenomes are up to date on the production portal.
 Both EpiRR and IHEC data hub submissions can be validated with ihec-ecosystems (https://github.com/IHEC/ihec-ecosystems). As for now (11-11-2019), it's worth to keep in mind two things: 
 
-1. two validations are not strictly related, i.e. metadata from validated EpiRR submission may not pass IHEC data hub submission. Therefore, it might be better to adjust all scripts, reconcile all conflicts/errors and validate both EpiRR submission and IHEC data hub submissions before submitting any of them.
+1. The two validations are not strictly related, i.e. metadata from validated EpiRR submission may not pass IHEC data hub submission. Therefore, it might be better to adjust all scripts, reconcile all conflicts/errors and validate both EpiRR submission and IHEC data hub submissions before submitting any of them.
 2. Both validations should be run within ihec-ecosystems code base. Those scripts and code are not yet packaged thus cannot be called properly from outside.
 
 ### EpiRR submission
@@ -108,4 +108,4 @@ Both EpiRR and IHEC data hub submissions can be validated with ihec-ecosystems (
 
 * How to submit?
 
-  Email JSON hub(s) to David Bujold, Mr at david.bujold@mcgill.ca and david.brownlee@computationalgenomics.ca. Those JSON files could be too big for email attachments. Use Google Drive is OK with David.
+  Email JSON hub(s) to David Bujold, Mr at david.bujold@mcgill.ca and david.brownlee@computationalgenomics.ca. Those JSON files could be too big for email attachments. Using Google Drive is OK with David.
