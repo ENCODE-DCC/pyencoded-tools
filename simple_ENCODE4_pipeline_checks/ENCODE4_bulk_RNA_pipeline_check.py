@@ -151,8 +151,9 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
             'plus strand signal of all reads': rep_count,
         })
 
-        expected_preferred_default_file_format = ['bigWig', 'bigWig']
+        expected_preferred_default_file_format = ['bigWig', 'bigWig', 'tsv']
         expected_preferred_default_output_type = [
+            'gene quantifications',
             'plus strand signal of unique reads', 
             'minus strand signal of unique reads'
         ]
@@ -168,8 +169,8 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
             'signal of all reads': rep_count,
         })
 
-        expected_preferred_default_file_format = ['bigWig']
-        expected_preferred_default_output_type = ['signal of unique reads']
+        expected_preferred_default_file_format = ['bigWig', 'tsv']
+        expected_preferred_default_output_type = ['gene quantifications', 'signal of unique reads']
 
         if runType == 'single-ended' and not avgFragLength:
             expected_file_output_count.update({
@@ -217,7 +218,7 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
 
         if stranded:
             if (
-                len(preferred_default_output_type) != 2
+                len(preferred_default_output_type) != 3
                 or list(
                     preferred_default_output_type
                 )[0] not in expected_preferred_default_output_type
@@ -232,7 +233,7 @@ def check_encode4_bulk_rna_pipeline(exp_acc):
                 bad_reason.append(msg)
         else:
             if (
-                len(preferred_default_output_type) != 1
+                len(preferred_default_output_type) != 2
                 or list(
                     preferred_default_output_type
                 )[0] not in expected_preferred_default_output_type
