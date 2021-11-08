@@ -119,8 +119,7 @@ def main():
             biosample = infile_df['Biosample term name'][ind]
             if checkString(biosample) and ',' in biosample:
                 biosample = metadataDisplay(biosample)
-            else:
-                classification = infile_df['biosample_ontology.classification'][ind]
+            classification = infile_df['biosample_ontology.classification'][ind]
             if exptType in ['reference-epigenomes', 'organism-development-series', 'replication-timing-series', 'treatment-time-series', 'treatment-concentration-series', 'gene-silencing-series']:
                 organism = infile_df['Organism'][ind]
                 target = infile_df['Target'][ind]
