@@ -13,7 +13,7 @@ def get_parser():
     parser.add_argument("-i", "--infile", required=True, help="""Tab delimited file with appropriate metadata""", action="store")
     parser.add_argument("-o", "--outfile", required=True, help="""Output XML file in CrossRef Schema""", action="store")
     parser.add_argument("-p", "--patchfile", required=True, help="""Output tsv file to patch datsets with""", action="store")
-    parser.add_argument("-d", "--dataset", default="experiments", choices={"annotations", "experiments", "functional-characterization-experiments", "transgenic-enhancer-experiments", "reference-epigenomes", "organism-development-series", "treatment-time-series", "treatment-concentration-series", "replication-timing-series", "gene-silencing-series", "functional-characterization-series"}, help="""What type of dataset to create DOIs for""")
+    parser.add_argument("-d", "--dataset", default="experiments", choices={"annotations", "experiments", "functional-characterization-experiments", "transgenic-enhancer-experiments", "reference-epigenomes", "organism-development-series", "treatment-time-series", "treatment-concentration-series", "replication-timing-series", "gene-silencing-series"}, help="""What type of dataset to create DOIs for""")
     return parser
 
 
@@ -115,21 +115,16 @@ def main():
                 target = infile_df['target.label'][ind]
             else:
                 target = infile_df['Target of assay'][ind]
-        elif exptType in ['annotations', 'reference-epigenomes', 'organism-development-series', 'replication-timing-series', 'treatment-time-series', 'treatment-concentration-series', 'gene-silencing-series', 'functional-characterization-series']:
+        elif exptType in ['annotations', 'reference-epigenomes', 'organism-development-series', 'replication-timing-series', 'treatment-time-series', 'treatment-concentration-series', 'gene-silencing-series']:
             biosample = infile_df['Biosample term name'][ind]
             if checkString(biosample) and ',' in biosample:
                 biosample = metadataDisplay(biosample)
-            if exptType == 'functional-characterization-series':
-                classification = infile_df['Biosample classification'][ind]
             else:
                 classification = infile_df['biosample_ontology.classification'][ind]
-            if exptType in ['reference-epigenomes', 'organism-development-series', 'replication-timing-series', 'treatment-time-series', 'treatment-concentration-series', 'gene-silencing-series', 'functional-characterization-series']:
+            if exptType in ['reference-epigenomes', 'organism-development-series', 'replication-timing-series', 'treatment-time-series', 'treatment-concentration-series', 'gene-silencing-series']:
                 organism = infile_df['Organism'][ind]
-                if exptType == 'functional-characterization-series':
-                    target = infile_df['Examined loci'][ind]
-                else:
-                    target = infile_df['Target'][ind]
-                if exptType in ['organism-development-series', 'replication-timing-series', 'treatment-time-series', 'treatment-concentration-series', 'gene-silencing-series', 'functional-characterization-series']:
+                target = infile_df['Target'][ind]
+                if exptType in ['organism-development-series', 'replication-timing-series', 'treatment-time-series', 'treatment-concentration-series', 'gene-silencing-series']:
                     assay = infile_df['Assay name'][ind]
                     if exptType in ['treatment-time-series', 'treatment-concentration-series']:
                         treatment = infile_df['Biosample treatment'][ind]
@@ -209,11 +204,6 @@ def main():
                 description = f'Replication timing series {assay} of {organism} {biosample} {classification} during cell cycle phases {phase_display}'
         elif exptType == 'gene-silencing-series':
             description = f'Gene silencing series {assay} targeting {target} of {organism} {biosample} {classification}'
-        elif exptType == 'functional-characterization-series':
-            if checkString(target):
-                description = f'{assay} series targeting {target} of {organism} {biosample} {classification}'
-            else:
-                description = f'{assay} series of {organism} {biosample} {classification}'
 
 
         year = infile_df['Date released'][ind][0:4]
