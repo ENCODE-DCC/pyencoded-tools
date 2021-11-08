@@ -108,4 +108,4 @@ Both EpiRR and IHEC data hub submissions can be validated with ihec-ecosystems (
 
 * How to submit?
 
-  Email JSON hub(s) to David Brownlee david.brownlee@computationalgenomics.ca. Those JSON files could be too big for email attachments. Using Google Drive is OK with David.
+  Email JSON hub(s) to David Bujold david.bujold@mcgill.ca and David Brownlee david.brownlee@computationalgenomics.ca. Those JSON files could be too big for email attachments. Using Google Drive is OK with David.
