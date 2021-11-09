@@ -111,7 +111,10 @@ def main():
         if exptType in ['experiments', 'functional-characterization-experiments', 'transgenic-enhancer-experiments']:
             biosample = infile_df['Biosample summary'][ind]
             assay = infile_df['Assay title'][ind]
-            target = infile_df['Target of assay'][ind]
+            if exptType == 'transgenic-enhancer-experiments':
+                target = infile_df['target.label'][ind]
+            else:
+                target = infile_df['Target of assay'][ind]
         elif exptType in ['annotations', 'reference-epigenomes', 'organism-development-series', 'replication-timing-series', 'treatment-time-series', 'treatment-concentration-series', 'gene-silencing-series']:
             biosample = infile_df['Biosample term name'][ind]
             if checkString(biosample) and ',' in biosample:
