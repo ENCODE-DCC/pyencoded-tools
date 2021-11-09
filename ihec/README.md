@@ -4,7 +4,7 @@ The `RefEpi_update.py` is designed to help collect relevant info for wranglers t
 
 * `./RefEpi_updater.py create`
 
-  This script looks for released core (H3K27me3, H3K36me3, H3K4me1, H3K4me3, H3K27ac, H3K9me3) reference epigenome experiments which don't belong to any current reference epigenomes. If found, it will list them out with relevant info so that wranglers can create new referenc epigenomes based on that. You do want to run `update` to check if there are other experiments to be added to these new reference epigenomes.
+  This script looks for released core (H3K27me3, H3K36me3, H3K4me1, H3K4me3, H3K27ac, H3K9me3) reference epigenome experiments which don't belong to any current reference epigenomes. If found, it will list them out with relevant info so that wranglers can create new reference epigenomes based on that. You do want to run `update` to check if there are other experiments to be added to these new reference epigenomes.
 
 * `./RefEpi_updater.py update`
 
@@ -71,7 +71,7 @@ Both EpiRR and IHEC data hub submissions can be validated with ihec-ecosystems (
 
 * How to submit?
 
-  Package all outputs for all reference epigenomes to be submitted into on tarball and email it to epirr@ebi.ac.uk. A ticket will be created in their system this way.
+  Package all outputs for all reference epigenomes to be submitted into a tarball and email it to epirr@ebi.ac.uk. A ticket will be created in their system this way.
 
 ### IHEC data hub submission
 
