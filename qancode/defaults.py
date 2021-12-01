@@ -253,13 +253,13 @@ class ActionTuples:
              OpenUCSCGenomeBrowserMM10),
             ('/search/?type=Experiment&assembly=dm3&status=released&replicates.library.biosample.biosample_ontology.classification=whole+organisms&assay_title=total+RNA-seq',
              OpenUCSCGenomeBrowserDM3),
-            ('/search/?type=Experiment&assembly=dm6&replicates.library.biosample.life_stage=wandering+third+instar+larva',
+            ('/search/?type=Experiment&assembly=dm6&replicates.library.biosample.life_stage=wandering+third+instar+larva&assay_title=TF+ChIP-seq',
              OpenUCSCGenomeBrowserDM6),
             ('/search/?type=Experiment&assembly=ce10&target.investigated_as=transcription+factor&replicates.library.biosample.life_stage=L4+larva',
              OpenUCSCGenomeBrowserCE10),
             ('/search/?type=Experiment&assembly=ce11&replicates.library.biosample.life_stage=L3+larva&target.investigated_as=transcription+factor',
              OpenUCSCGenomeBrowserCE11),
-            ('/search/?searchTerm=hippocampus&type=Experiment',
+            ('/search/?searchTerm=hippocampus&type=Experiment&assay_title!=scRNA-seq',
              OpenUCSCGenomeBrowserHG19)
         ]
         self.check_permissions_default_actions = [
