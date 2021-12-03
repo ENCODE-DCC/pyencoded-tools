@@ -413,17 +413,19 @@ class SeleniumTask(metaclass=ABCMeta):
 
 
     def _expand_facets(self):
-        expand_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
-            (By.CLASS_NAME, SearchPageList.facet_expander_button)))
-        for button in expand_buttons:
-            if button.get_attribute('aria-pressed') == 'false':
+        expand_group_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
+            (By.CLASS_NAME, SearchPageList.facet_group_expander)))
+        expand_facet_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
+            (By.CLASS_NAME, SearchPageList.facet_expander)))
+        for button in expand_group_buttons + expand_facet_buttons:
+            if button.get_attribute('aria-expanded') == 'false':
                 try:
                     button.click()
-                    assert button.get_attribute('aria-pressed') == 'true'
+                    assert button.get_attribute('aria-expanded') == 'true'
                 except:
                     try:
-                         self.driver.execute_script('arguments[0].scrollIntoView(true);', button)
-                         button.click()
+                        self.driver.execute_script('arguments[0].scrollIntoView(true);', button)
+                        button.click()
                     except:
                         try:
                             self.driver.execute_script('window.scrollBy(0,-100);', button)
