@@ -412,26 +412,35 @@ class SeleniumTask(metaclass=ABCMeta):
         self.driver.execute_script("arguments[0].style.visibility='hidden'", walkme_widget)
 
 
-    def _expand_facets(self):
-        expand_group_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
-            (By.CLASS_NAME, SearchPageList.facet_group_expander)))
-        expand_facet_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
-            (By.CLASS_NAME, SearchPageList.facet_expander)))
-        for button in expand_group_buttons + expand_facet_buttons:
-            if button.get_attribute('aria-expanded') == 'false':
+    def _click_button_with_multiple_retries(self, button):
+        if button.get_attribute('aria-expanded') == 'false' or button.get_attribute('aria-pressed') == 'false':
+            try:
+                button.click()
+                assert button.get_attribute('aria-expanded') == 'true' or button.get_attribute('aria-pressed') == 'true'
+            except:
                 try:
+                    self.driver.execute_script('arguments[0].scrollIntoView(true);', button)
                     button.click()
-                    assert button.get_attribute('aria-expanded') == 'true'
                 except:
                     try:
-                        self.driver.execute_script('arguments[0].scrollIntoView(true);', button)
+                        self.driver.execute_script('window.scrollBy(0,-100);', button)
                         button.click()
                     except:
-                        try:
-                            self.driver.execute_script('window.scrollBy(0,-100);', button)
-                            button.click()
-                        except:
-                            pass
+                        pass
+
+
+    def _expand_facets(self):
+        try:
+            expand_group_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
+                (By.CLASS_NAME, SearchPageList.facet_group_expander)))
+            for button in expand_group_buttons:
+                self._click_button_with_multiple_retries(button)
+        except:
+            pass
+        expand_facet_buttons = self.driver.wait.until(EC.presence_of_all_elements_located(
+            (By.CLASS_NAME, SearchPageList.facet_expander)))
+        for button in expand_facet_buttons:
+            self._click_button_with_multiple_retries(button)
 
 
     @abstractmethod
