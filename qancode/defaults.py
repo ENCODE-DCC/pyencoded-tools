@@ -196,7 +196,7 @@ class ActionTuples:
             ('/reference-epigenome-matrix/?type=Experiment&related_series.@type=ReferenceEpigenome&replicates.library.biosample.donor.organism.scientific_name=Mus+musculus', None),
             ('/region-search/?region=chr7%3A0-30000&genome=GRCh38', None),
             ('/report/?type=Experiment&target.label=H3K4me3&target.label=H3K27me3&target.label%21=H3K4me1&award.project%21=ENCODE&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&replicates.library.biosample.donor.accession%21=ENCDO793LXB&status=released&advancedQuery=%40type%3AExperiment+date_released%3A%5B2015-07-01+TO+2017-10-31%5D', None),
-            ('/rnaget?genes=REM1&units=tpm', None),
+            ('/rnaget-report/?type=RNAExpression', None),
             ('/search/?searchTerm=ENCAB000AEH&type=AntibodyLot', None),
             ('/search/?searchTerm=ENCBS030ENC', None),
             ('/search/?searchTerm=ENCBS808BUA&type=Biosample', None),
