@@ -302,7 +302,8 @@ def main():
                     strand_specificity.add(file_input_df.loc[link].at['replicate.library.strand_specificity'])
 
                 if not pd.isnull(file_input_df.loc[link].at['replicate.library.average_fragment_size']) and \
-                        file_input_df.loc[link].at['replicate.library.uuid'] not in average_fragment_size:
+                        file_input_df.loc[link].at['replicate.library.uuid'] not in average_fragment_size and \
+                        file_input_df.loc[link].at['run_type'] == 'single-end':
                     lib_uuid = file_input_df.loc[link].at['replicate.library.uuid']
                     avg_frag_size = file_input_df.loc[link].at['replicate.library.average_fragment_size']
                     frag_cv = file_input_df.loc[link].at['replicate.library.fragment_length_CV']
