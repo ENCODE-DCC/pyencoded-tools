@@ -153,6 +153,7 @@ class ActionTuples:
             ('/biosamples/ENCBS682JHS/', None),
             ('/cart-manager/', None),
             ('/cart-view/', None),
+            ('/encyclopedia/?type=File&annotation_type=candidate+Cis-Regulatory+Elements&assembly=GRCh38&file_format=bigBed&file_format=bigWig&encyclopedia_version=current', None),
             ('/experiment-series/ENCSR447BSF/', None),
             ('/experiment-series/ENCSR770EIH/', None),
             ('/experiments/ENCSR178NTX/', MakeExperimentPagesLookTheSameByClickingFileTab),
@@ -168,6 +169,9 @@ class ActionTuples:
                 '/search/?type=Experiment&status=submitted&sort=date_submitted',
                 ClickSearchResultItemAndMakeExperimentPagesLookTheSame
             ),
+            ('/search/?type=FunctionalCharacterizationExperiment&control_type!=*&examined_loci.gene.symbol=GATA1', None),
+            ('/search/?type=FunctionalCharacterizationSeries&related_datasets.examined_loci.gene.symbol=MYB', None),
+            ('/search/?type=TransgenicEnhancerExperiment&tissue_with_enhancer_activity=ear+%28UBERON:0001690%29', None),
             ('/search/?type=File&status=in+progress&derived_from=%2A&quality_metrics=%2A&sort=date_created', ClickSearchResultItem),
             ('/files/ENCFF703RFN/', None),
             ('/files/ENCFF933XVP/', None),
