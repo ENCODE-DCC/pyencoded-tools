@@ -14,6 +14,7 @@ import json
 import pprint
 import subprocess
 import os
+import re
 from time import sleep
 
 # and treatment duration & amount & duration_units & amount_units? just
@@ -115,6 +116,8 @@ human_adds = [
     ('field', 'replicates.library.biosample.treatments'),
     ('field', 'replicates.library.biosample.donor'),
     ('field', 'replicates.library.biosample.donor.life_stage'),
+    ('field', 'replicates.library.biosample.age'),
+    ('field', 'replicates.library.biosample.age_units'),
     ('field', 'replicates.library.biosample.applied_modifications'),
     ('field', 'replicates.library.biosample.subcellular_fraction_term_name')
 ]
@@ -123,7 +126,7 @@ human_adds = [
 
 def create_SEs():
 
-    url = "https://www.encodeproject.org/search/?type=Experiment&analyses.pipeline_award_rfas=ENCODE4&assay_term_name=ATAC-seq&assay_term_name=ChIP-seq&assay_term_name=DNase-seq&field=accession&field=analyses&field=assay_term_name&field=bio_replicate_count&field=biosample_ontology&field=replicates.library.biosample.donor&field=replicates.library.biosample.donor.life_stage&field=replicates.library.biosample.subcellular_fraction_term_name&field=replicates.library.biosample.treatments&field=target&internal_status%21=pipeline+error&control_type!=*&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&status=released&limit=all"    
+    url = "https://www.encodeproject.org/search/?type=Experiment&analyses.pipeline_award_rfas=ENCODE4&assay_term_name=ATAC-seq&assay_term_name=ChIP-seq&assay_term_name=DNase-seq&field=accession&field=analyses&field=assay_term_name&field=bio_replicate_count&field=biosample_ontology&field=replicates.library.biosample.donor&field=replicates.library.biosample.donor.life_stage&field=replicates.library.biosample.age&field=replicates.library.biosample.age_units&field=replicates.library.biosample.subcellular_fraction_term_name&field=replicates.library.biosample.treatments&field=target&internal_status%21=pipeline+error&control_type!=*&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&status=released&limit=all"
     exs =  encoded_get(url, keypair, frame='object')['@graph']
     print (len(exs))
 
@@ -224,7 +227,7 @@ def create_SEs():
     '''
     ##################################
     human_exp_param = (exp_param + chip_param + other_param + human_adds).copy()
-    results = CONN.search(list(human_exp_param))
+    # results = CONN.search(list(human_exp_param))
     human_sets = {}
     counter = 0
     for obj in exs:
@@ -236,6 +239,12 @@ def create_SEs():
             biosample = obj['biosample_ontology']['name']
             reps = obj['bio_replicate_count']           
             one_bio_obj = obj['replicates'][0]['library']['biosample']
+            age = ''
+            age_units = ''
+            if 'age' in obj['replicates'][0]['library']['biosample'] and 'age_units' in obj['replicates'][0]['library']['biosample']:
+                age = obj['replicates'][0]['library']['biosample']['age']
+                age_units = obj['replicates'][0]['library']['biosample']['age_units']
+
             donor = obj['replicates'][0]['library']['biosample']['donor']['accession']
 
             GM_accessions = []
@@ -302,7 +311,7 @@ def create_SEs():
                 'subcellular_fraction_term_name', 'no fraction'
             )
 
-            combination = (biosample, life_stage, treatment, fraction, GM_accessions, donor)
+            combination = (biosample, life_stage, age, age_units, treatment, fraction, GM_accessions, donor)
             human_sets.setdefault(combination, {})
             if target in ['H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3', 'CTCF', 'POLR2A', 'EP300']:
                 human_sets[combination].setdefault(target, [])
@@ -317,53 +326,63 @@ def create_SEs():
                     for file in files:
                         human_sets[combination][assay].append(file)
 
-    f = open('/Users/jennifer/wrn30_output.txt','w')
+    f = open('/Users/jennifer/wrn30_output_new.txt','w')
     for combination in human_sets.keys():
         if all (k in human_sets[combination] for k in ('H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3')):
             url = "https://www.encodeproject.org/biosample-types/" + combination[0] + "/"
             btype_obj = encoded_get(url, keypair, frame='object')
 
+            str_to_parse = str(human_sets[combination])
+            list_of_file_accessions = list(set(re.findall(r'ENCFF[0-9A-Z]{6}',str_to_parse)))
 
-            f.write('{}\t{}\t{}\t{}\t{}\n'.format(
-                ' '.join([
-                    str(combination[1]),
+            age_display = f'{combination[2]} {combination[3]}' if (combination[2]!='' and combination[3]!='') else 'no age'
+
+            f.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
+                f'{combination[7]}_{combination[0]}', # old alias
+                f'{combination[7]}_{combination[0]}_{age_display}_{combination[4]}_{combination[5]}_{combination[6]}', # new alias
+                f'/biosample-types/{combination[0]}/', # biosample_ontology
+                f'{",".join(list_of_file_accessions)}', # related_files
+                f'{",".join(combination[1])}', # life stage
+                f'{combination[2]}', # age (relevant_timepoint)
+                f'{combination[3]}', # age unit (relevant_timepoint_units)
+                '; '.join([
+                    ",".join(combination[1]),
                     btype_obj['term_name'],
                     btype_obj['classification'],
-                    combination[2],
-                    'treated',
-                    combination[3],
-                    'fraction',
+                    age_display,
                     combination[4],
-                    'gm',
+                    # 'treated',
                     combination[5],
-                    'donor'
+                    # 'fraction',
+                    combination[6],
+                    # 'gm',
+                    combination[7],
+                    # 'donor'
                 ]),
-                f'{combination[5]}_{combination[0]}',
-                f'{combination[5]}_{combination[0]}_{combination[2]}_{combination[3]}_{combination[4]}',
-                combination[0],
                 human_sets[combination]
                 ))
             
 
-            print('{}\t{}\t{}\t{}\t{}\t'.format(
-                ' '.join([
-                    str(combination[1]),
-                    btype_obj['term_name'],
-                    btype_obj['classification'],
-                    combination[2],
-                    'treated',
-                    combination[3],
-                    'fraction',
-                    combination[4],
-                    'gm',
-                    combination[5],
-                    'donor'
-                ]),
-                f'{combination[5]}_{combination[0]}',
-                f'{combination[5]}_{combination[0]}_{combination[2]}_{combination[3]}_{combination[4]}',
-                combination[0],
-                human_sets[combination]
-                ))
+            print(f"{' '.join([str(combination[1]),btype_obj['term_name'],btype_obj['classification'],age_display,combination[4],'treated',combination[5], 'fraction',combination[6],'gm',combination[7],'donor'])}")
+            # print('{}\t{}\t{}\t{}\t{}\t'.format(
+            #     ' '.join([
+            #         str(combination[1]),
+            #         btype_obj['term_name'],
+            #         btype_obj['classification'],
+            #         combination[2],
+            #         'treated',
+            #         combination[3],
+            #         'fraction',
+            #         combination[4],
+            #         'gm',
+            #         combination[5],
+            #         'donor'
+            #     ]),
+            #     f'{combination[5]}_{combination[0]}',
+            #     f'{combination[5]}_{combination[0]}_{combination[2]}_{combination[3]}_{combination[4]}',
+            #     combination[0],
+            #     human_sets[combination]
+            #     ))
             # print(
             #     ' '.join([
             #         str(combination[1]),
