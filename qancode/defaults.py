@@ -263,7 +263,7 @@ class ActionTuples:
              OpenUCSCGenomeBrowserCE10),
             ('/search/?type=Experiment&assembly=ce11&replicates.library.biosample.life_stage=L3+larva&target.investigated_as=transcription+factor',
              OpenUCSCGenomeBrowserCE11),
-            ('/search/?searchTerm=hippocampus&type=Experiment&assay_title!=scRNA-seq',
+            ('/search/?searchTerm=hippocampus&type=Experiment&assay_title!=scRNA-seq&assay_title!=long+read+scRNA-seq',
              OpenUCSCGenomeBrowserHG19)
         ]
         self.check_permissions_default_actions = [
