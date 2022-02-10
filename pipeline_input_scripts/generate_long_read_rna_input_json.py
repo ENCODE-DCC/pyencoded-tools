@@ -74,7 +74,7 @@ def build_file_report_query(experiment_list, server):
 
 def parse_infile(infile):
     try:
-        infile_df = pd.read_csv(infile, '\t')
+        infile_df = pd.read_csv(infile, sep='\t')
         return infile_df
     except FileNotFoundError as e:
         print(e)
@@ -277,8 +277,7 @@ def main():
         # Fix ordering of reps to prevent non-consecutive numbering.
         for k in list(range(1, 11)):
             if fastqs_by_rep_R1[k] != []:
-                for item in fastqs_by_rep_R1[k]:
-                    merged_fastqs_list.append(item)
+                merged_fastqs_list.append(fastqs_by_rep_R1[k])
                 for item in libs_by_rep_R1[k]:
                     merged_libs_list.append(item)
 
