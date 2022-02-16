@@ -75,7 +75,7 @@ def build_file_report_query(experiment_list, server):
 
 def parse_infile(infile):
     try:
-        infile_df = pd.read_csv(infile, '\t')
+        infile_df = pd.read_csv(infile, sep='\t')
         return infile_df
     except FileNotFoundError as e:
         print(e)
@@ -251,6 +251,9 @@ def main():
         for rep in replicate_collector:
             replicate_collector[rep]['accession'] = experiment_id
             min_read_length = min(replicate_collector[rep]['read_length'])
+            # We have only 150bp hotspots references -- so we must pretend that any 151bp read lengths are actually 150.
+            if min_read_length == 151:
+                min_read_length = 150
             replicate_collector[rep]['read_length'] = int(min_read_length)
             replicate_collector[rep]['number'] = int(rep)
             replicate_collector[rep] = {key: replicate_collector[rep][key] for key in replicate_key_order if key in replicate_collector[rep]}
@@ -284,6 +287,9 @@ def main():
             elif read_len == 101 or read_len == 100:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF798YMP/@@download/ENCFF798YMP.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF588WKD/@@download/ENCFF588WKD.tar.gz'
+            elif read_len == 151 or read_len == 150:
+                hotspot1_link = 'https://www.encodeproject.org/files/ENCFF081AFY/@@download/ENCFF081AFY.tar.gz'
+                hotspot2_link = 'https://www.encodeproject.org/files/ENCFF775KLB/@@download/ENCFF775KLB.tar.gz'
             refs = {
                 'genome_name': 'GRCh38',
                 'indexed_fasta_tar_gz': 'https://www.encodeproject.org/files/ENCFF499QKB/@@download/ENCFF499QKB.tar.gz',
@@ -310,6 +316,9 @@ def main():
             elif read_len == 101 or read_len == 100:
                 hotspot1_link = 'https://www.encodeproject.org/files/ENCFF974OZN/@@download/ENCFF974OZN.tar.gz'
                 hotspot2_link = 'https://www.encodeproject.org/files/ENCFF769YPQ/@@download/ENCFF769YPQ.tar.gz'
+            elif read_len == 151 or read_len == 150:
+                hotspot1_link = 'https://www.encodeproject.org/files/ENCFF300BMO/@@download/ENCFF300BMO.tar.gz'
+                hotspot2_link = 'https://www.encodeproject.org/files/ENCFF571XXC/@@download/ENCFF571XXC.tar.gz'
             refs = {
                 'genome_name': 'mm10',
                 'indexed_fasta_tar_gz': 'https://www.encodeproject.org/files/ENCFF734RZS/@@download/ENCFF734RZS.tar.gz',
