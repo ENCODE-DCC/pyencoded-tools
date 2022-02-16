@@ -126,7 +126,7 @@ human_adds = [
 
 def create_SEs():
 
-    url = "https://www.encodeproject.org/search/?type=Experiment&analyses.pipeline_award_rfas=ENCODE4&assay_term_name=ATAC-seq&assay_term_name=ChIP-seq&assay_term_name=DNase-seq&field=accession&field=analyses&field=assay_term_name&field=bio_replicate_count&field=biosample_ontology&field=replicates.library.biosample.donor&field=replicates.library.biosample.donor.life_stage&field=replicates.library.biosample.age&field=replicates.library.biosample.age_units&field=replicates.library.biosample.subcellular_fraction_term_name&field=replicates.library.biosample.treatments&field=target&internal_status%21=pipeline+error&control_type!=*&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&status=released&limit=all"
+    url = "https://www.encodeproject.org/search/?type=Experiment&analyses.pipeline_award_rfas=ENCODE4&assay_term_name=ATAC-seq&assay_term_name=ChIP-seq&assay_term_name=DNase-seq&field=accession&field=analyses&field=assay_term_name&field=biosample_summary&field=bio_replicate_count&field=biosample_ontology&field=replicates.library.biosample.donor&field=replicates.library.biosample.donor.life_stage&field=replicates.library.biosample.age&field=replicates.library.biosample.age_units&field=replicates.library.biosample.subcellular_fraction_term_name&field=replicates.library.biosample.treatments&field=target&internal_status%21=pipeline+error&control_type!=*&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&status=released&limit=all"
     exs =  encoded_get(url, keypair, frame='object')['@graph']
     print (len(exs))
 
@@ -234,6 +234,7 @@ def create_SEs():
         counter += 1
         assay = obj['assay_term_name']
         accession = obj['accession']
+        biosample_summary = obj['biosample_summary']
         target = obj.get('target', {}).get('label', 'none')
         if target in ['H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3', 'CTCF', 'POLR2A', 'EP300', 'none']:
             biosample = obj['biosample_ontology']['name']
@@ -311,7 +312,7 @@ def create_SEs():
                 'subcellular_fraction_term_name', 'no fraction'
             )
 
-            combination = (biosample, life_stage, age, age_units, treatment, fraction, GM_accessions, donor)
+            combination = (biosample, life_stage, age, age_units, treatment, fraction, GM_accessions, donor, biosample_summary)
             human_sets.setdefault(combination, {})
             if target in ['H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3', 'CTCF', 'POLR2A', 'EP300']:
                 human_sets[combination].setdefault(target, [])
@@ -326,7 +327,7 @@ def create_SEs():
                     for file in files:
                         human_sets[combination][assay].append(file)
 
-    f = open('/Users/jennifer/wrn30_output_new.txt','w')
+    f = open('/Users/jennifer/wrn30_output_new_feb15.txt','w')
     for combination in human_sets.keys():
         if all (k in human_sets[combination] for k in ('H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3')):
             url = "https://www.encodeproject.org/biosample-types/" + combination[0] + "/"
@@ -345,20 +346,21 @@ def create_SEs():
                 f'{",".join(combination[1])}', # life stage
                 f'{combination[2]}', # age (relevant_timepoint)
                 f'{combination[3]}', # age unit (relevant_timepoint_units)
-                '; '.join([
-                    ",".join(combination[1]),
-                    btype_obj['term_name'],
-                    btype_obj['classification'],
-                    age_display,
-                    combination[4],
-                    # 'treated',
-                    combination[5],
-                    # 'fraction',
-                    combination[6],
-                    # 'gm',
-                    combination[7],
-                    # 'donor'
-                ]),
+                # '; '.join([
+                #     ",".join(combination[1]),
+                #     btype_obj['term_name'],
+                #     btype_obj['classification'],
+                #     age_display,
+                #     combination[4],
+                #     # 'treated',
+                #     combination[5],
+                #     # 'fraction',
+                #     combination[6],
+                #     # 'gm',
+                #     combination[7],
+                #     # 'donor'
+                # ]),
+                f'Donor {combination[7]}: {combination[8]}',
                 human_sets[combination]
                 ))
             
