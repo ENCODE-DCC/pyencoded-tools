@@ -5,6 +5,7 @@ import argparse
 
 import encode_utils.connection as euc
 
+
 import requests
 import urllib.parse
 import sys
@@ -17,12 +18,14 @@ import os
 import re
 from time import sleep
 
+
 # and treatment duration & amount & duration_units & amount_units? just
 # treaments - match whole list - but can't query that way easily
 # figure out how to handle life_stages - if anything other than unknown
 # present, use that (and query also unknown) - what if 2 non-unknown present?
 
 CONN = euc.Connection('prod', dry_run=True)
+
 
 keypair = (os.environ.get('DCC_API_KEY'), os.environ.get('DCC_SECRET_KEY'))
 
@@ -116,6 +119,7 @@ human_adds = [
     ('field', 'replicates.library.biosample.treatments'),
     ('field', 'replicates.library.biosample.donor'),
     ('field', 'replicates.library.biosample.donor.life_stage'),
+
     ('field', 'replicates.library.biosample.age'),
     ('field', 'replicates.library.biosample.age_units'),
     ('field', 'replicates.library.biosample.applied_modifications'),
@@ -125,6 +129,7 @@ human_adds = [
 
 
 def create_SEs():
+
 
     url = "https://www.encodeproject.org/search/?type=Experiment&analyses.pipeline_award_rfas=ENCODE4&assay_term_name=ATAC-seq&assay_term_name=ChIP-seq&assay_term_name=DNase-seq&field=accession&field=analyses&field=assay_term_name&field=biosample_summary&field=bio_replicate_count&field=biosample_ontology&field=replicates.library.biosample.donor&field=replicates.library.biosample.donor.life_stage&field=replicates.library.biosample.age&field=replicates.library.biosample.age_units&field=replicates.library.biosample.subcellular_fraction_term_name&field=replicates.library.biosample.treatments&field=target&internal_status%21=pipeline+error&control_type!=*&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&status=released&limit=all"
     exs =  encoded_get(url, keypair, frame='object')['@graph']
@@ -168,8 +173,10 @@ def create_SEs():
                 if analysis['status'] == 'released' and 'pipeline_award_rfas' in analysis:
                     if len(analysis['pipeline_award_rfas']) == 1 and 'ENCODE4' in analysis['pipeline_award_rfas']:
                         for file in analysis['files']:
+
                             # file_obj = CONN.get(file)
                             file_obj = file_ids.get(file, None)
+
                             if file_obj['status'] == 'released':
                                 if assay in ['ChIP-seq', 'ATAC-seq']:
                                     if file_obj['output_type'] == 'fold change over control' and file_obj['file_format'] == 'bigWig':
@@ -190,7 +197,9 @@ def create_SEs():
         fraction = one_bio_obj.get(
             'subcellular_fraction_term_name', 'no fraction'
         )
+
         combination = (biosample, age, treatment, fraction, donor, biosample_summary)
+
         mouse_sets.setdefault(combination, {})
         if target in ['H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3', 'CTCF', 'POLR2A', 'EP300']:
             mouse_sets[combination].setdefault(target, [])
@@ -204,6 +213,7 @@ def create_SEs():
             if len(files) == 1:
                 for file in files:
                     mouse_sets[combination][assay].append(file)
+
 
     f_mouse = open('/Users/jennifer/wrn30_output_new_feb15_mouse.txt','w')
     for combination in mouse_sets:
@@ -241,7 +251,6 @@ def create_SEs():
                 human_sets[combination]
                 ))
 
-
             print(
                 ' '.join([
                     str(combination[1]),
@@ -258,6 +267,7 @@ def create_SEs():
             print(combination[0])
             print(mouse_sets[combination])
             print('-----------------------')
+
     '''
     ##################################
     human_exp_param = (exp_param + chip_param + other_param + human_adds).copy()
@@ -454,6 +464,7 @@ def get_parser():
 def main():
     parser = get_parser()
     args = parser.parse_args()
+
     try:
         func = args.func()
     except AttributeError:
