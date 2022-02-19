@@ -190,7 +190,7 @@ def create_SEs():
         fraction = one_bio_obj.get(
             'subcellular_fraction_term_name', 'no fraction'
         )
-        combination = (biosample, age, treatment, fraction, donor)
+        combination = (biosample, age, treatment, fraction, donor, biosample_summary)
         mouse_sets.setdefault(combination, {})
         if target in ['H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3', 'CTCF', 'POLR2A', 'EP300']:
             mouse_sets[combination].setdefault(target, [])
@@ -205,9 +205,43 @@ def create_SEs():
                 for file in files:
                     mouse_sets[combination][assay].append(file)
 
+    f_mouse = open('/Users/jennifer/wrn30_output_new_feb15_mouse.txt','w')
     for combination in mouse_sets:
         if all (k in mouse_sets[combination] for k in ('H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3')):
             btype_obj = CONN.get('/biosample-types/{}/'.format(combination[0]))
+
+            str_to_parse = str(human_sets[combination])
+            list_of_file_accessions = list(set(re.findall(r'ENCFF[0-9A-Z]{6}',str_to_parse)))
+
+            age_display = f'{combination[2]} {combination[3]}' if (combination[2]!='' and combination[3]!='') else 'no age'
+
+            f_mouse.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
+                f'{combination[7]}_{combination[0]}', # old alias
+                f'{combination[7]}_{combination[0]}_{age_display}_{combination[4]}_{combination[5]}_{combination[6]}', # new alias
+                f'/biosample-types/{combination[0]}/', # biosample_ontology
+                f'{",".join(list_of_file_accessions)}', # related_files
+                f'{",".join(combination[1])}', # life stage
+                f'{combination[2]}', # age (relevant_timepoint)
+                f'{combination[3]}', # age unit (relevant_timepoint_units)
+                # '; '.join([
+                #     ",".join(combination[1]),
+                #     btype_obj['term_name'],
+                #     btype_obj['classification'],
+                #     age_display,
+                #     combination[4],
+                #     # 'treated',
+                #     combination[5],
+                #     # 'fraction',
+                #     combination[6],
+                #     # 'gm',
+                #     combination[7],
+                #     # 'donor'
+                # ]),
+                f'Strain {combination[7]}: {combination[8]}',
+                human_sets[combination]
+                ))
+
+
             print(
                 ' '.join([
                     str(combination[1]),
