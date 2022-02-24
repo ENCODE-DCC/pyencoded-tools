@@ -153,6 +153,7 @@ class ActionTuples:
             ('/biosamples/ENCBS682JHS/', None),
             ('/cart-manager/', None),
             ('/cart-view/', None),
+            ('/encyclopedia/?type=File&annotation_type=candidate+Cis-Regulatory+Elements&assembly=GRCh38&file_format=bigBed&file_format=bigWig&encyclopedia_version=current', None),
             ('/experiment-series/ENCSR447BSF/', None),
             ('/experiment-series/ENCSR770EIH/', None),
             ('/experiments/ENCSR178NTX/', MakeExperimentPagesLookTheSameByClickingFileTab),
@@ -168,6 +169,9 @@ class ActionTuples:
                 '/search/?type=Experiment&status=submitted&sort=date_submitted',
                 ClickSearchResultItemAndMakeExperimentPagesLookTheSame
             ),
+            ('/search/?type=FunctionalCharacterizationExperiment&control_type!=*&examined_loci.gene.symbol=GATA1', None),
+            ('/search/?type=FunctionalCharacterizationSeries&related_datasets.examined_loci.gene.symbol=MYB', None),
+            ('/search/?type=TransgenicEnhancerExperiment&tissue_with_enhancer_activity=ear+%28UBERON:0001690%29', None),
             ('/search/?type=File&status=in+progress&derived_from=%2A&quality_metrics=%2A&sort=date_created', ClickSearchResultItem),
             ('/files/ENCFF703RFN/', None),
             ('/files/ENCFF933XVP/', None),
@@ -196,7 +200,7 @@ class ActionTuples:
             ('/reference-epigenome-matrix/?type=Experiment&related_series.@type=ReferenceEpigenome&replicates.library.biosample.donor.organism.scientific_name=Mus+musculus', None),
             ('/region-search/?region=chr7%3A0-30000&genome=GRCh38', None),
             ('/report/?type=Experiment&target.label=H3K4me3&target.label=H3K27me3&target.label%21=H3K4me1&award.project%21=ENCODE&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&replicates.library.biosample.donor.accession%21=ENCDO793LXB&status=released&advancedQuery=%40type%3AExperiment+date_released%3A%5B2015-07-01+TO+2017-10-31%5D', None),
-            ('/rnaget?genes=REM1&units=tpm', None),
+            ('/rnaget-report/?type=RNAExpression', None),
             ('/search/?searchTerm=ENCAB000AEH&type=AntibodyLot', None),
             ('/search/?searchTerm=ENCBS030ENC', None),
             ('/search/?searchTerm=ENCBS808BUA&type=Biosample', None),
@@ -253,13 +257,13 @@ class ActionTuples:
              OpenUCSCGenomeBrowserMM10),
             ('/search/?type=Experiment&assembly=dm3&status=released&replicates.library.biosample.biosample_ontology.classification=whole+organisms&assay_title=total+RNA-seq',
              OpenUCSCGenomeBrowserDM3),
-            ('/search/?type=Experiment&assembly=dm6&replicates.library.biosample.life_stage=wandering+third+instar+larva',
+            ('/search/?type=Experiment&assembly=dm6&replicates.library.biosample.life_stage=wandering+third+instar+larva&assay_title=TF+ChIP-seq',
              OpenUCSCGenomeBrowserDM6),
             ('/search/?type=Experiment&assembly=ce10&target.investigated_as=transcription+factor&replicates.library.biosample.life_stage=L4+larva',
              OpenUCSCGenomeBrowserCE10),
             ('/search/?type=Experiment&assembly=ce11&replicates.library.biosample.life_stage=L3+larva&target.investigated_as=transcription+factor',
              OpenUCSCGenomeBrowserCE11),
-            ('/search/?searchTerm=hippocampus&type=Experiment',
+            ('/search/?searchTerm=hippocampus&type=Experiment&assay_title!=scRNA-seq&assay_title!=long+read+scRNA-seq',
              OpenUCSCGenomeBrowserHG19)
         ]
         self.check_permissions_default_actions = [
