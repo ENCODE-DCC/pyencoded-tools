@@ -238,6 +238,15 @@ def create_SEs():
             if age_display != 'no age':
                 age_display_alias_formatted = f'{combination[1]}_{combination[2]}'
 
+            non_chip_assays = ['DNase-seq', 'ATAC-seq']
+            assay_list = []
+            target_list = []
+            for k in combination:
+                if k in non_chip_assays:
+                    assay_list.append(k)
+                else
+                    assay_list.append('ChIP-seq')
+                    target_list.append(f'/targets/{k}-mouse/')
 
             output_string = (f'{combination[5]}_{age_display_alias_formatted}_{combination[0]}\t' # old alias
                 f'{combination[5]}_{age_display_alias_formatted}_{combination[0]}_{combination[3]}_{combination[4]}\t' # new alias
@@ -245,6 +254,8 @@ def create_SEs():
                 f'{",".join(list_of_file_accessions)}\t' # related_files
                 f'{combination[1]}\t' # age (relevant_timepoint)
                 f'{combination[2]}\t' # age unit (relevant_timepoint_units)
+                f'{",".join(assay_list)}\t' # assay_term_name
+                f'{",".join(target_list)}\t' # targets
                 f'Strain {combination[5]}: {combination[6]}\t' # description
                 f'{mouse_sets[combination]}\n')
 
@@ -367,6 +378,16 @@ def create_SEs():
 
             age_display = f'{combination[2]} {combination[3]}' if (combination[2]!='' and combination[3]!='') else 'no age'
 
+            non_chip_assays = ['DNase-seq', 'ATAC-seq']
+            assay_list = []
+            target_list = []
+            for k in combination:
+                if k in non_chip_assays:
+                    assay_list.append(k)
+                else
+                    assay_list.append('ChIP-seq')
+                    target_list.append(f'/targets/{k}-human/')
+
             output_string = (
                 f'{combination[7]}_{combination[0]}\t' # old alias
                 f'{combination[7]}_{combination[0]}_{age_display}_{combination[4]}_{combination[5]}_{combination[6]}\t' # new alias
@@ -375,6 +396,8 @@ def create_SEs():
                 f'{",".join(combination[1])}\t' # life stage
                 f'{combination[2]}\t' # age (relevant_timepoint)
                 f'{combination[3]}\t' # age unit (relevant_timepoint_units)
+                f'{",".join(assay_list)}\t' # assay_term_name
+                f'{",".join(target_list)}\t' # targets
                 f'Donor {combination[7]}: {combination[8]}\t'
                 f'{human_sets[combination]}\n'
             )
