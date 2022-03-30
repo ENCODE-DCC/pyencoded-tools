@@ -165,7 +165,7 @@ def write_output(organism, file, combination, sets):
             f'Donor {combination[7]}: {combination[8]}\t'
             f'{sorted_files_dictionary}\n'
         )
-    elif organims == 'mouse':
+    elif organism == 'mouse':
         output_string = (
             f'{combination[5]}_{age_display_alias_formatted}_{combination[0]}\t' # old alias
             f'{combination[5]}_{age_display_alias_formatted}_{combination[0]}_{combination[3]}_{combination[4]}\t' # new alias
