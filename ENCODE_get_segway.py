@@ -127,8 +127,64 @@ human_adds = [
 ]
 ##################################
 
+def write_output(organism, file, combination, sets):
+    url = "https://www.encodeproject.org/biosample-types/" + combination[0] + "/"
+    btype_obj = encoded_get(url, keypair, frame='object')
 
-def create_SEs():
+    str_to_parse = str(sets[combination])
+    list_of_file_accessions = list(set(re.findall(r'ENCFF[0-9A-Z]{6}',str_to_parse)))
+
+    age_display = f'{combination[2]} {combination[3]}' if (combination[2]!='' and combination[3]!='') else 'no age'
+
+    age_display_alias_formatted = 'no age'
+    if age_display != 'no age':
+        age_display_alias_formatted = f'{combination[1]}_{combination[2]}'
+
+    assay_list = []
+    target_list = []
+    for k in sets[combination]:
+        if k in ['DNase-seq', 'ATAC-seq']:
+            assay_list.append(k)
+        else:
+            assay_list.append('ChIP-seq')
+            target_list.append(f'/targets/{k}-{organism}/')
+
+    sorted_files_dictionary = {k: sets[combination][k] for k in sorted(sets[combination])}
+
+    if organism == 'human':
+        output_string = (
+            f'{combination[7]}_{combination[0]}\t' # old alias
+            f'{combination[7]}_{combination[0]}_{age_display}_{combination[4]}_{combination[5]}_{combination[6]}\t' # new alias
+            f'/biosample-types/{combination[0]}/\t' # biosample_ontology
+            f'{",".join(sorted(list_of_file_accessions))}\t' # related_files
+            f'{combination[1]}\t' # life stage
+            f'{combination[2]}\t' # age (relevant_timepoint)
+            f'{combination[3]}\t' # age unit (relevant_timepoint_units)
+            f'{",".join(set(assay_list))}\t' # assay_term_name
+            f'{",".join(set(target_list))}\t' # targets
+            f'Donor {combination[7]}: {combination[8]}\t'
+            f'{sorted_files_dictionary}\n'
+        )
+    elif organims == 'mouse':
+        output_string = (
+            f'{combination[5]}_{age_display_alias_formatted}_{combination[0]}\t' # old alias
+            f'{combination[5]}_{age_display_alias_formatted}_{combination[0]}_{combination[3]}_{combination[4]}\t' # new alias
+            f'/biosample-types/{combination[0]}/\t' # biosample_ontology
+            f'{",".join(list_of_file_accessions)}\t' # related_files
+            f'{combination[1]}\t' # age (relevant_timepoint)
+            f'{combination[2]}\t' # age unit (relevant_timepoint_units)
+            f'{",".join(assay_list)}\t' # assay_term_name
+            f'{",".join(target_list)}\t' # targets
+            f'Strain {combination[5]}: {combination[6]}\t' # description
+            f'{mouse_sets[combination]}\n')
+
+    file.write(output_string)
+    print(output_string)
+    print('-----------------------')
+
+
+
+def create_SEs(args):
 
 
     url = "https://www.encodeproject.org/search/?type=Experiment&analyses.pipeline_award_rfas=ENCODE4&assay_term_name=ATAC-seq&assay_term_name=ChIP-seq&assay_term_name=DNase-seq&field=accession&field=analyses&field=assay_term_name&field=biosample_summary&field=bio_replicate_count&field=biosample_ontology&field=replicates.library.biosample.donor&field=replicates.library.biosample.donor.life_stage&field=replicates.library.biosample.age&field=replicates.library.biosample.age_units&field=replicates.library.biosample.subcellular_fraction_term_name&field=replicates.library.biosample.treatments&field=target&internal_status%21=pipeline+error&control_type!=*&replicates.library.biosample.donor.organism.scientific_name=Homo+sapiens&status=released&limit=all"
@@ -223,52 +279,17 @@ def create_SEs():
                 for file in files:
                     mouse_sets[combination][assay].append(file)
 
-
-    f_mouse = open('/Users/jennifer/wrn30_output_new_feb15_mouse.txt','w')
+    f_mouse = open(args.mouse,'w')
     for combination in mouse_sets:
         if all (k in mouse_sets[combination] for k in ('H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3')):
-            btype_obj = CONN.get('/biosample-types/{}/'.format(combination[0]))
+            write_output('mouse', f_mouse, combination, mouse_sets)
 
-            str_to_parse = str(mouse_sets[combination])
-            list_of_file_accessions = list(set(re.findall(r'ENCFF[0-9A-Z]{6}',str_to_parse)))
-
-            age_display = f'{combination[1]} {combination[2]}' if (combination[1]!='' and combination[2]!='') else 'no age'
-
-            age_display_alias_formatted = 'no age'
-            if age_display != 'no age':
-                age_display_alias_formatted = f'{combination[1]}_{combination[2]}'
-
-            non_chip_assays = ['DNase-seq', 'ATAC-seq']
-            assay_list = []
-            target_list = []
-            for k in combination:
-                if k in non_chip_assays:
-                    assay_list.append(k)
-                else
-                    assay_list.append('ChIP-seq')
-                    target_list.append(f'/targets/{k}-mouse/')
-
-            output_string = (f'{combination[5]}_{age_display_alias_formatted}_{combination[0]}\t' # old alias
-                f'{combination[5]}_{age_display_alias_formatted}_{combination[0]}_{combination[3]}_{combination[4]}\t' # new alias
-                f'/biosample-types/{combination[0]}/\t' # biosample_ontology
-                f'{",".join(list_of_file_accessions)}\t' # related_files
-                f'{combination[1]}\t' # age (relevant_timepoint)
-                f'{combination[2]}\t' # age unit (relevant_timepoint_units)
-                f'{",".join(assay_list)}\t' # assay_term_name
-                f'{",".join(target_list)}\t' # targets
-                f'Strain {combination[5]}: {combination[6]}\t' # description
-                f'{mouse_sets[combination]}\n')
-
-            f_mouse.write(output_string)
-
-            print(output_string)
-            print(combination[0])
-            print(mouse_sets[combination])
-            print('-----------------------')
+    f_mouse.close()
 
     ##################################
     human_exp_param = (exp_param + chip_param + other_param + human_adds).copy()
     human_sets = {}
+    mixed_donor_sets = {}
     counter = 0
     for obj in exs:
         counter += 1
@@ -344,6 +365,7 @@ def create_SEs():
                     )
                 )
             )
+            life_stage = ','.join(life_stage)
 
             treatment = 'no treatment'
             if len(one_bio_obj['treatments']) > 0:
@@ -353,13 +375,23 @@ def create_SEs():
             )
 
             combination = (biosample, life_stage, age, age_units, treatment, fraction, GM_accessions, donor, biosample_summary)
+            non_donor_specific_combination = (biosample, ('mixed_LS'), 'mixed_age', 'mixed_age_units', treatment, fraction, GM_accessions, 'mixed_donor', biosample_summary.split(' (')[0])
             human_sets.setdefault(combination, {})
+            mixed_donor_sets.setdefault(non_donor_specific_combination, {})
+
             if target in ['H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3', 'CTCF', 'POLR2A', 'EP300']:
                 human_sets[combination].setdefault(target, [])
                 human_sets[combination][target].append(accession)
                 if len(files) == 1:
                     for file in files:
                         human_sets[combination][target].append(file)
+
+                mixed_donor_sets[non_donor_specific_combination].setdefault(target, [])
+                mixed_donor_sets[non_donor_specific_combination][target].append(accession)
+                if len(files) == 1:
+                    for file in files:
+                        mixed_donor_sets[non_donor_specific_combination][target].append(file)
+
             if assay in ['DNase-seq', 'ATAC-seq']:
                 human_sets[combination].setdefault(assay, [])
                 human_sets[combination][assay].append(accession)
@@ -367,43 +399,27 @@ def create_SEs():
                     for file in files:
                         human_sets[combination][assay].append(file)
 
-    f = open('/Users/jennifer/wrn30_output_new_feb15.txt','w')
+                mixed_donor_sets[non_donor_specific_combination].setdefault(assay, [])
+                mixed_donor_sets[non_donor_specific_combination][assay].append(accession)
+                if len(files) == 1:
+                    for file in files:
+                        mixed_donor_sets[non_donor_specific_combination][assay].append(file)
+
+    f = open(args.human,'w')
+
     for combination in human_sets.keys():
+
         if all (k in human_sets[combination] for k in ('H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3')):
-            url = "https://www.encodeproject.org/biosample-types/" + combination[0] + "/"
-            btype_obj = encoded_get(url, keypair, frame='object')
 
-            str_to_parse = str(human_sets[combination])
-            list_of_file_accessions = list(set(re.findall(r'ENCFF[0-9A-Z]{6}',str_to_parse)))
+            mixed_donor_key = (combination[0], ('mixed_LS'), 'mixed_age', 'mixed_age_units', combination[4], combination[5], combination[6], 'mixed_donor', combination[8].split(' (')[0])
+            mixed_donor_sets.pop(mixed_donor_key, None)
 
-            age_display = f'{combination[2]} {combination[3]}' if (combination[2]!='' and combination[3]!='') else 'no age'
+            write_output('human', f, combination, human_sets)
 
-            non_chip_assays = ['DNase-seq', 'ATAC-seq']
-            assay_list = []
-            target_list = []
-            for k in combination:
-                if k in non_chip_assays:
-                    assay_list.append(k)
-                else
-                    assay_list.append('ChIP-seq')
-                    target_list.append(f'/targets/{k}-human/')
+    for combination in mixed_donor_sets.keys():
+        if all (k in mixed_donor_sets[combination] for k in ('H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3')):
+            write_output('human', f, combination, mixed_donor_sets)
 
-            output_string = (
-                f'{combination[7]}_{combination[0]}\t' # old alias
-                f'{combination[7]}_{combination[0]}_{age_display}_{combination[4]}_{combination[5]}_{combination[6]}\t' # new alias
-                f'/biosample-types/{combination[0]}/\t' # biosample_ontology
-                f'{",".join(list_of_file_accessions)}\t' # related_files
-                f'{",".join(combination[1])}\t' # life stage
-                f'{combination[2]}\t' # age (relevant_timepoint)
-                f'{combination[3]}\t' # age unit (relevant_timepoint_units)
-                f'{",".join(assay_list)}\t' # assay_term_name
-                f'{",".join(target_list)}\t' # targets
-                f'Donor {combination[7]}: {combination[8]}\t'
-                f'{human_sets[combination]}\n'
-            )
-            f.write(output_string)
-            print(output_string)
-            print('-----------------------')
     f.close()
 
 
@@ -415,6 +431,12 @@ def get_parser():
     subparsers = parser.add_subparsers()
     parser_create = subparsers.add_parser('create', help='Create')
     parser_create.set_defaults(func=create_SEs)
+    parser_create.add_argument('--mouse', action='store', default='segway_mouse_sets.txt',
+                        help="""Path to output file for mouse.""")
+    parser_create.add_argument('--human', action='store', default='segway_human_sets.txt',
+                        help="""Path to output file for human.""")
+    parser_create.add_argument('--human-mixed', action='store', default='',
+                        help="""Path to output file for human with mixed donors.""")
     return parser
 
 
@@ -423,7 +445,7 @@ def main():
     args = parser.parse_args()
 
     try:
-        func = args.func()
+        func = args.func(args)
     except AttributeError:
         parser.error("too few arguments")
         func(args)
