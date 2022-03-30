@@ -374,6 +374,9 @@ def create_SEs(args):
                 'subcellular_fraction_term_name', 'no fraction'
             )
 
+            # Create two different combination "keys" based on the same experiment,
+            # one which is unique donor, and another which is non-unique donor.
+            # These will be stored in different dictionaries.
             combination = (biosample, life_stage, age, age_units, treatment, fraction, GM_accessions, donor, biosample_summary)
             non_donor_specific_combination = (biosample, ('mixed_LS'), 'mixed_age', 'mixed_age_units', treatment, fraction, GM_accessions, 'mixed_donor', biosample_summary.split(' (')[0])
             human_sets.setdefault(combination, {})
@@ -411,6 +414,10 @@ def create_SEs(args):
 
         if all (k in human_sets[combination] for k in ('H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3')):
 
+            # If there is a complete set with the unique donor tuple, then we
+            # should delete the non-unique donor tuple from the other group of
+            # sets, since we don't need to have both a unique and non-unique
+            # Segway run on the same biosample type.
             mixed_donor_key = (combination[0], ('mixed_LS'), 'mixed_age', 'mixed_age_units', combination[4], combination[5], combination[6], 'mixed_donor', combination[8].split(' (')[0])
             mixed_donor_sets.pop(mixed_donor_key, None)
 
@@ -435,8 +442,6 @@ def get_parser():
                         help="""Path to output file for mouse.""")
     parser_create.add_argument('--human', action='store', default='segway_human_sets.txt',
                         help="""Path to output file for human.""")
-    parser_create.add_argument('--human-mixed', action='store', default='',
-                        help="""Path to output file for human with mixed donors.""")
     return parser
 
 
