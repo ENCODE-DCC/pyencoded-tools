@@ -176,7 +176,7 @@ def write_output(organism, file, combination, sets):
             f'{",".join(assay_list)}\t' # assay_term_name
             f'{",".join(target_list)}\t' # targets
             f'Strain {combination[5]}: {combination[6]}\t' # description
-            f'{mouse_sets[combination]}\n')
+            f'{sorted_files_dictionary}\n')
 
     file.write(output_string)
     print(output_string)
@@ -290,15 +290,22 @@ def create_SEs(args):
     human_exp_param = (exp_param + chip_param + other_param + human_adds).copy()
     human_sets = {}
     mixed_donor_sets = {}
+
+    # Look up the term_name to be used with the description for the mixed donor sets
+    biosample_name_to_term_name = {}
+
     counter = 0
     for obj in exs:
         counter += 1
         assay = obj['assay_term_name']
         accession = obj['accession']
         biosample_summary = obj['biosample_summary']
+
         target = obj.get('target', {}).get('label', 'none')
         if target in ['H3K27me3', 'H3K36me3', 'H3K4me1', 'H3K4me3', 'H3K27ac', 'H3K9me3', 'CTCF', 'POLR2A', 'EP300', 'none']:
             biosample = obj['biosample_ontology']['name']
+            biosample_name_to_term_name[biosample] = biosample_term_name = obj['biosample_ontology']['term_name']
+
             reps = obj['bio_replicate_count']           
             one_bio_obj = obj['replicates'][0]['library']['biosample']
             age = ''
@@ -378,7 +385,7 @@ def create_SEs(args):
             # one which is unique donor, and another which is non-unique donor.
             # These will be stored in different dictionaries.
             combination = (biosample, life_stage, age, age_units, treatment, fraction, GM_accessions, donor, biosample_summary)
-            non_donor_specific_combination = (biosample, ('mixed_LS'), 'mixed_age', 'mixed_age_units', treatment, fraction, GM_accessions, 'mixed_donor', biosample_summary.split(' (')[0])
+            non_donor_specific_combination = (biosample, ('mixed_LS'), 'mixed_age', 'mixed_age_units', treatment, fraction, GM_accessions, 'mixed_donor', 'Homo sapiens ' + biosample_term_name)
             human_sets.setdefault(combination, {})
             mixed_donor_sets.setdefault(non_donor_specific_combination, {})
 
@@ -418,7 +425,7 @@ def create_SEs(args):
             # should delete the non-unique donor tuple from the other group of
             # sets, since we don't need to have both a unique and non-unique
             # Segway run on the same biosample type.
-            mixed_donor_key = (combination[0], ('mixed_LS'), 'mixed_age', 'mixed_age_units', combination[4], combination[5], combination[6], 'mixed_donor', combination[8].split(' (')[0])
+            mixed_donor_key = (combination[0], ('mixed_LS'), 'mixed_age', 'mixed_age_units', combination[4], combination[5], combination[6], 'mixed_donor', 'Homo sapiens ' + biosample_name_to_term_name[combination[0]])
             mixed_donor_sets.pop(mixed_donor_key, None)
 
             write_output('human', f, combination, human_sets)
