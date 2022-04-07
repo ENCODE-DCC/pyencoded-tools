@@ -21,7 +21,9 @@ PREFERRED_DEFAULT_TYPE_FORMAT = {
 }
 CURRENT_PIPELINE_VERSION = [
     '1.1.5',
-    '1.1.6'
+    '1.1.6',
+    '1.1.7',
+    '1.1.8'
 ]
 
 
