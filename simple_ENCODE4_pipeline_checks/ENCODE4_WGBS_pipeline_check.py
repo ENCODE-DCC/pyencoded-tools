@@ -196,6 +196,7 @@ def main():
     args = parser.parse_args()
     summary = {}
     GoodExperiments = {}
+    SkippedExperiments = []
     patchAnalyses = {}
     for exp_acc in args.exp_accs:
         bad_reason, serious_audits, archiveAnalyses = check_encode4_wgbs_pipeline(
@@ -205,6 +206,8 @@ def main():
         if status == 'Good':
             experimentID = exp_acc.strip()
             GoodExperiments[experimentID] = sum(serious_audits.values())
+        else:
+            SkippedExperiments.append(exp_acc.strip())
         if sum(serious_audits.values()):
             status += ' BUT has {} ERROR and {} NOT_COMPLIANT'.format(
                 serious_audits.get('ERROR', 0),
@@ -253,6 +256,11 @@ def main():
                 releasedFiles.write(key)
                 releasedFiles.write('\n')
                 problemWriter.writerow([key, 'release ready'])
+
+    if len(SkippedExperiments) > 0:
+        print('Excluding following datasets from the releasedPatch.txt file:')
+        for item in SkippedExperiments:
+            print(f'{item}')
 
 
 if __name__ == '__main__':
