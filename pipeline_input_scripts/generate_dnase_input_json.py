@@ -248,9 +248,14 @@ def main():
             'pe_fastqs',
             'se_fastqs'
         ]
+        min_read_length = 1000
+        for rep in replicate_collector:
+            read_length = min(replicate_collector[rep]['read_length'])
+            if read_length < min_read_length:
+                min_read_length = read_length
+
         for rep in replicate_collector:
             replicate_collector[rep]['accession'] = experiment_id
-            min_read_length = min(replicate_collector[rep]['read_length'])
             # We have only 150bp hotspots references -- so we must pretend that any 151bp read lengths are actually 150.
             if min_read_length == 151:
                 min_read_length = 150
