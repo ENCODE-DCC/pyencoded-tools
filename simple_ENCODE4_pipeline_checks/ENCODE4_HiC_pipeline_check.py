@@ -33,7 +33,8 @@ def get_latest_analysis(analyses):
             'pipeline_rfas': analysis['pipeline_award_rfas'],
             'pipeline_labs': analysis['pipeline_labs'],
             'status': analysis['status'],
-            'assembly': analysis['assembly']
+            'assembly': analysis['assembly'],
+            'pipelines': analysis['pipelines']
         }
 
     latest = None
@@ -48,8 +49,7 @@ def get_latest_analysis(analyses):
             latest = acc
 
         if 'ENCODE4' in analyses_dict[acc]['pipeline_rfas']:
-            latest = acc
-            if ('in progress' in analyses_dict[acc]['status']) or (analyses_dict[acc]['date'] > analyses_dict[latest]['date']):
+            if (('in progress' in analyses_dict[acc]['status']) or (analyses_dict[acc]['date'] > analyses_dict[latest]['date'])) and "/pipelines/ENCPL839OAB/" in analyses_dict[acc]['pipelines']:
                 latest = acc
 
     return latest
