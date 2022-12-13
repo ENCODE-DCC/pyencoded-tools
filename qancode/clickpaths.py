@@ -43,7 +43,7 @@ class OpenUCSCGenomeBrowser:
     def perform_action(self):
         current_window = self.driver.current_window_handle
         time.sleep(1)
-        for y in self.driver.find_elements_by_tag_name(ExperimentPage.all_buttons_tag_name):
+        for y in self.driver.find_elements(By.TAG_NAME, ExperimentPage.all_buttons_tag_name):
             try:
                 if y.text == 'Visualize':
                     y.click()
@@ -54,7 +54,7 @@ class OpenUCSCGenomeBrowser:
                 pass
         modal = self.driver.wait.until(
             EC.element_to_be_clickable((By.CLASS_NAME, VisualizeModal.modal_class)))
-        UCSC_links = modal.find_elements_by_partial_link_text(
+        UCSC_links = modal.find_elements(By.PARTIAL_LINK_TEXT,
             VisualizeModal.UCSC_link_partial_link_text)
         for link in UCSC_links:
             if self.assembly in link.get_attribute("href"):
@@ -83,17 +83,17 @@ class OpenUCSCGenomeBrowserFromExperiment:
         current_window = self.driver.current_window_handle
         time.sleep(1)
 
-        file_table_tab = self.driver.find_element_by_xpath(ExperimentPage.file_table_tab_xpath)
+        file_table_tab = self.driver.find_element(By.XPATH, ExperimentPage.file_table_tab_xpath)
         file_table_tab.click()
 
         try:
-            selector_elem = self.driver.find_element_by_xpath(ExperimentPage.assembly_selector_xpath)
+            selector_elem = self.driver.find_element(By.XPATH, ExperimentPage.assembly_selector_xpath)
             selector = select.Select(selector_elem)
         except Exception as e:
             print(e)
             exit()
 
-        selected_assembly = self.driver.find_element_by_xpath(
+        selected_assembly = self.driver.find_element(By.XPATH,
             '//*[@id="tables"]/div/div[1]/div[1]/select/option[starts-with(text(), "{0}")]'.format(self.assembly))
 
         # Hide Walkme widget, which frequently interferes with buttons on the File details tab
@@ -110,7 +110,7 @@ class OpenUCSCGenomeBrowserFromExperiment:
             print(e)
         time.sleep(1)
 
-        for y in self.driver.find_elements_by_tag_name(ExperimentPage.all_buttons_tag_name):
+        for y in self.driver.find_elements(By.TAG_NAME, ExperimentPage.all_buttons_tag_name):
             try:
                 if y.text == 'Visualize':
                     y.click()
@@ -343,18 +343,18 @@ class DownloadFileFromModal:
         self.full_file_type = full_file_type
 
     def perform_action(self):
-        elems = self.driver.find_elements_by_xpath(
+        elems = self.driver.find_elements(By.XPATH,
             ExperimentPage.file_type_column_xpath)
         for elem in elems:
             if elem.text == self.full_file_type:
-                filename = urllib.request.unquote(elem.find_element_by_xpath(
+                filename = urllib.request.unquote(elem.find_element(By.XPATH,
                     ExperimentPage.accession_column_relative_xpath).get_attribute('href').split('/')[-1])
                 download_start_time = time.time()
-                elem.find_element_by_xpath(
+                elem.find_element(By.XPATH,
                     ExperimentPage.information_button_relative_xpath).click()
                 break
         time.sleep(2)
-        self.driver.find_element_by_xpath(
+        self.driver.find_element(By.XPATH,
             InformationModal.download_icon_xpath).click()
         time.sleep(5)
         print(filename)
@@ -431,7 +431,7 @@ class DownloadMetaDataFromSearchPage:
 
 class DownloadFileFromFilePage:
     def __init__(self, driver):
-        self.filenames, self.download_start_times = DownloadFileFromButton(driver, FilePage.download_button_xpath, driver.find_element_by_xpath(
+        self.filenames, self.download_start_times = DownloadFileFromButton(driver, FilePage.download_button_xpath, driver.find_element(By.XPATH,
             FilePage.download_button_xpath).get_attribute('href').split('/')[-1]).perform_action()
 
 
@@ -447,7 +447,7 @@ class DownloadDocuments:
     def perform_action(self):
         self.filenames = []
         self.download_start_times = []
-        elems = self.driver.find_elements_by_xpath(
+        elems = self.driver.find_elements(By.XPATH,
             DocumentPreview.document_files_xpath)
         for elem in elems:
             filename = urllib.request.unquote(
@@ -473,7 +473,7 @@ class DownloadDocumentsFromAntibodyPage:
     def perform_action(self):
         self.filenames = []
         self.download_start_times = []
-        elems = self.driver.find_elements_by_xpath(
+        elems = self.driver.find_elements(By.XPATH,
             AntibodyPage.expanded_document_panels_xpath)
         for elem in elems:
             key = elem.get_attribute('href')
@@ -509,7 +509,7 @@ class ClickSearchResultItem:
 
     def perform_action(self):
         try:
-            item_link = self.driver.find_element_by_xpath(SearchPageList.search_result_item)
+            item_link = self.driver.find_element(By.XPATH, SearchPageList.search_result_item)
             self.driver.execute_script('arguments[0].scrollIntoView(true)', item_link)
             self.driver.execute_script('arguments[0].click()', item_link)
         except:
@@ -527,7 +527,7 @@ class ClickSearchResultItemAndMakeExperimentPagesLookTheSame:
 
     def perform_action(self):
         try:
-            item_link = self.driver.find_element_by_xpath(SearchPageList.search_result_item)
+            item_link = self.driver.find_element(By.XPATH, SearchPageList.search_result_item)
             self.driver.execute_script('arguments[0].scrollIntoView(true)', item_link)
             self.driver.execute_script('arguments[0].click()', item_link)
             self.driver.wait.until(

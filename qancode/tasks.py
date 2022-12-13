@@ -98,11 +98,11 @@ class Driver:
             firefox_options = webdriver.FirefoxOptions()
             if 'headless' in browser:
                 firefox_options.headless = True
-            self.driver = webdriver.Firefox(firefox_profile=fp, firefox_options=firefox_options)
+            self.driver = webdriver.Firefox(firefox_profile=fp, options=firefox_options)
         elif browser == 'Chrome-headless':
             chrome_options = webdriver.ChromeOptions()
             chrome_options.headless = True
-            self.driver = webdriver.Chrome(chrome_options=chrome_options)
+            self.driver = webdriver.Chrome(options=chrome_options)
         else:
             self.driver = getattr(webdriver, browser)()
         self.driver.wait = WebDriverWait(self.driver, 5)
@@ -248,13 +248,13 @@ class SignIn:
             if wait_time < 1:
                 raise SystemError('Page loading error')
             try:
-                self.driver.find_element_by_css_selector(
+                self.driver.find_element(By.CSS_SELECTOR,
                     '#application.communicating')
             except:
                 try:
-                    self.driver.find_element_by_css_selector('#application')
+                    self.driver.find_element(By.CSS_SELECTOR,'#application')
                     if not any([y.is_displayed() for y in
-                                self.driver.find_elements_by_class_name(LoadingSpinner.loading_spinner_class)]):
+                                self.driver.find_elements(By.CLASS_NAME, LoadingSpinner.loading_spinner_class)]):
                         break
                 except:
                     pass
@@ -264,7 +264,7 @@ class SignIn:
                 return True
         # Cookie didn't work. Continue.
         original_window_handle = self.driver.window_handles[0]
-        self.driver.switch_to_window(original_window_handle)
+        self.driver.switch_to.window(original_window_handle)
         login_button = self.driver.wait.until(EC.element_to_be_clickable(
             (By.CSS_SELECTOR, FrontPage.login_button_css)))
         try:
@@ -283,7 +283,7 @@ class SignIn:
             github_button.click()
         except TimeoutException:
             # Hack to find button in Safari.
-            for button in self.driver.find_elements_by_tag_name(SignInModal.button_tag):
+            for button in self.driver.find_elements(By.TAG_NAME, SignInModal.button_tag):
                 if '@' in button.text:
                     button.click()
                     break
@@ -292,14 +292,14 @@ class SignIn:
 
         new_window_handle = [h for h in self.driver.window_handles
                                  if h != original_window_handle][0]
-        self.driver.switch_to_window(new_window_handle)
+        self.driver.switch_to.window(new_window_handle)
         try:
             user_id = self.driver.wait.until(EC.presence_of_element_located(
                 (By.CSS_SELECTOR, SignInModal.github_user_id_input_css)))
         except TimeoutException:
             new_window_handle = [h for h in self.driver.window_handles
                                  if h != original_window_handle][0]
-            self.driver.switch_to_window(new_window_handle)
+            self.driver.switch_to.window(new_window_handle)
             user_id = self.driver.wait.until(EC.presence_of_element_located(
                 (By.CSS_SELECTOR, SignInModal.github_user_id_input_css)))
         user_id.send_keys(self.creds['username'])
@@ -316,11 +316,11 @@ class SignIn:
             else:
                 new_window_handle = [h for h in self.driver.window_handles
                                      if h != original_window_handle][0]
-                self.driver.switch_to_window(new_window_handle)
+                self.driver.switch_to.window(new_window_handle)
                 submit_button = self.driver.wait.until(EC.element_to_be_clickable(
                     (By.CSS_SELECTOR, SignInModal.github_submit_button_css)))
                 submit_button.click()
-        self.driver.switch_to_window(original_window_handle)
+        self.driver.switch_to.window(original_window_handle)
         if self.signed_in():
             self.add_cookie_to_cred()
             return True
@@ -346,11 +346,11 @@ class SeleniumTask(metaclass=ABCMeta):
         self.kwargs = kwargs
 
     def _wait_for_loading_spinner(self):
-        if any([y.is_displayed() for y in self.driver.find_elements_by_class_name(LoadingSpinner.loading_spinner_class)]):
+        if any([y.is_displayed() for y in self.driver.find_elements(By.CLASS_NAME, LoadingSpinner.loading_spinner_class)]):
             print('Waiting for spinner')
             browser = self.driver.capabilities['browserName'].title()
             for tries in tqdm(range(10)):
-                if any([y.is_displayed() for y in self.driver.find_elements_by_class_name(LoadingSpinner.loading_spinner_class)]):
+                if any([y.is_displayed() for y in self.driver.find_elements(By.CLASS_NAME, LoadingSpinner.loading_spinner_class)]):
                     time.sleep(1)
                 else:
                     print('Loading complete')
@@ -462,7 +462,7 @@ class GetFacetNumbers(SeleniumTask):
         print('Matrix page detected')
         box_left = self.driver.wait.until(EC.presence_of_element_located(
             (By.CLASS_NAME, SearchPageMatrix.facet_box_class)))
-        facets_left = box_left.find_elements_by_class_name(
+        facets_left = box_left.find_elements(By.CLASS_NAME,
             SearchPageMatrix.facets_left_class)
         return facets_left
 
@@ -470,7 +470,7 @@ class GetFacetNumbers(SeleniumTask):
         print('Summary page detected')
         box_left = self.driver.wait.until(EC.presence_of_element_located(
             (By.CLASS_NAME, SearchPageSummary.facet_box_class)))
-        facets_left = box_left.find_elements_by_class_name(
+        facets_left = box_left.find_elements(By.CLASS_NAME,
             SearchPageSummary.facets_left_class)
         return facets_left
 
@@ -478,7 +478,7 @@ class GetFacetNumbers(SeleniumTask):
         print('Search page detected')
         facet_box = self.driver.wait.until(
             EC.presence_of_element_located((By.CLASS_NAME, SearchPageList.facet_box_class)))
-        facets = self.driver.find_elements_by_class_name(
+        facets = self.driver.find_elements(By.CLASS_NAME,
             SearchPageList.facet_class)
         return facets
 
@@ -524,11 +524,11 @@ class GetFacetNumbers(SeleniumTask):
                 title_selector = 'h5'
                 category_class = SearchPageList.category_title_class
                 number_class = SearchPageList.number_class
-            title = facet.find_element_by_css_selector(
+            title = facet.find_element(By.CSS_SELECTOR,
                 title_selector).text.replace(':', '').strip()
             categories = [
-                c.text for c in facet.find_elements_by_class_name(category_class)]
-            numbers = [n.text for n in facet.find_elements_by_class_name(
+                c.text for c in facet.find_elements(By.CLASS_NAME, category_class)]
+            numbers = [n.text for n in facet.find_elements(By.CLASS_NAME,
                 number_class) if n.text != '']
             assert len(categories) == len(numbers)
             if title in data_dict.keys():
@@ -763,7 +763,7 @@ class DownloadFiles(SeleniumTask):
         self._try_load_item_type()
         if self.click_path != DownloadGraphFromExperimentPage:
             try:
-                self.driver.find_element_by_xpath(
+                self.driver.find_element(By.XPATH,
                     ExperimentPage.file_graph_tab_xpath).click()
             except:
                 pass
