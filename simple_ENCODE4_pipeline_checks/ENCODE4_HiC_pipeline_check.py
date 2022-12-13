@@ -13,7 +13,7 @@ BASE_URL = 'https://www.encodeproject.org/{}/?format=json'
 ENCODE4_HIC_PIPELINES = ['/pipelines/ENCPL839OAB/']
 PREFERRED_DEFAULT_FILE_FORMAT = ['hic', 'bigWig', 'bedpe', 'bedpe']
 PREFERRED_DEFAULT_OUTPUT_TYPE = [
-    'mapping quality thresholded chromatin interactions', 'genome compartments', 'long range chromatin interactions', 'topologically associated domains'
+    'mapping quality thresholded contact matrix', 'genome compartments', 'loops', 'contact domains'
 ]
 
 
@@ -95,17 +95,17 @@ def check_encode4_hic_pipeline(exp_acc):
     file_output_map = {}
     expected_file_output_count = {
         ('alignments', 'bam'): rep_count,
-        ('chromatin interactions', 'hic'): 1,
+        ('contact matrix', 'hic'): 1,
         ('chromatin stripes', 'bedpe'): 1,
         ('genome compartments', 'bigWig'): 4,
         ('genome subcompartments', 'bed'): 3,
-        ('long range chromatin interactions', 'bedpe'): 4,
-        ('mapping quality thresholded chromatin interactions', 'hic'): 1,
+        ('loops', 'bedpe'): 4,
+        ('mapping quality thresholded contact matrix', 'hic'): 1,
         ('pairs', 'pairs'): 1,
-        ('topologically associated domains', 'bedpe'): 3,
+        ('contact domains', 'bedpe'): 3,
     }
     if experiment['assay_title'] == 'intact Hi-C':
-        expected_file_output_count[('DNA accessibility raw signal', 'bigWig')] = 1
+        expected_file_output_count[('nuclease cleavage frequency', 'bigWig')] = 1
     for analysis in analysisObj:
         if analysis['status'] in ['released'] and analysis['accession'] != latest:
             archiveAnalyses[exp_acc].append(analysis['accession'])
