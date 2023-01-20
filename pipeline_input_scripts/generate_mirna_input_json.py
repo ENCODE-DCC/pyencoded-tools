@@ -43,7 +43,7 @@ def get_parser():
 
 def parse_infile(infile):
     try:
-        infile_df = pd.read_csv(infile, '\t')
+        infile_df = pd.read_csv(infile, sep='\t')
         return infile_df
     except FileNotFoundError as e:
         print(e)

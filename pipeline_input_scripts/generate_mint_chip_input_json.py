@@ -102,7 +102,7 @@ def build_file_report_query(experiment_list, server, file_format):
 
 def parse_infile(infile):
     try:
-        infile_df = pd.read_csv(infile, '\t')
+        infile_df = pd.read_csv(infile, sep='\t')
         infile_df['align_only'].astype('bool')
         infile_df['multiple_controls'].astype('bool')
         infile_df['force_se'].astype('bool')

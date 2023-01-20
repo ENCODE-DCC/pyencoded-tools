@@ -76,7 +76,7 @@ def build_file_report_query(experiment_list, server):
 
 def parse_infile(infile):
     try:
-        infile_df = pd.read_csv(infile, '\t')
+        infile_df = pd.read_csv(infile, sep='\t')
         infile_df['align_only'].astype('bool')
         return infile_df
     except FileNotFoundError as e:
