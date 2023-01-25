@@ -43,7 +43,7 @@ def get_parser():
 
 def parse_infile(infile):
     try:
-        infile_df = pd.read_csv(infile, '\t')
+        infile_df = pd.read_csv(infile, sep='\t')
         return infile_df
     except FileNotFoundError as e:
         print(e)
@@ -104,7 +104,7 @@ def get_data_from_portal(infile_df, server, keypair, link_prefix, link_src):
             headers={'content-type': 'application/json'})
         experiment_report_json = json.loads(experiment_report.text)
         experiment_df_temp = pd.json_normalize(experiment_report_json['@graph'])
-        experiment_input_df = experiment_input_df.append(experiment_df_temp, ignore_index=True, sort=True)
+        experiment_input_df = pd.concat([experiment_input_df, experiment_df_temp], ignore_index=True, sort=True)
     experiment_input_df.sort_values(by=['accession'], inplace=True)
 
     # Gather list of controls from the list of experiments to query for their files.
@@ -120,7 +120,7 @@ def get_data_from_portal(infile_df, server, keypair, link_prefix, link_src):
             headers={'content-type': 'application/json'})
         file_report_json = json.loads(file_report.text)
         file_df_temp = pd.json_normalize(file_report_json['@graph'])
-        file_input_df = file_input_df.append(file_df_temp, ignore_index=True, sort=True)
+        file_input_df = pd.concat([file_input_df, file_df_temp], ignore_index=True, sort=True)
     file_input_df.set_index(link_src, inplace=True)
     file_input_df['biorep_scalar'] = [x[0] for x in file_input_df['biological_replicates']]
 
