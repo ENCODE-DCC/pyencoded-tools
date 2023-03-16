@@ -4,6 +4,7 @@ import urllib
 
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support import select
 
 from qancode.pageobjects import (AntibodyPage,
@@ -62,7 +63,7 @@ class OpenUCSCGenomeBrowser:
                 link.click()
                 break
         time.sleep(1)
-        self.driver.switch_to_window([h for h in self.driver.window_handles
+        self.driver.switch_to.window([h for h in self.driver.window_handles
                                       if h != current_window][0])
         self.driver.wait_long.until(EC.element_to_be_clickable(
             (By.ID, UCSCGenomeBrowser.zoom_one_id)))
@@ -97,9 +98,13 @@ class OpenUCSCGenomeBrowserFromExperiment:
             '//*[@id="tables"]/div/div[1]/div[1]/select/option[starts-with(text(), "{0}")]'.format(self.assembly))
 
         # Hide Walkme widget, which frequently interferes with buttons on the File details tab
-        walkme_widget = self.driver.wait.until(EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, ExperimentPage.walkme_corner_widget)))
-        self.driver.execute_script("arguments[0].style.visibility='hidden'", walkme_widget)
+        try:
+            walkme_element = self.driver.find_element(By.CSS_SELECTOR, ExperimentPage.walkme_corner_widget)
+            walkme_widget = self.driver.wait.until(EC.element_to_be_clickable(
+                (By.CSS_SELECTOR, ExperimentPage.walkme_corner_widget)))
+            self.driver.execute_script("arguments[0].style.visibility='hidden'", walkme_widget)
+        except NoSuchElementException:
+            pass
 
         # Forces driver to scroll to the Assembly selector.
         # Forced scrolling is necessary for the Edge webdriver, otherwise it's unable to interact with the selector.
@@ -119,7 +124,7 @@ class OpenUCSCGenomeBrowserFromExperiment:
             except:
                 pass
         time.sleep(1)
-        self.driver.switch_to_window([h for h in self.driver.window_handles
+        self.driver.switch_to.window([h for h in self.driver.window_handles
                                       if h != current_window][0])
         time.sleep(3)
         self.driver.wait_long.until(EC.element_to_be_clickable(
