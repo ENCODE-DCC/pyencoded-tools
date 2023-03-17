@@ -134,7 +134,7 @@ class NavBar:
     """
     Page object model.
     """
-    testing_warning_banner_button_css = '#navbar > div.test-warning > div > button'
+    testing_warning_banner_button_css = '#navbar > div > div > button'
 
 
 class LoadingSpinner:

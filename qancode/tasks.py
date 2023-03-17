@@ -397,8 +397,12 @@ class SeleniumTask(metaclass=ABCMeta):
     def _get_rid_of_test_warning_banner(self):
         testing_warning_banner_button = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable(
             (By.CSS_SELECTOR, NavBar.testing_warning_banner_button_css)))
-        testing_warning_banner_button.click()
-
+        try:
+            testing_warning_banner_button.click()
+            assert testing_warning_banner_button.get_attribute('aria-expanded') == 'true' or \
+                testing_warning_banner_button.get_attribute('aria-pressed') == 'true'
+        except:
+            self.driver.execute_script('arguments[0].click();', testing_warning_banner_button)
 
     def _get_rid_of_walkme_covid_banner(self):
         walkme_covid_banner_button = WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable(
@@ -420,13 +424,11 @@ class SeleniumTask(metaclass=ABCMeta):
             except:
                 try:
                     self.driver.execute_script('arguments[0].scrollIntoView(true);', button)
-                    time.sleep(1)
-                    button.click()
+                    self.driver.execute_script('arguments[0].click();', button)
                 except:
                     try:
                         self.driver.execute_script('window.scrollBy(0,-100);', button)
-                        time.sleep(1)
-                        button.click()
+                        self.driver.execute_script('arguments[0].click();', button)
                     except:
                         pass
 
@@ -504,6 +506,11 @@ class GetFacetNumbers(SeleniumTask):
             self.driver.wait.until(EC.title_contains('Search'))
         except TimeoutException:
             pass
+        if 'https://www.encodeproject.org' not in self.driver.current_url:
+            try:
+                self._get_rid_of_test_warning_banner()
+            except:
+                pass
         try:
             self._expand_facets()
         except:
